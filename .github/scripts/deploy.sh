@@ -212,7 +212,8 @@ summary "" \
 
 if [[ "$upload_count" -gt 0 ]]; then
 	summary "<details><summary>Files to upload</summary>" "" '```'
-	tr '\0' '\n' <"$WORK/upload.lst" | head -n "$SUMMARY_FILE_LIMIT" | while IFS= read -r line; do summary "$line"; done
+	tr '\0' '\n' <"$WORK/upload.lst" >"$WORK/upload.txt"
+	head -n "$SUMMARY_FILE_LIMIT" "$WORK/upload.txt" | while IFS= read -r line; do summary "$line"; done
 	[[ "$upload_count" -le "$SUMMARY_FILE_LIMIT" ]] || summary "... and $((upload_count - SUMMARY_FILE_LIMIT)) more (see job log)"
 	summary '```' "</details>" ""
 fi
