@@ -143,7 +143,7 @@ echo "Dry run:     $DRY_RUN"
 # Connection check + destination sanity check
 # ---------------------------------------------------------------------------
 echo "::group::Connection check"
-if ! listing="$(lftp_run "cd \"$SERVER_DIR\"" "cls -1")"; then
+if ! listing="$(lftp_run "cd \"$SERVER_DIR\"" "cls -1 -a")"; then
 	echo "::endgroup::"
 	fail "Could not connect, log in, or open '$SERVER_DIR' on $HOST:$PORT. Check FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_PROTOCOL, FTP_PORT and FTP_SERVER_DIR (see lftp output above)."
 fi
@@ -156,7 +156,11 @@ grep -Eq '(^|/)wp-content/?$' <<<"$listing" ||
 # ---------------------------------------------------------------------------
 # Decide what to upload
 # ---------------------------------------------------------------------------
-prev_rev="$(lftp_run "cd \"$SERVER_DIR\"" "cat $MARKER_NAME" 2>/dev/null | tr -d '[:space:]')" || prev_rev=""
+# lftp `cat` on a missing file hangs on this host instead of failing, so only read the marker when it is listed.
+prev_rev=""
+if grep -Eq "(^|/)\\${MARKER_NAME}\$" <<<"$listing"; then
+	prev_rev="$(lftp_run "cd \"$SERVER_DIR\"" "cat $MARKER_NAME" 2>/dev/null | tr -d '[:space:]')" || prev_rev=""
+fi
 
 if [[ "$prev_rev" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "${prev_rev}^{commit}" 2>/dev/null; then
 	MODE="incremental"

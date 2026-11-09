@@ -65,11 +65,12 @@
 - **۹ نوامبر ۲۰۲۶: سهمیهٔ دیسک FTP پر شد** (خطای `552 Exceeded storage allocation`). علت: zipهای بکاپ حجیم (بخش ۱۸). آپلود `public.css` نیمه‌کاره ماند و فایل روی سرور ۰ بایت شد. **رفع شد:** با اجازهٔ کاربر ۴ zip داخل `wp-content` (`plugins.zip`, `plugins-2.zip`, `plugins-3.zip`, `themes.zip` ≈ ۹۳۵MB) حذف و فایل‌ها دوباره آپلود شدند (اندازهٔ ریموت = محلی، صفحات 200 بدون خطا). اگر دوباره 552 دیدی، فوراً اندازهٔ فایل ریموت را چک کن.
 - مرجع پشتیبان پچ‌ها (طبق سند پچ‌ها): `d:\medyar-main\`.
 
-**گیت:**
-- ریشهٔ `c:\Projects\medyar-develop` ریپوی git **نیست**.
-- `wp-content/plugins/medyar-nursing-services/` ریپوی جدا دارد: `https://github.com/mehdi-diaromidi/medyar-nursing-services` (شاخه‌ها: `main`، `feature/front-static`). کامیت‌ها با متغیرهای محیطی `GIT_AUTHOR_*`/`GIT_COMMITTER_*` (بدون تغییر git config).
-- `medyar-sms-queue` هم ریپوی `github.com/mehdi-diaromidi/medyar-sms-queue` (`main`) دارد.
-- `token-optimizer/` یک کلون ثالث با `.git` خودش است.
+**گیت (از ۹ نوامبر ۲۰۲۶):**
+- ریشهٔ `c:\Projects\medyar-develop` ریپوی **`https://github.com/mehdi-diaromidi/medyar-develop`** (Private، شاخهٔ `main`) است. کامیت با متغیرهای محیطی `GIT_AUTHOR_*`/`GIT_COMMITTER_*` = `M.Mehdi <m.mehdi@medyarco.com>` (git config سراسری خالی است).
+- `.gitignore` به‌صورت whitelist: فقط ۹ پلاگین سفارشی (`affiliate-referral`, `lab-booking-system`, `medical-records`, `medyar-chat-pro`, `medyar-myaccount-dashboard`, `medyar-nursing-services`, `medyar-sms-queue`, `medyar-toman-wallet`, `pharmacy-pro-system`) + قالب `dr-plus` (بدون `log.txt`) + `docs`، `desgin`، `For Clouad`، `.cursor/rules`، `.github`. بیرون: `.ftp.env`، `.env*`، `.vscode/`، `/deploy.ps1`، `/deploy.sh`، `token-optimizer/`، `For Cursor/`، `*.zip`، `*.sql`، `*.log`، `error_log`، `wp-config.php`.
+- `.gitattributes`: `* -text` (بدون تبدیل خط؛ فایل‌های رمزگذاری‌شدهٔ dr-plus بایت‌به‌بایت) + `*.sh`/`*.yml` با `eol=lf` (اسکریپت bash روی runner با CRLF می‌شکند).
+- ریپوهای قبلی تو در تو (`.git` داخل `medyar-nursing-services` با remote `mehdi-diaromidi/medyar-nursing-services` و `medyar-sms-queue` با remote `mehdi-diaromidi/medyar-sms-queue`) به **`C:\Projects\_git-backups\*.git`** منتقل شدند تا محتوایشان در ریپوی اصلی قرار بگیرد (تاریخچه حفظ شده).
+- `token-optimizer/` یک کلون ثالث با `.git` خودش است (ignored).
 
 ---
 
@@ -111,6 +112,14 @@ c:\Projects\medyar-develop
 - `.ftp.env` کنار اسکریپت را می‌خواند (`KEY=VALUE`، کامنت با `#`). الزامی: `FTP_HOST`, `FTP_USER`, `FTP_PASS`؛ اختیاری: `FTP_ROOT`, `FTP_PORT` (پیش‌فرض 21).
 - برای هر مسیر: `\`→`/`، بررسی وجود فایل محلی، ساخت پوشه‌های ریموت با `MakeDirectory` (خطای «وجود دارد» نادیده)، آپلود باینری Passive با `FtpWebRequest` (Proxy=null)، چاپ `OK <path>`.
 - **هشدار:** آپلود مستقیم روی فایل مقصد است؛ اگر وسط کار خطا بدهد (مثل 552)، فایل ریموت **خالی/ناقص** می‌ماند. (پیشنهاد آینده: آپلود به نام موقت و سپس Rename.)
+
+### 3.1b Deploy خودکار با GitHub Actions (روش اصلی از ۹ نوامبر ۲۰۲۶)
+- مستند کامل: `DEPLOYMENT.md` در ریشه. Workflow: `.github/workflows/deploy.yml` («Deploy to host»)، اسکریپت: `.github/scripts/deploy.sh` (lftp).
+- هر push به `main` (یا اجرای دستی با ورودی `dry_run`) → فقط فایل‌های **track‌شده زیر `wp-content/`** آپلود می‌شوند. اولین بار همه؛ بعد از آن فقط diff از commit ثبت‌شده در `/.deploy-revision` روی هاست.
+- پروتکل **FTPS صریح** (AUTH TLS، پورت 21) با گواهی self-signed (`CN=s378.bitcommand.com`، انقضا 2027-05-04) که اثرانگشت SHA-256 آن pin شده: `BE:B7:B2:48:36:29:5B:19:D9:B2:00:63:9B:D4:1D:33:FA:0F:73:B0:30:C6:F4:C9:8F:D0:45:E2:28:E9:85:02`.
+- هر فایل با نام موقت آپلود و سپس rename می‌شود (`xfer:use-temp-file`) — درس حادثهٔ 552. **هیچ فایلی روی هاست حذف نمی‌شود**؛ فایل‌های حذف‌شده از git فقط گزارش می‌شوند.
+- Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`. Variables: `FTP_PROTOCOL=ftps`, `FTP_PORT=21`, `FTP_SERVER_DIR=/` (ریشهٔ FTP = ریشهٔ وردپرس)، `FTP_TLS_FINGERPRINT`، `DEPLOY_DRY_RUN` (`true` = فقط شبیه‌سازی؛ `false` = deploy واقعی روی هر push).
+- ثبت secret/variable بدون gh CLI: با توکن Git Credential Manager (`git credential fill`) و REST API گیت‌هاب (رمزنگاری secret با PyNaCl sealed box).
 
 ### 3.2 `deploy.sh`
 - اگر `lftp` باشد: `mkdir -p` و `put -O` با SSL خاموش؛ وگرنه fallback به `pwsh -File deploy.ps1` یا `powershell.exe`.
@@ -648,8 +657,9 @@ desgin/ui doc/  ثبت سفارش.txt · سفارش های من.txt · فاکت�
 - `wp-content/duplicator-backups/`.
 - zipهای داخل `plugins/`/`themes/` از وب قابل دانلودند (افشای کد تجاری) — بهتر است حذف یا بیرون از webroot منتقل شوند.
 
-**فایل‌های مشکوک در ریشهٔ وب develop (بررسی فوری لازم — احتمال آلودگی):**
-`alertpay_adverts`, `index_enc_zend`, `invitation`, `k2usergroup`, `memory.lib`, `news_moderate`, `styles.bak`, `tbl_change`, `toplayout`, `tradelog.inc`, `vcard.class` (هر کدام ~۲.۲–۲.۶MB، نام‌های بی‌ربط به وردپرس)، `Medyar.jpg` (۲.۳MB هم‌اندازهٔ همین‌ها)، `stack.php`، `fvs.txt` (در ریشه و wp-content)، `tmp-probe-faraz-notice*.js`، `error_log`. الگوی نام‌گذاری شبیه dropperهای بدافزار است؛ با Wordfence اسکن و با نسخهٔ سالم مقایسه شود.
+**فایل‌های مشکوک در ریشهٔ وب develop:**
+- به درخواست کاربر حذف شدند (۹ نوامبر ۲۰۲۶): `k2usergroup`, `tbl_change`, `vcard.class`, `memory.lib`, `index_enc_zend`, `stack.php`, `/fvs.txt` (فقط نسخهٔ ریشه).
+- هنوز باقی (هم‌الگو، ~۲.۲–۲.۶MB، نام‌های بی‌ربط): `alertpay_adverts`, `invitation`, `news_moderate`, `styles.bak`, `toplayout`, `tradelog.inc`, `Medyar.jpg`، و `wp-content/fvs.txt`، `tmp-probe-faraz-notice*.js`، `error_log`. اسکن با Wordfence و مقایسه با نسخهٔ سالم توصیه می‌شود.
 
 **کد:**
 - Lab/Pharmacy: `lab_submit`/`phar_submit` بدون nonce و بدون بررسی مجدد OTP سمت سرور؛ آپلود بدون اعتبارسنجی نوع؛ پوشه‌های `lab_secure`/`pharmacy_secure` فقط `Options -Indexes` (فایل با URL مستقیم در دسترس)؛ SQL جستجوی ادمین با درون‌گذاری رشته.
