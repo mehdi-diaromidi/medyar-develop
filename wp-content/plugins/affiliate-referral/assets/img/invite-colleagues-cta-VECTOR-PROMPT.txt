@@ -1,0 +1,6 @@
+Vector prompt for invite-colleagues CTA (give to image agent)
+
+Flat editorial illustration for a Persian medical platform CTA banner, RTL-friendly. Soft teal/blue Medyar palette (#0272b1, light #f3f9fd). Two friendly healthcare colleagues inviting a third peer into a professional network (handshake/welcome), subtle referral motif, clean clinic atmosphere. Clear negative space on the right for Persian headline overlay. No logos, no text, no money/coins, no dark mode, no purple glow. Landscape/wide WebP, readable around 120px height on mobile. Modern flat soft shapes.
+
+Export as: wp-content/plugins/affiliate-referral/assets/img/invite-colleagues-cta.webp
+Place artwork on the LEFT / bottom so text can sit on the right (RTL page).

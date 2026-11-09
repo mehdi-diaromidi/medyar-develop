@@ -1,0 +1,881 @@
+/**
+ * Medyar bank cards — site DS (teal/secondary, radii 8–10).
+ * No hover translate/transform shifts.
+ */
+
+.mtw-bank-cards-section.mtw-vault,
+.mtw-vault {
+    --vault-ink: var(--text-main, #383838);
+    --vault-accent: var(--primary-100, #1dbab5);
+    --vault-accent-soft: var(--primary-100-20, #1dbab533);
+    --vault-secondary: var(--secondary-100, #114b5f);
+    --vault-paper: var(--general-bg, #fff);
+    --vault-mist: var(--gray-100, #f7f7f7);
+    --vault-line: var(--gray-200, #e6e6e6);
+    --vault-muted: var(--text-200, #a6a6a6);
+    --vault-danger: var(--red, #d60043);
+    --vault-input: var(--input-bg, #f5f6f7);
+    --vault-r-sm: 8px;
+    --vault-r: 10px;
+    --vault-r-lg: 10px;
+    --vault-ease: 0.28s ease;
+    gap: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-family: var(--main-font, IRANYekanXFANum, sans-serif);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mtw-vault *,
+    .mtw-vault *::before,
+    .mtw-vault *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+.mtw-vault .sheyda_wallet_section-title-wrap,
+.mtw-vault .sheyda_wallet_financial-desc {
+    display: none !important;
+}
+
+.mtw-vault__intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 16px;
+    padding: 0 0 16px;
+}
+
+.mtw-vault__eyebrow {
+    margin: 0 0 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--vault-muted);
+}
+
+.mtw-vault__heading-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.mtw-vault__heading {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--heading-200, #181616);
+}
+
+.mtw-vault .mtw-section-icon.drplus-simple-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    height: auto;
+    border-radius: 0;
+    background: transparent !important;
+    color: var(--vault-accent, var(--primary-100));
+    font-size: 1.125rem;
+}
+
+.mtw-vault .mtw-section-icon.icon-has-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: var(--primary-100-36, rgba(2, 114, 177, 0.36));
+    border-radius: 8px;
+    rotate: 8deg;
+    z-index: 0;
+}
+
+.mtw-vault .mtw-section-icon .drplus-simple-icon {
+    position: relative;
+    z-index: 2;
+    padding: 4px;
+    font-size: inherit;
+    box-sizing: border-box;
+}
+
+.mtw-vault__lead {
+    margin: 0;
+    max-width: 36em;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.7;
+    color: var(--vault-muted);
+}
+
+.mtw-vault__meter {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--vault-r-sm);
+    background: transparent;
+    border: 0;
+    color: var(--vault-ink);
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.mtw-vault__meter-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+}
+
+.mtw-vault__meter-value {
+    color: var(--vault-accent);
+    font-size: 1.05rem;
+}
+
+.mtw-vault__meter-sep {
+    color: var(--vault-muted);
+    font-weight: 600;
+}
+
+.mtw-vault__meter-caption {
+    color: var(--vault-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    unicode-bidi: isolate;
+}
+
+.mtw-vault__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---------- Composer ---------- */
+.mtw-composer {
+    border: 1px solid var(--vault-line);
+    border-radius: var(--vault-r);
+    background: var(--vault-paper);
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.mtw-composer__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.mtw-composer.is-open .mtw-composer__toolbar {
+    border-bottom: 1px solid var(--vault-line);
+}
+
+.mtw-composer__title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: var(--heading-200, #181616);
+}
+
+.mtw-composer__toggle,
+.mtw-vault .add-card-btn {
+    appearance: none;
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid var(--vault-line);
+    border-radius: var(--vault-r);
+    background: var(--vault-mist);
+    color: var(--vault-ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background var(--vault-ease), border-color var(--vault-ease), color var(--vault-ease);
+}
+
+.mtw-composer:not(.is-open) .mtw-composer__toggle-close,
+.mtw-composer.is-open .mtw-composer__toggle-open {
+    display: none;
+}
+
+.mtw-composer.is-open .mtw-composer__toggle {
+    background: var(--vault-paper);
+}
+
+.mtw-composer__toggle:hover {
+    border-color: var(--vault-accent);
+    color: var(--vault-accent);
+}
+
+.mtw-composer__body[hidden] {
+    display: none !important;
+}
+
+.mtw-composer__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+    align-items: stretch;
+}
+
+@media (max-width: 820px) {
+    .mtw-composer__stage {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mtw-live-card {
+    position: relative;
+    min-height: 168px;
+    padding: 16px 18px;
+    border-radius: var(--vault-r);
+    background: var(--vault-secondary);
+    color: #fff;
+    overflow: hidden;
+    transition: background var(--vault-ease);
+}
+
+.mtw-live-card.is-unknown {
+    background: var(--vault-secondary);
+}
+
+/* آیکن پیش‌فرض (bitcoin-card) به‌جای لوگو بانک وقتی BIN شناخته نشود */
+.mtw-card-fallback-icon {
+    width: 100%;
+    height: 100%;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.mtw-live-card__logo-wrap .mtw-card-fallback-icon .drplus-simple-icon,
+.bank-card-icon-ws .mtw-card-fallback-icon .drplus-simple-icon {
+    font-size: 22px;
+    color: var(--vault-secondary, #1a3a4a);
+}
+
+.bank-card-icon-ws .mtw-card-fallback-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fff !important;
+}
+
+.mtw-live-card__shine,
+.mtw-live-card__chip {
+    display: none !important;
+}
+
+.mtw-live-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.mtw-live-card__logo-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--vault-r-sm);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.mtw-live-card__logo-wrap .bank-logo-img {
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.mtw-live-card__bank {
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.mtw-live-card__number {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    direction: ltr;
+    text-align: right;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.mtw-live-card__iban {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    direction: ltr;
+    text-align: right;
+    opacity: 0.85;
+    margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mtw-live-card__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.6875rem;
+    opacity: 0.85;
+}
+
+.mtw-live-card__footer strong {
+    font-size: 0.875rem;
+    font-weight: 700;
+    opacity: 1;
+}
+
+.mtw-composer__form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mtw-composer__label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--vault-muted);
+    margin-top: 4px;
+}
+
+.mtw-composer__label:first-child {
+    margin-top: 0;
+}
+
+.mtw-composer__input,
+.mtw-vault .card-input {
+    width: 100%;
+    min-height: 52px;
+    padding: 0 14px;
+    border: 1px solid var(--vault-line);
+    border-radius: var(--vault-r);
+    background: var(--vault-input);
+    color: var(--vault-ink);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    box-shadow: none;
+    transition: border-color var(--vault-ease), background var(--vault-ease), box-shadow var(--vault-ease);
+}
+
+.mtw-composer__input--ltr,
+#newCardNumber,
+#newCardIban {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: plaintext;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.mtw-composer__input--ltr::placeholder,
+#newCardNumber::placeholder,
+#newCardIban::placeholder {
+    direction: ltr !important;
+    text-align: left !important;
+    text-align-last: left !important;
+    opacity: 0.55;
+    unicode-bidi: plaintext;
+}
+
+.mtw-composer__iban-field {
+    display: flex;
+    align-items: stretch;
+    direction: ltr;
+    border: 1px solid var(--vault-line);
+    border-radius: var(--vault-r);
+    background: var(--vault-input);
+    overflow: hidden;
+    transition: border-color var(--vault-ease), box-shadow var(--vault-ease);
+}
+
+.mtw-composer__iban-field:focus-within {
+    border-color: var(--vault-accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--vault-accent-soft);
+}
+
+.mtw-composer__iban-prefix {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 34px;
+    width: 34px;
+    padding: 0 6px;
+    border-inline-end: 1px solid var(--vault-line);
+    border-radius: var(--vault-r) 0 0 var(--vault-r);
+    background: color-mix(in srgb, var(--vault-accent) 10%, var(--vault-mist));
+    color: var(--vault-secondary);
+    font-weight: 800;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    box-sizing: border-box;
+}
+
+.mtw-composer__iban-digits,
+.mtw-composer__iban-field .mtw-composer__input {
+    border: 0 !important;
+    border-radius: 0 var(--vault-r) var(--vault-r) 0 !important; /* TL=0, TR, BR, BL=0 */
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 52px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.mtw-composer__input:focus {
+    outline: none;
+    border-color: var(--vault-accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--vault-accent-soft);
+}
+
+.mtw-composer__iban-field .mtw-composer__input:focus {
+    box-shadow: none;
+}
+
+.mtw-vault .error-message {
+    min-height: 1.1em;
+    color: var(--vault-danger);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.mtw-composer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.mtw-composer__submit,
+.mtw-vault .submit-btn {
+    min-height: 48px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: var(--vault-r);
+    background: var(--vault-accent);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--vault-ease);
+}
+
+.mtw-composer__submit:hover {
+    background: var(--primary-200, #159f9b);
+}
+
+.mtw-composer__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mtw-composer__cancel,
+.mtw-vault .cancel-btn {
+    min-height: 48px;
+    padding: 10px 14px;
+    border-radius: var(--vault-r);
+    border: 1px solid var(--vault-line);
+    background: var(--vault-paper);
+    color: var(--vault-ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color var(--vault-ease), color var(--vault-ease), background var(--vault-ease);
+}
+
+.mtw-composer__cancel:hover {
+    border-color: var(--vault-accent);
+    color: var(--vault-accent);
+}
+
+/* ---------- Saved cards: clean list rows ---------- */
+.mtw-vault__shelf-head {
+    margin-bottom: 12px !important;
+}
+
+.mtw-vault__shelf-head .bank-cards-title {
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: var(--heading-200, #181616);
+}
+
+.mtw-vault__list.bank-cards-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    grid-template-columns: none !important;
+}
+
+.mtw-vault .bank-card-item-ws,
+.mtw-vault .bank-card-item,
+.mtw-plastic {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 12px 16px !important;
+    min-height: 0 !important;
+    padding: 14px 16px !important;
+    border: 1px solid var(--vault-line) !important;
+    border-radius: var(--vault-r) !important;
+    background: var(--vault-paper) !important;
+    color: var(--vault-ink) !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--vault-ease), background var(--vault-ease);
+}
+
+.mtw-vault .bank-card-item-ws::before,
+.mtw-vault .bank-card-item-ws::after,
+.mtw-plastic::before,
+.mtw-plastic::after {
+    content: none !important;
+    display: none !important;
+}
+
+.mtw-plastic:hover {
+    filter: none;
+    border-color: color-mix(in srgb, var(--vault-accent) 40%, var(--vault-line)) !important;
+    background: color-mix(in srgb, var(--vault-mist) 40%, var(--vault-paper)) !important;
+}
+
+.mtw-plastic.selected {
+    border-color: var(--vault-accent) !important;
+    background: color-mix(in srgb, var(--vault-accent-soft) 28%, var(--vault-paper)) !important;
+    box-shadow: none !important;
+}
+
+.mtw-plastic__face,
+.mtw-vault .bank-card-info-ws {
+    display: grid !important;
+    grid-template-columns: 40px minmax(0, 1fr) !important;
+    grid-template-areas:
+        "icon meta"
+        "number number"
+        "iban iban" !important;
+    column-gap: 12px !important;
+    row-gap: 4px !important;
+    align-items: center !important;
+    padding: 0 !important;
+    min-width: 0;
+    flex: 1 1 auto;
+    width: auto;
+    box-sizing: border-box;
+}
+
+.mtw-plastic__top {
+    grid-area: meta;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.mtw-vault .bank-card-icon-ws,
+.mtw-vault .bank-card-icon {
+    grid-area: icon;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    background: var(--vault-mist) !important;
+    border: 1px solid var(--vault-line) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0;
+    overflow: hidden;
+    align-self: start;
+}
+
+.mtw-vault .bank-card-icon-ws .bank-logo-img,
+.mtw-vault .bank-card-icon .bank-logo-img {
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.mtw-vault .bank-card-name-ws,
+.mtw-vault .bank-card-name {
+    margin: 0 !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    color: var(--heading-200, #181616) !important;
+    line-height: 1.35;
+    min-width: 0;
+}
+
+.mtw-plastic__chip {
+    display: none !important;
+}
+
+.mtw-vault .bank-card-number-ws,
+.mtw-vault .bank-card-number {
+    grid-area: number;
+    font-size: 0.9375rem !important;
+    font-weight: 700 !important;
+    color: var(--vault-ink) !important;
+    letter-spacing: 0.06em !important;
+    font-family: inherit !important;
+    direction: ltr;
+    text-align: right;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    padding-inline-start: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mtw-vault .bank-card-iban-ws,
+.mtw-vault .bank-card-iban {
+    grid-area: iban;
+    margin: 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: var(--vault-muted) !important;
+    letter-spacing: 0.03em;
+    direction: ltr;
+    text-align: right;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-inline-start: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mtw-vault .bank-card-iban-ws.is-empty {
+    font-style: normal;
+    opacity: 0.75;
+}
+
+.mtw-vault .bank-card-selected-badge-ws,
+.mtw-vault .bank-card-selected-badge {
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 3px 8px !important;
+    border-radius: 8px !important;
+    background: var(--vault-accent-soft) !important;
+    color: var(--vault-accent) !important;
+    font-size: 0.6875rem !important;
+    font-weight: 800 !important;
+    border: 0 !important;
+    flex-shrink: 0;
+}
+
+.mtw-plastic__actions,
+.mtw-vault .bank-card-actions-ws {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 !important;
+    margin-inline-start: auto;
+    flex: 0 0 auto;
+}
+
+.mtw-vault .bank-card-remove-btn-ws,
+.mtw-vault .bank-card-remove-btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid color-mix(in srgb, var(--vault-danger) 35%, #fff);
+    border-radius: var(--vault-r-sm);
+    background: color-mix(in srgb, var(--vault-danger) 10%, #fff);
+    color: var(--vault-danger);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--vault-ease), border-color var(--vault-ease), color var(--vault-ease);
+}
+
+.mtw-plastic:hover .bank-card-remove-btn-ws,
+.mtw-vault .bank-card-remove-btn-ws:hover {
+    background: var(--vault-danger);
+    border-color: var(--vault-danger);
+    color: #fff;
+}
+
+.mtw-plastic__confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    flex-basis: 100%;
+    order: 3;
+    padding: 10px 12px;
+    border-radius: var(--vault-r-sm);
+    background: var(--vault-mist);
+    border: 1px solid var(--vault-line);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--vault-ink);
+    box-sizing: border-box;
+}
+
+.mtw-plastic.is-confirming .mtw-plastic__actions {
+    visibility: hidden;
+}
+
+.mtw-plastic__confirm[hidden] {
+    display: none !important;
+}
+
+.mtw-plastic__confirm-yes,
+.mtw-plastic__confirm-no {
+    min-height: 32px;
+    padding: 4px 12px;
+    border-radius: var(--vault-r-sm);
+    border: 0;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mtw-plastic__confirm-yes {
+    background: var(--vault-danger);
+    color: #fff;
+}
+
+.mtw-plastic__confirm-no {
+    background: var(--vault-paper);
+    border: 1px solid var(--vault-line);
+    color: var(--vault-ink);
+}
+
+.mtw-plastic.is-busy {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.mtw-vault__empty,
+.mtw-vault .no-cards-message {
+    margin: 0 !important;
+    padding: 20px !important;
+    text-align: center;
+    border-radius: var(--vault-r) !important;
+    border: 1px dashed var(--vault-line) !important;
+    background: var(--vault-mist) !important;
+    color: var(--vault-muted) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    line-height: 1.7;
+}
+
+.mtw-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 100060;
+    max-width: min(90vw, 360px);
+    padding: 10px 14px;
+    border-radius: var(--vault-r);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-family: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--vault-ease);
+}
+
+.mtw-toast.is-visible {
+    opacity: 1;
+}
+
+.mtw-toast.is-success {
+    background: var(--vault-accent);
+}
+
+.mtw-toast.is-error {
+    background: var(--vault-danger);
+}
+
+@media (max-width: 560px) {
+    .mtw-vault__intro {
+        flex-direction: column;
+    }
+
+    .mtw-composer__toolbar {
+        flex-wrap: wrap;
+    }
+
+    .mtw-vault .bank-card-item-ws,
+    .mtw-vault .bank-card-item,
+    .mtw-plastic {
+        gap: 10px 12px !important;
+        padding: 12px !important;
+    }
+
+    .mtw-plastic__face,
+    .mtw-vault .bank-card-info-ws {
+        grid-template-columns: 40px minmax(0, 1fr) !important;
+        column-gap: 10px !important;
+    }
+
+    .mtw-vault .bank-card-icon-ws,
+    .mtw-vault .bank-card-icon {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 10px !important;
+    }
+
+    .mtw-vault .bank-card-number-ws {
+        font-size: 0.875rem !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    .mtw-vault .bank-card-iban-ws,
+    .mtw-vault .bank-card-iban {
+        font-size: 0.6875rem !important;
+    }
+
+    .mtw-vault .bank-card-remove-btn-ws,
+    .mtw-vault .bank-card-remove-btn {
+        min-height: 34px;
+        padding: 5px 12px;
+    }
+}
+

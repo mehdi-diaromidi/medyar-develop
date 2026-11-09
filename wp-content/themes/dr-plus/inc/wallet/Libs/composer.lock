@@ -1,0 +1,241 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "836dd394476fc98dfa285d2747cce645",
+    "packages": [
+        {
+            "name": "mjkhajeh/logger",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mjkhajeh/logger.git",
+                "reference": "f93ed2c9fc138a1dfbf45602b47068f5a881042d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mjkhajeh/logger/zipball/f93ed2c9fc138a1dfbf45602b47068f5a881042d",
+                "reference": "f93ed2c9fc138a1dfbf45602b47068f5a881042d",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "psr/log": "^1.1"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/PsrLog.php"
+                ],
+                "psr-4": {
+                    "MJ\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "MohammadJafar Khajeh",
+                    "email": "iron.atoms2@gmail.com"
+                }
+            ],
+            "description": "Lightweight logger for WordPress themes and plugins.",
+            "support": {
+                "issues": "https://github.com/mjkhajeh/logger/issues",
+                "source": "https://github.com/mjkhajeh/logger/tree/v1.0.1"
+            },
+            "time": "2026-02-11T11:00:57+00:00"
+        },
+        {
+            "name": "mjkhajeh/whitebox",
+            "version": "v2.12.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mjkhajeh/whitebox.git",
+                "reference": "110e438bc22b44421349ce5df8a817c149859935"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mjkhajeh/whitebox/zipball/110e438bc22b44421349ce5df8a817c149859935",
+                "reference": "110e438bc22b44421349ce5df8a817c149859935",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MJ\\Whitebox\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "MohammadJafar Khajeh",
+                    "email": "iron.atoms2@gmail.com"
+                }
+            ],
+            "description": "Tools",
+            "support": {
+                "issues": "https://github.com/mjkhajeh/whitebox/issues",
+                "source": "https://github.com/mjkhajeh/whitebox/tree/v2.12.3"
+            },
+            "time": "2026-09-21T15:40:06+00:00"
+        },
+        {
+            "name": "mjkhajeh/wporm",
+            "version": "v4.3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mjkhajeh/wporm.git",
+                "reference": "65d56ee49be4765ac0fc6e2f7afbb83110f6d2c4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mjkhajeh/wporm/zipball/65d56ee49be4765ac0fc6e2f7afbb83110f6d2c4",
+                "reference": "65d56ee49be4765ac0fc6e2f7afbb83110f6d2c4",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MJ\\WPORM\\": ""
+                },
+                "classmap": [
+                    "Events.php",
+                    "ModelEvent.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "MohammadJafar Khajeh",
+                    "email": "iron.atoms2@gmail.com"
+                }
+            ],
+            "description": "WPORM is a lightweight, Eloquent-inspired ORM for WordPress plugins and themes. It provides expressive, fluent query building, model relationships, schema management, attribute casting, and event hooks—while fully supporting the WordPress database API and table prefixing. WPORM makes it easy to build modern, maintainable database code in any WordPress project.",
+            "support": {
+                "issues": "https://github.com/mjkhajeh/wporm/issues",
+                "source": "https://github.com/mjkhajeh/wporm/tree/v4.3.0.0"
+            },
+            "time": "2026-09-18T12:52:50+00:00"
+        },
+        {
+            "name": "mjkhajeh/wporm-extra-casts",
+            "version": "v1.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mjkhajeh/wporm-extra-casts.git",
+                "reference": "317314c7cee37b6fc9dae0e24c869f49d0d97aef"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mjkhajeh/wporm-extra-casts/zipball/317314c7cee37b6fc9dae0e24c869f49d0d97aef",
+                "reference": "317314c7cee37b6fc9dae0e24c869f49d0d97aef",
+                "shasum": ""
+            },
+            "require": {
+                "mjkhajeh/wporm": "*",
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MJ\\WPROM\\ExtraCasts\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "MohammadJafar Khajeh",
+                    "email": "mjkhajehg@gmail.com"
+                }
+            ],
+            "description": "Extra type casts for WPORM models, providing advanced validation and sanitization using WordPress functions.",
+            "support": {
+                "issues": "https://github.com/mjkhajeh/wporm-extra-casts/issues",
+                "source": "https://github.com/mjkhajeh/wporm-extra-casts/tree/v1.1.2"
+            },
+            "time": "2026-07-01T09:47:58+00:00"
+        },
+        {
+            "name": "psr/log",
+            "version": "1.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/log.git",
+                "reference": "d49695b909c3b7628b6289db5479a1c204601f11"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/log/zipball/d49695b909c3b7628b6289db5479a1c204601f11",
+                "reference": "d49695b909c3b7628b6289db5479a1c204601f11",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.1.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Log\\": "Psr/Log/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "https://www.php-fig.org/"
+                }
+            ],
+            "description": "Common interface for logging libraries",
+            "homepage": "https://github.com/php-fig/log",
+            "keywords": [
+                "log",
+                "psr",
+                "psr-3"
+            ],
+            "support": {
+                "source": "https://github.com/php-fig/log/tree/1.1.4"
+            },
+            "time": "2021-05-03T11:20:27+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {},
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "platform-overrides": {
+        "php": "7.4.33"
+    },
+    "plugin-api-version": "2.9.0"
+}

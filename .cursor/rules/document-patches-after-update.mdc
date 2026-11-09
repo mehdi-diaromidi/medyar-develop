@@ -1,0 +1,24 @@
+﻿---
+description: Document third-party theme/plugin custom patches in docs/ for reapply after updates
+alwaysApply: true
+---
+
+# Document reapplicable patches in docs/
+
+Whenever you change files inside third-party / updatable plugins or themes (or any code that would be overwritten by an update), update the matching markdown under `docs/` in the same turn.
+
+## Where to document
+
+- Theme `dr-plus` patches → `docs/THEME-PATCHES-AFTER-UPDATE.md`
+- Cross-cutting / multi-plugin reapply notes → `docs/MEDYAR-REAPPLY-PATCHES-AFTER-UPDATE.md`
+- SMS / booking ownership notes → `docs/MEDYAR-SMS-BOOKING-AND-OWNERSHIP.md`
+- New plugin or new concern → create `docs/<NAME>-PATCHES-AFTER-UPDATE.md` (or extend an existing file) and link it from the reapply index if one exists
+
+## What each patch entry must include
+
+1. Target path (plugin or theme + file)
+2. Exact change (before/after snippet or clear surgical description)
+3. Why it exists (so it can be re-judged after upstream updates)
+4. How to re-apply after update (search markers / method names / hook names)
+
+Do not rely on chat history alone. Prefer editing third-party code via child themes, mu-plugins, or custom plugins when possible; if a direct patch is unavoidable, it must be documented as above.

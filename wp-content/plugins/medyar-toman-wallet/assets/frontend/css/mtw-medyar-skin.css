@@ -1,0 +1,2484 @@
+/**
+ * Medyar wallet skin — matches homepage design language.
+ * Tokens from :root (dr-plus). Keep Sheyda classnames for JS.
+ */
+
+.sheyda_wallet_wrap {
+    --mtw-primary: var(--primary-100, #0272b1);
+    --mtw-primary-soft: var(--primary-100-20, #0272b133);
+    --mtw-primary-hover: var(--primary-200, #0f3e4f);
+    --mtw-secondary: var(--secondary-100, #114b5f);
+    --mtw-surface: var(--general-bg, #fff);
+    --mtw-canvas: var(--gray-100, #f7f7f7);
+    --mtw-border: var(--gray-200, #e6e6e6);
+    --mtw-muted: var(--text-200, #a6a6a6);
+    --mtw-text: var(--text-main, #383838);
+    --mtw-heading: var(--heading-200, #181616);
+    --mtw-danger: var(--red, #d60043);
+    --mtw-danger-soft: color-mix(in srgb, var(--mtw-danger) 12%, #fff);
+    --mtw-success: #16a34a;
+    --mtw-success-soft: color-mix(in srgb, var(--mtw-success) 12%, #fff);
+    --mtw-warning: var(--yellow, #ffbd12);
+    --mtw-input: var(--input-bg, #f5f6f7);
+    --mtw-r-sm: 8px;
+    --mtw-r: 10px;
+    --mtw-r-lg: 10px;
+    --mtw-ease: 0.18s ease;
+    --mtw-font: var(--main-font, IRANYekanXFANum, sans-serif);
+    font-family: var(--mtw-font);
+    color: var(--mtw-text);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: clip;
+}
+
+/* Theme my-account grid uses min-content; wallet nav tabs must not widen the page */
+.woocommerce:has(.sheyda_wallet_wrap) {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.woocommerce:has(.sheyda_wallet_wrap) > .woocommerce-MyAccount-content {
+    min-width: 0 !important;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+    .woocommerce:has(.sheyda_wallet_wrap) {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheyda_wallet_wrap *,
+    .sheyda_wallet_wrap *::before,
+    .sheyda_wallet_wrap *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ---------- Header / nav ---------- */
+.sheyda_wallet_head {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.sheyda_wallet_title {
+    display: none !important;
+}
+
+.sheyda_wallet_nav_items {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 12px !important;
+    margin: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--mtw-surface) !important;
+    border: 0 !important;
+    border-radius: var(--mtw-r) !important;
+    box-shadow: 0 0 12px 0 rgba(158, 158, 158, 0.2) !important;
+    scrollbar-width: none;
+}
+
+.sheyda_wallet_nav_items::-webkit-scrollbar {
+    display: none;
+}
+
+.sheyda_wallet_nav_item {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px 14px;
+    margin: 0;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: #4b4b4b;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: center;
+    text-decoration: none !important;
+    white-space: nowrap;
+    position: relative;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.sheyda_wallet_nav_item:hover {
+    background: var(--mtw-primary-soft) !important;
+    color: var(--mtw-primary) !important;
+}
+
+.sheyda_wallet_nav_item.active {
+    background: var(--mtw-primary) !important;
+    color: #fff !important;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.sheyda_wallet_nav_item.active i,
+.sheyda_wallet_nav_item.active .drplus-simple-icon,
+.sheyda_wallet_nav_item.active .dashicons {
+    color: #fff !important;
+}
+
+.sheyda_wallet_nav_item.active::after {
+    display: none;
+}
+
+.sheyda_wallet_nav_item:focus-visible {
+    outline: 2px solid var(--mtw-primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+    .sheyda_wallet_nav_items {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        padding: 8px 10px !important;
+        gap: 6px;
+        /* Keep the first (RTL-start) chip fully inside the scrollport */
+        scroll-padding-inline: 10px;
+    }
+
+    .sheyda_wallet_nav_item {
+        padding: 7px 12px;
+        font-size: 0.8125rem;
+        flex: 0 0 auto;
+    }
+
+    .sheyda_wallet_nav_item.active {
+        scroll-margin-inline: 10px;
+    }
+}
+
+/* ---------- Sections ---------- */
+.sheyda_wallet_section,
+.sheyda_wallet_dashboard.sheyda_wallet_section,
+.sheyda_wallet_topup-form.sheyda_wallet_section,
+.sheyda_wallet_wrap .sheyda_wallet_section {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    margin-top: 0 !important;
+    padding: 20px !important;
+    border: 1px solid var(--mtw-border) !important;
+    border-radius: var(--mtw-r-lg) !important;
+    background: var(--mtw-surface) !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+}
+
+.sheyda_wallet_section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Match theme page-title: .drplus-simple-icon-wrap.icon-has-bg (::before plate) */
+.sheyda_wallet_wrap .mtw-section-icon.drplus-simple-icon-wrap,
+.sheyda_wallet_wrap .drplus-simple-icon-wrap.icon-has-bg.mtw-section-icon {
+    position: relative;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+    color: var(--primary-100, var(--mtw-primary)) !important;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
+.sheyda_wallet_wrap .mtw-section-icon.drplus-simple-icon-wrap.icon-has-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: var(--primary-100-36, rgba(2, 114, 177, 0.36));
+    border-radius: 8px;
+    rotate: 8deg;
+    will-change: background-color;
+    transition: background-color 0.2s ease-in-out;
+    z-index: 0;
+}
+
+.sheyda_wallet_wrap .mtw-section-icon.icon-has-bg .drplus-simple-icon {
+    position: relative;
+    z-index: 2;
+    padding: 4px;
+    font-size: inherit;
+    line-height: 1;
+    color: inherit;
+    box-sizing: border-box;
+}
+
+.sheyda_wallet_wrap .mtw-section-icon--bare.drplus-simple-icon-wrap {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    background: transparent !important;
+    border-radius: 0;
+    color: var(--mtw-primary) !important;
+    font-size: 1rem;
+}
+
+.sheyda_wallet_wrap .mtw-section-icon--bare.drplus-simple-icon-wrap::before {
+    content: none !important;
+    display: none !important;
+}
+
+.sheyda_wallet_wrap .mtw-section-icon--bare .drplus-simple-icon {
+    font-size: 1rem;
+    padding: 0;
+}
+
+.mtw-tx__title-row,
+.mtw-vault__heading-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mtw-tx__title-row .mtw-tx__title,
+.mtw-vault__heading-row .mtw-vault__heading {
+    margin: 0;
+}
+
+.sheyda_wallet_section-title,
+.sheyda_wallet_topup-title {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+}
+
+.sheyda_wallet_financial-desc,
+.sheyda_wallet_withdrawal-note,
+.sheyda_wallet_topup-text {
+    margin: 0;
+    color: var(--mtw-muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.7;
+}
+
+.sheyda_wallet_withdrawal-financial-error {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: var(--mtw-r);
+    border: 1px solid color-mix(in srgb, var(--mtw-warning) 35%, var(--mtw-border));
+    background: color-mix(in srgb, var(--mtw-warning) 12%, var(--mtw-surface));
+    color: var(--mtw-heading);
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.sheyda_wallet_withdrawal-financial-error a {
+    color: var(--mtw-primary);
+    font-weight: 700;
+}
+
+/* ---------- Dashboard ---------- */
+.mtw-dash {
+    gap: 16px !important;
+    padding: 16px !important;
+}
+
+.sheyda_wallet_dashboard-info,
+.mtw-dash__hero-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+}
+
+@media (min-width: 860px) {
+    .sheyda_wallet_dashboard-info,
+    .mtw-dash__hero-row {
+        grid-template-columns: 1.15fr 1fr;
+        align-items: stretch;
+    }
+}
+
+.sheyda_wallet_dashboard-info-inner,
+.mtw-dash__balance {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 112px;
+    padding: 20px 22px !important;
+    border-radius: var(--mtw-r) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background:
+        radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.18) 0%, transparent 55%),
+        linear-gradient(135deg, var(--mtw-primary) 0%, color-mix(in srgb, var(--mtw-secondary) 55%, var(--mtw-primary)) 100%) !important;
+    color: #fff;
+    box-sizing: border-box !important;
+}
+
+.mtw-dash__balance-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sheyda_wallet_dashboard-balance-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.sheyda_wallet_dashboard-balance-value {
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.35;
+}
+
+.sheyda_wallet_wrap .mtw-dash__balance .mtw-dash__balance-icon-wrap.drplus-simple-icon-wrap.icon-has-bg {
+    width: fit-content !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #fff !important;
+    font-size: 2.25rem !important;
+}
+
+.sheyda_wallet_wrap .mtw-dash__balance .mtw-dash__balance-icon-wrap.icon-has-bg::before {
+    background-color: rgba(255, 255, 255, 0.28) !important;
+    border-radius: 10px;
+    rotate: 8deg;
+}
+
+.sheyda_wallet_wrap .mtw-dash__balance .mtw-dash__balance-icon-wrap.icon-has-bg .drplus-simple-icon {
+    font-size: inherit !important;
+    color: #fff !important;
+    padding: 10px;
+}
+
+.mtw-dash__action .mtw-section-icon.drplus-simple-icon-wrap {
+    width: fit-content;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+}
+
+.sheyda_wallet_dashboard-quick-access-wrap,
+.mtw-dash__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (min-width: 480px) {
+    .sheyda_wallet_dashboard-quick-access-wrap,
+    .mtw-dash__actions {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 860px) {
+    .sheyda_wallet_dashboard-quick-access-wrap,
+    .mtw-dash__actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sheyda_wallet_dashboard-quick-access-btn,
+.mtw-dash__action {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 56px;
+    padding: 10px 14px !important;
+    border-radius: var(--mtw-r) !important;
+    border: 1px solid var(--mtw-border) !important;
+    background: var(--mtw-surface) !important;
+    color: var(--mtw-heading) !important;
+    text-decoration: none;
+    box-shadow: none !important;
+    transition: border-color 0.22s ease, background 0.22s ease;
+}
+
+.mtw-dash__action-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mtw-dash__action-label strong {
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+}
+
+.mtw-dash__action-label em {
+    font-style: normal;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+}
+
+.mtw-dash__action--withdraw .mtw-section-icon.drplus-simple-icon-wrap {
+    background: transparent !important;
+    color: var(--mtw-secondary) !important;
+}
+
+.mtw-dash__action--withdraw .mtw-section-icon.icon-has-bg::before {
+    background-color: color-mix(in srgb, var(--mtw-secondary) 36%, transparent) !important;
+}
+
+.sheyda_wallet_dashboard-quick-access-btn:hover,
+.mtw-dash__action:hover {
+    border-color: var(--mtw-primary) !important;
+    background: color-mix(in srgb, var(--mtw-primary) 4%, var(--mtw-surface)) !important;
+}
+
+.sheyda_wallet_dashboard-transactions-list,
+.mtw-dash__recent {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.sheyda_wallet_dashboard-transactions-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sheyda_wallet_dashboard-transactions-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+}
+
+.sheyda_wallet_dashboard-all-transactions-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--mtw-primary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color var(--mtw-ease);
+}
+
+.sheyda_wallet_dashboard-all-transactions-link:hover {
+    color: var(--mtw-secondary);
+}
+
+/* Override legacy Sheyda card padding that overflows the dashboard */
+.sheyda_wallet_dashboard-transactions-list .sheyda_wallet_transactions-items,
+.mtw-dash__recent .mtw-dash__tx-list.mtw-tx__list,
+.mtw-dash__tx-list.mtw-tx__list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.mtw-tx__kind {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mtw-tx__row.is-in .mtw-tx__kind {
+    background: var(--mtw-success-soft);
+    color: var(--mtw-success);
+}
+
+.mtw-tx__row.is-out .mtw-tx__kind {
+    background: var(--mtw-danger-soft);
+    color: var(--mtw-danger);
+}
+
+.mtw-tx__arrow {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.mtw-dash__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 20px 14px !important;
+    border: 1px dashed var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-canvas);
+}
+
+/* ---------- Lists ---------- */
+.sheyda_wallet_transactions-items,
+.sheyda_wallet_withdrawals-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.sheyda_wallet_transactions-head,
+.sheyda_wallet_withdrawals-head {
+    display: none;
+}
+
+/* Transactions page — card rows (aligned with dashboard recent list) */
+.mtw-tx {
+    gap: 16px !important;
+}
+
+.mtw-tx__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+.mtw-tx__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.mtw-tx__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+    line-height: 1.35;
+}
+
+.mtw-tx__lead {
+    margin: 0;
+    color: var(--mtw-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.mtw-tx__count {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--mtw-primary-soft);
+    color: var(--mtw-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.mtw-tx__list {
+    gap: 8px !important;
+}
+
+.mtw-tx__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.mtw-tx__item > .mtw-tx__row,
+.mtw-tx__item > .mtw-tx__details {
+    margin: 0 !important;
+}
+
+.mtw-tx__row {
+    display: grid;
+    grid-template-columns: 40px max-content minmax(0, 1fr) auto 36px;
+    grid-template-areas: "kind main . amount toggle";
+    gap: 10px 12px;
+    align-items: center;
+    justify-items: start;
+    padding: 14px 16px;
+    border-radius: var(--mtw-r);
+    border: 1px solid var(--mtw-border);
+    background: var(--mtw-surface);
+    transition: border-color var(--mtw-ease), background var(--mtw-ease), border-radius var(--mtw-ease);
+    text-decoration: none !important;
+    color: inherit;
+    box-sizing: border-box;
+    cursor: pointer;
+    max-width: 100%;
+    min-width: 0;
+}
+
+a.mtw-tx__row:hover,
+a.mtw-tx__row:focus-visible {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.mtw-tx__row > .mtw-tx__kind { grid-area: kind; }
+.mtw-tx__row > .mtw-tx__main { grid-area: main; }
+.mtw-tx__row > .mtw-tx__amount { grid-area: amount; justify-self: end; }
+.mtw-tx__row > .mtw-tx__toggle-cell { grid-area: toggle; justify-self: end; }
+
+.mtw-tx__row:hover {
+    border-color: var(--mtw-border);
+    background: color-mix(in srgb, var(--mtw-canvas) 55%, var(--mtw-surface));
+}
+
+.mtw-tx__item.is-open .mtw-tx__row {
+    border-color: var(--mtw-border);
+    border-bottom: 0 !important;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: var(--mtw-surface);
+}
+
+.mtw-tx__toggle-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mtw-tx__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #f1f5f9 !important;
+    color: var(--mtw-muted-strong, #747474) !important;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+
+.mtw-tx__toggle:hover,
+.mtw-tx__toggle[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--mtw-primary) 12%, transparent) !important;
+    color: var(--mtw-primary) !important;
+}
+
+.mtw-tx__toggle svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+}
+
+.mtw-tx__toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.mtw-tx__details {
+    padding: 10px 16px 14px !important;
+    border: 1px solid var(--mtw-border);
+    border-top: 0 !important;
+    border-radius: 0 0 var(--mtw-r) var(--mtw-r);
+    background: #fff !important;
+    text-align: start;
+    box-sizing: border-box;
+    margin-top: 0 !important;
+    position: relative;
+}
+
+.mtw-tx__item.is-open .mtw-tx__details {
+    border-color: var(--mtw-border);
+    background: #fff !important;
+}
+
+/* Purchase rows: distinct icon/badge only — no blue card chrome */
+.mtw-tx__item--purchase .mtw-tx__row,
+.mtw-tx__item--purchase .mtw-tx__row:hover,
+.mtw-tx__item--purchase.is-open .mtw-tx__row,
+.mtw-tx__row.mtw-tx__row--purchase,
+.mtw-tx__row.mtw-tx__row--purchase:hover {
+    border-color: var(--mtw-border) !important;
+    background: var(--mtw-surface) !important;
+    box-shadow: none !important;
+}
+
+.mtw-tx__item--purchase .mtw-tx__kind {
+    background: color-mix(in srgb, var(--mtw-primary) 14%, transparent) !important;
+    color: var(--mtw-primary) !important;
+}
+
+.mtw-tx__item--purchase .mtw-tx__op,
+.mtw-tx__item--purchase .mtw-tx__amount-value {
+    color: var(--mtw-primary) !important;
+}
+
+.mtw-tx__item--purchase .mtw-tx__badge--completed {
+    background: color-mix(in srgb, var(--mtw-success) 14%, transparent) !important;
+    color: var(--mtw-success) !important;
+}
+
+.mtw-tx__item--purchase .mtw-tx__badge--failed,
+.mtw-tx__item--purchase .mtw-tx__badge--canceled,
+.mtw-tx__item--purchase .mtw-tx__badge--rejected {
+    background: color-mix(in srgb, var(--mtw-danger) 14%, transparent) !important;
+    color: var(--mtw-danger) !important;
+}
+
+.mtw-tx__item--purchase .mtw-tx__toggle:hover,
+.mtw-tx__item--purchase .mtw-tx__toggle[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--mtw-primary) 14%, transparent) !important;
+    color: var(--mtw-primary) !important;
+}
+
+/* Charge / withdraw / refund: same cues as withdrawals tab */
+#mtw_withdrawals .mtw-tx__row,
+#mtw_withdrawals .mtw-tx__row:hover,
+#mtw_withdrawals .mtw-tx__item.is-open .mtw-tx__row,
+#mtw_withdrawals .mtw-tx__item.is-open .mtw-tx__details,
+.mtw-tx__item--flow .mtw-tx__row,
+.mtw-tx__item--flow .mtw-tx__row:hover,
+.mtw-tx__item--flow.is-open .mtw-tx__row,
+.mtw-tx__item--flow.is-open .mtw-tx__details {
+    border-color: var(--mtw-border) !important;
+}
+
+#mtw_withdrawals .mtw-tx__item--processing .mtw-tx__kind,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__kind {
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    color: #c2410c;
+}
+
+#mtw_withdrawals .mtw-tx__item--processing .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__badge {
+    background: color-mix(in srgb, #f59e0b 16%, transparent);
+    color: #b45309;
+}
+
+#mtw_withdrawals .mtw-tx__item--completed .mtw-tx__kind,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__kind {
+    background: color-mix(in srgb, var(--mtw-success) 14%, transparent);
+    color: var(--mtw-success);
+}
+
+#mtw_withdrawals .mtw-tx__item--completed .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__badge {
+    background: color-mix(in srgb, var(--mtw-success) 14%, transparent);
+    color: var(--mtw-success);
+}
+
+#mtw_withdrawals .mtw-tx__item--canceled .mtw-tx__kind,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__kind,
+#mtw_withdrawals .mtw-tx__item--failed .mtw-tx__kind,
+.mtw-tx__item--flow.mtw-tx__item--failed .mtw-tx__kind {
+    background: color-mix(in srgb, var(--mtw-danger) 14%, transparent);
+    color: var(--mtw-danger);
+}
+
+#mtw_withdrawals .mtw-tx__item--canceled .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__badge,
+#mtw_withdrawals .mtw-tx__item--failed .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--failed .mtw-tx__badge {
+    background: color-mix(in srgb, var(--mtw-danger) 14%, transparent);
+    color: var(--mtw-danger);
+}
+
+#mtw_withdrawals .mtw-tx__item--completed .mtw-tx__op,
+#mtw_withdrawals .mtw-tx__item--completed .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__row.is-out .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__row.is-out .mtw-tx__amount-value {
+    color: var(--mtw-success) !important;
+}
+
+#mtw_withdrawals .mtw-tx__item--processing .mtw-tx__op,
+#mtw_withdrawals .mtw-tx__item--processing .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__row.is-out .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__row.is-out .mtw-tx__amount-value {
+    color: #c2410c !important;
+}
+
+#mtw_withdrawals .mtw-tx__item--canceled .mtw-tx__op,
+#mtw_withdrawals .mtw-tx__item--canceled .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__amount-value,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__row.is-out .mtw-tx__op,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__row.is-out .mtw-tx__amount-value {
+    color: var(--mtw-danger) !important;
+}
+
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--completed .mtw-tx__row.is-out .mtw-tx__badge {
+    background: color-mix(in srgb, var(--mtw-success) 14%, transparent) !important;
+    color: var(--mtw-success) !important;
+}
+
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--processing .mtw-tx__row.is-out .mtw-tx__badge {
+    background: color-mix(in srgb, #f59e0b 16%, transparent) !important;
+    color: #b45309 !important;
+}
+
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--canceled .mtw-tx__row.is-out .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--failed .mtw-tx__badge,
+.mtw-tx__item--flow.mtw-tx__item--failed .mtw-tx__row.is-out .mtw-tx__badge {
+    background: color-mix(in srgb, var(--mtw-danger) 14%, transparent) !important;
+    color: var(--mtw-danger) !important;
+}
+
+.mtw-tx__details-label {
+    display: block;
+    color: var(--mtw-muted-strong, #747474);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mtw-tx__details-text {
+    max-width: 640px;
+    margin: 4px 0 0;
+    color: var(--mtw-heading, #383838);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.9;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.mtw-tx__details-text .mtw-ltr-num {
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+}
+
+.mtw-tx__details-text.is-empty {
+    color: var(--mtw-muted);
+    font-weight: 500;
+}
+
+.mtw-tx__kind {
+    width: 40px;
+    height: 40px;
+}
+
+.mtw-tx__main {
+    min-width: 0;
+    width: max-content;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: start;
+}
+
+.mtw-tx__main-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.mtw-tx__op {
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+    line-height: 1.35;
+}
+
+.mtw-tx__row.is-in .mtw-tx__op {
+    color: color-mix(in srgb, var(--mtw-success) 55%, var(--mtw-heading));
+}
+
+.mtw-tx__row.is-out .mtw-tx__op {
+    color: color-mix(in srgb, var(--mtw-danger) 55%, var(--mtw-heading));
+}
+
+.mtw-tx__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.5;
+    background: color-mix(in srgb, var(--mtw-muted) 12%, #fff);
+    color: var(--mtw-muted);
+}
+
+.mtw-tx__row.is-in .mtw-tx__badge {
+    background: var(--mtw-success-soft);
+    color: var(--mtw-success);
+}
+
+.mtw-tx__row.is-out .mtw-tx__badge {
+    background: var(--mtw-danger-soft);
+    color: var(--mtw-danger);
+}
+
+.mtw-tx__row.is-in .mtw-tx__badge--pending,
+.mtw-tx__row.is-in .mtw-tx__badge--processing {
+    background: color-mix(in srgb, var(--mtw-success) 10%, #fff);
+    color: color-mix(in srgb, var(--mtw-success) 75%, #166534);
+}
+
+.mtw-tx__row.is-out .mtw-tx__badge--pending,
+.mtw-tx__row.is-out .mtw-tx__badge--processing {
+    background: color-mix(in srgb, var(--mtw-danger) 10%, #fff);
+    color: color-mix(in srgb, var(--mtw-danger) 80%, #7f1d1d);
+}
+
+.mtw-tx__badge--canceled,
+.mtw-tx__badge--failed {
+    background: color-mix(in srgb, var(--mtw-danger) 10%, #fff);
+    color: var(--mtw-danger);
+}
+
+.mtw-tx__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 12px;
+    color: var(--mtw-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mtw-tx__date small {
+    margin-inline-start: 4px;
+    opacity: 0.85;
+}
+
+.mtw-tx__amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: end;
+}
+
+.mtw-tx__amount-value {
+    font-size: 0.975rem;
+    font-weight: 800;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.mtw-tx__row.is-out .mtw-tx__amount-value {
+    color: var(--mtw-danger);
+}
+
+.mtw-tx__row.is-in .mtw-tx__amount-value {
+    color: var(--mtw-success);
+}
+
+.mtw-tx__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 20px 14px !important;
+    border: 1px dashed var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-canvas);
+}
+
+@media (max-width: 640px) {
+    .mtw-tx__row {
+        grid-template-columns: 36px minmax(0, 1fr) auto 32px;
+        grid-template-areas: "kind main amount toggle";
+        gap: 8px 10px;
+    }
+
+    .mtw-tx__kind { width: 36px; height: 36px; }
+    .mtw-tx__amount {
+        align-items: flex-end;
+        text-align: end;
+        padding-top: 0;
+    }
+
+    .mtw-tx__details-text {
+        max-width: none;
+    }
+}
+
+
+.sheyda_wallet_empty-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 20px 14px;
+    text-align: center;
+    color: var(--mtw-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.sheyda_wallet_empty-section-text {
+    display: block;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: var(--mtw-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.6;
+    max-width: 100%;
+}
+
+/* Empty states: no decorative icons (rotated bg was clipping out of the dashed card) */
+.sheyda_wallet_empty-section > .mtw-section-icon,
+.sheyda_wallet_empty-section > .drplus-simple-icon-wrap,
+.sheyda_wallet_empty-section i,
+.sheyda_wallet_empty-section-icon {
+    display: none !important;
+}
+
+/* ---------- Forms ---------- */
+.sheyda_wallet_withdrawal-section.mtw-topup,
+.sheyda_wallet_withdrawal-section {
+    max-width: none;
+    width: 100%;
+}
+
+.mtw-withdraw__form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    margin: 0;
+}
+
+.mtw-withdraw__panel {
+    gap: 14px;
+}
+
+.mtw-withdraw__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+}
+
+.mtw-withdraw__fields > .sheyda_wallet_withdrawal-field-wrap {
+    min-width: 0;
+}
+
+/* Keep destination select + amount box the same control height */
+.mtw-withdraw .mtw-field-control,
+.mtw-withdraw .mtw-topup__amount-box {
+    box-sizing: border-box;
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+}
+
+.mtw-withdraw .mtw-field-control {
+    padding-block: 0;
+    padding-inline: 16px;
+}
+
+.mtw-withdraw .mtw-select__trigger {
+    min-height: 0;
+    height: 100%;
+}
+
+.mtw-withdraw .mtw-topup__amount-box .mtw-topup__amount-input,
+.mtw-withdraw .mtw-topup__amount-box .sheyda-wallet-price-input,
+.sheyda_wallet_wrap .mtw-withdraw .mtw-topup__amount-box input[type="text"] {
+    height: 100% !important;
+    min-height: 0 !important;
+    line-height: 1.25 !important;
+}
+
+.mtw-withdraw .mtw-topup__summary[hidden] {
+    display: none !important;
+}
+
+.mtw-withdraw .mtw-topup__checkout.is-summary-empty {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+    .mtw-withdraw__fields {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px 18px;
+        align-items: start;
+    }
+}
+
+.sheyda_wallet_withdrawal-field-wrap,
+.sheyda_wallet_topup-amount-field-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.sheyda_wallet_withdrawal-field-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--mtw-muted);
+}
+
+.sheyda_wallet_wrap .select2-container,
+.sheyda_wallet_wrap select,
+.sheyda_wallet_wrap .sheyda-wallet-price-input,
+.sheyda_wallet_wrap input[type="text"],
+.sheyda_wallet_wrap input[type="number"] {
+    width: 100%;
+}
+
+.sheyda_wallet_wrap .select2-container .select2-selection--single,
+.sheyda_wallet_wrap select,
+.sheyda_wallet_wrap .sheyda-wallet-price-input,
+.sheyda_wallet_wrap input[type="text"],
+.sheyda_wallet_wrap input[type="number"] {
+    min-height: 52px;
+    height: 52px;
+    border: 1px solid var(--mtw-border) !important;
+    border-radius: var(--mtw-r) !important;
+    background: var(--mtw-input) !important;
+    color: var(--mtw-text) !important;
+    box-shadow: none !important;
+    font-family: inherit;
+    padding-inline: 14px;
+    transition: border-color var(--mtw-ease), background var(--mtw-ease);
+}
+
+/* IBAN digits sit beside the IR prefix — keep left corners square */
+.sheyda_wallet_wrap .mtw-composer__iban-digits,
+.sheyda_wallet_wrap .mtw-composer__iban-field input[type="text"] {
+    border: 0 !important;
+    border-radius: 0 var(--mtw-r) var(--mtw-r) 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: 52px;
+}
+
+.sheyda_wallet_wrap .select2-container--default .select2-selection--single {
+    display: flex !important;
+    align-items: center;
+    padding: 0 !important;
+}
+
+.sheyda_wallet_wrap .select2-container--default .select2-selection--single .select2-selection__rendered {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.4 !important;
+    padding: 0 14px !important;
+    color: var(--mtw-text);
+}
+
+.sheyda_wallet_wrap .select2-container--default .select2-selection--single .select2-selection__arrow {
+    position: static !important;
+    flex: 0 0 36px;
+    height: 52px !important;
+    width: 36px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sheyda_wallet_wrap .sheyda-wallet-price-input:focus,
+.sheyda_wallet_wrap input[type="text"]:focus,
+.sheyda_wallet_wrap input[type="number"]:focus,
+.sheyda_wallet_wrap select:focus {
+    outline: none;
+    border-color: var(--mtw-primary) !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+/* ---------- Custom card select (ARP-like) ---------- */
+.mtw-field-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 52px;
+    padding: 8px 16px;
+    background: var(--mtw-input, #fff);
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    transition: border-color var(--mtw-ease), background var(--mtw-ease);
+}
+
+.mtw-field-control--select {
+    cursor: pointer;
+}
+
+.mtw-field-control:focus-within,
+.mtw-field-control.is-filled,
+.mtw-field-control.is-open {
+    border-color: var(--mtw-primary);
+    background: #fff;
+}
+
+.mtw-field-control select.mtw-select-native {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    min-height: 0;
+    height: auto;
+}
+
+.mtw-field-control__chevron {
+    width: 18px;
+    height: 18px;
+    color: var(--mtw-muted);
+    pointer-events: none;
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    transition: transform 0.15s ease;
+}
+
+.mtw-field-control.is-open .mtw-field-control__chevron {
+    transform: rotate(180deg);
+}
+
+.mtw-field-control__chevron svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mtw-select {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.mtw-select__trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: inherit !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    color: var(--mtw-text) !important;
+    text-align: start;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.mtw-select__trigger.is-placeholder {
+    color: var(--mtw-muted) !important;
+}
+
+.mtw-select__trigger:hover,
+.mtw-select__trigger:focus,
+.mtw-select__trigger:active {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+
+.mtw-select__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Force LTR chip layout so spaced PAN groups never reverse beside Persian bank name */
+.mtw-select__label-bidi {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 100%;
+    direction: ltr;
+    unicode-bidi: isolate;
+    overflow: hidden;
+}
+
+.mtw-select__bank {
+    direction: rtl;
+    unicode-bidi: isolate;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mtw-select__sep {
+    flex-shrink: 0;
+}
+
+.mtw-select__pan {
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.mtw-select__logo {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--mtw-canvas, #f5f7f9);
+}
+
+.mtw-select__logo .bank-logo-img {
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+}
+
+/* Unknown BIN: icon font (same as vault), not broken bank-logo-default-ws SVG */
+.mtw-select__logo--fallback {
+    background: #fff;
+    border: 1px solid var(--mtw-border, #e6edf2);
+}
+
+.mtw-select__logo--fallback .mtw-card-fallback-icon {
+    width: 100%;
+    height: 100%;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.mtw-select__logo--fallback .drplus-simple-icon {
+    font-size: 16px;
+    line-height: 1;
+    color: var(--mtw-ink, #1a3a4a);
+}
+
+.mtw-select__menu {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(100% + 8px);
+    z-index: 60;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: #fff;
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    box-shadow: 0 8px 24px rgba(17, 75, 95, 0.08);
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+    box-sizing: border-box;
+}
+
+.mtw-field-control--select > .mtw-select__menu {
+    inset-inline: 0;
+    width: 100%;
+}
+
+.mtw-select__menu.is-open {
+    display: block;
+}
+
+.mtw-select__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--mtw-text);
+    cursor: pointer;
+    line-height: 1.5;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Open menu: show full bank + PAN (no ellipsis / clip). */
+.mtw-select__menu .mtw-select__option .mtw-select__label,
+.mtw-select__menu .mtw-select__option .mtw-select__label-bidi,
+.mtw-select__menu .mtw-select__option .mtw-select__bank {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    max-width: none;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.mtw-select__menu .mtw-select__option .mtw-select__label-bidi {
+    flex-wrap: wrap;
+}
+
+.mtw-select__menu .mtw-select__option .mtw-select__pan,
+.mtw-select__menu .mtw-select__option .mtw-select__sep {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.mtw-select__option:hover,
+.mtw-select__option.is-active {
+    background: rgba(2, 114, 177, 0.08);
+    color: var(--mtw-primary);
+}
+
+.mtw-select__option.is-selected {
+    background: rgba(2, 114, 177, 0.12);
+    color: var(--mtw-primary);
+    font-weight: 600;
+}
+
+.mtw-select__option.is-disabled {
+    color: #b0b0b0;
+    cursor: default;
+    pointer-events: none;
+    background: transparent;
+}
+
+.sheyda_wallet_topup-predefined-amounts {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+    align-items: stretch;
+    justify-items: stretch;
+    width: 100%;
+}
+
+.sheyda_wallet_topup-predefined-amount-btn {
+    appearance: none;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 1px solid var(--mtw-border) !important;
+    background: #fff !important;
+    color: var(--mtw-heading) !important;
+    border-radius: 10px !important;
+    min-height: 52px;
+    padding: 10px 12px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    font-family: inherit !important;
+    line-height: 1.25 !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    transition: border-color var(--mtw-ease), background var(--mtw-ease), color var(--mtw-ease), transform var(--mtw-ease);
+}
+
+.sheyda_wallet_topup-predefined-amount-btn:hover {
+    border-color: color-mix(in srgb, var(--mtw-primary) 45%, var(--mtw-border)) !important;
+    background: var(--mtw-canvas) !important;
+    color: var(--mtw-secondary) !important;
+}
+
+.sheyda_wallet_topup-predefined-amount-btn.is-active {
+    border-color: var(--mtw-primary) !important;
+    background: var(--mtw-primary-soft) !important;
+    color: var(--mtw-primary) !important;
+}
+
+.sheyda_wallet_topup-amount-field-separator-wrap {
+    position: relative;
+    display: block !important;
+    width: 100%;
+    margin: 8px 0 4px !important;
+    text-align: center;
+}
+
+/* Kill the Sheyda absolute ::after + our previous flex lines; one centered rule. */
+.sheyda_wallet_topup-amount-field-separator-wrap::before {
+    content: none !important;
+    display: none !important;
+}
+
+.sheyda_wallet_topup-amount-field-separator-wrap::after {
+    content: '' !important;
+    position: absolute !important;
+    inset-inline: 0 !important;
+    top: 50% !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: 1px !important;
+    margin: 0 !important;
+    transform: translateY(-50%) !important;
+    background: var(--mtw-border) !important;
+    flex: none !important;
+    z-index: 1 !important;
+}
+
+.sheyda_wallet_topup-amount-field-separator {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    padding-inline: 12px;
+    margin: 0;
+    color: var(--mtw-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    background: var(--mtw-surface);
+}
+
+/* ---------- Topup (charge) ---------- */
+.mtw-topup,
+.mtw-topup *,
+.mtw-topup *::before,
+.mtw-topup *::after {
+    box-sizing: border-box;
+}
+
+.mtw-topup {
+    max-width: none;
+    width: 100%;
+    min-width: 0;
+    gap: 20px !important;
+    overflow-x: clip;
+}
+
+.mtw-topup__head {
+    width: 100%;
+}
+
+.mtw-topup__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-bottom: 4px;
+    min-width: 0;
+}
+
+.mtw-topup__lead {
+    margin: 0;
+    color: var(--mtw-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.mtw-topup__facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    width: 100%;
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-surface);
+    overflow: hidden;
+}
+
+.mtw-topup__fact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    min-width: 0;
+}
+
+.mtw-topup__fact + .mtw-topup__fact {
+    border-inline-start: 1px solid var(--mtw-border);
+}
+
+.mtw-topup__fact-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+}
+
+.mtw-topup__fact-value {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.mtw-topup__empty-cards {
+    width: 100%;
+    margin: 0;
+}
+
+.mtw-topup__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-surface);
+}
+
+.mtw-topup__panel .sheyda_wallet_topup-amount-field-separator-wrap {
+    margin: 2px 0 0;
+}
+
+.mtw-topup__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.mtw-topup__panel-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+    line-height: 1.4;
+}
+
+.mtw-topup__panel-hint {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+}
+
+.mtw-topup__panel-link {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--mtw-primary);
+    text-decoration: none;
+}
+
+.mtw-topup__panel-link:hover {
+    color: var(--mtw-primary-hover);
+    text-decoration: underline;
+}
+
+.mtw-topup__field {
+    margin: 0;
+}
+
+.mtw-topup__sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.mtw-topup__chips {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+    justify-items: stretch;
+}
+
+.mtw-topup__chip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 10px 8px !important;
+    margin: 0 !important;
+    background: #fff !important;
+    line-height: 1.2 !important;
+}
+
+.mtw-topup__chip strong {
+    font-size: 0.9375rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: inherit;
+    letter-spacing: -0.01em;
+}
+
+.mtw-topup__chip span {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+    line-height: 1.2;
+}
+
+.mtw-topup__chip:hover span {
+    color: color-mix(in srgb, var(--mtw-secondary) 55%, var(--mtw-muted));
+}
+
+.mtw-topup__chip.is-active span {
+    color: color-mix(in srgb, var(--mtw-primary) 70%, var(--mtw-muted));
+}
+
+.mtw-topup__chip:focus-visible {
+    outline: 2px solid var(--mtw-primary);
+    outline-offset: 2px;
+}
+
+.mtw-topup__custom {
+    gap: 10px;
+}
+
+.mtw-topup__custom-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--mtw-muted);
+}
+
+.mtw-topup__amount-box {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+    min-height: 52px;
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-input);
+    overflow: hidden;
+    transition: border-color var(--mtw-ease), background var(--mtw-ease);
+}
+
+.mtw-topup__amount-box:focus-within {
+    border-color: var(--mtw-primary);
+    background: #fff;
+}
+
+.mtw-topup__amount-box .mtw-topup__amount-input,
+.mtw-topup__amount-box .sheyda-wallet-price-input,
+.sheyda_wallet_wrap .mtw-topup__amount-box input[type="text"],
+.sheyda_wallet_wrap .mtw-topup__amount-box .sheyda-wallet-price-input {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 14px !important;
+    letter-spacing: 0.02em;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    line-height: 52px !important;
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+}
+
+.mtw-topup__amount-unit {
+    flex: 0 0 auto !important;
+    box-sizing: border-box;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 4.5rem;
+    padding-inline: 14px;
+    border-inline-start: 1px solid var(--mtw-border);
+    background: var(--mtw-canvas);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--mtw-muted);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.mtw-topup__limit {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+    line-height: 1.6;
+}
+
+.mtw-topup__checkout {
+    display: grid;
+    grid-template-columns: 1fr minmax(180px, 240px);
+    align-items: center;
+    gap: 14px 18px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--mtw-border);
+    border-radius: var(--mtw-r);
+    background: var(--mtw-canvas);
+}
+
+.mtw-topup__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.mtw-topup__summary-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+}
+
+.mtw-topup__summary-value {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--mtw-heading);
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.mtw-topup__submit,
+.mtw-topup #sheyda_wallet_topup-submit,
+.mtw-topup #sheyda_wallet_withdrawal-submit {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+}
+
+.mtw-topup__submit.is-muted:not(.loading):not(:disabled) {
+    opacity: 0.72;
+}
+
+.mtw-topup .sheyda_wallet_topup-errors,
+.mtw-topup .sheyda_wallet_withdrawal-errors {
+    display: none;
+    width: 100%;
+    margin: 0;
+}
+
+.mtw-topup__status {
+    width: 100%;
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: var(--mtw-r-sm);
+    background: color-mix(in srgb, var(--mtw-primary) 8%, var(--mtw-surface));
+    border: 1px solid color-mix(in srgb, var(--mtw-primary) 22%, var(--mtw-border));
+    color: var(--mtw-primary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.mtw-topup__status.is-error,
+.mtw-topup__status.note-error {
+    background: color-mix(in srgb, var(--mtw-danger) 8%, var(--mtw-surface));
+    border-color: color-mix(in srgb, var(--mtw-danger) 25%, var(--mtw-border));
+    color: var(--mtw-danger);
+}
+
+.mtw-topup__status:not(.is-error):not(.note-error):not([hidden]) {
+    background: color-mix(in srgb, var(--mtw-success) 10%, var(--mtw-surface));
+    border-color: color-mix(in srgb, var(--mtw-success) 28%, var(--mtw-border));
+    color: var(--mtw-success);
+}
+
+.mtw-topup__status[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 860px) {
+    .mtw-topup__chips {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .mtw-topup__facts {
+        grid-template-columns: 1fr;
+    }
+
+    .mtw-topup__fact + .mtw-topup__fact {
+        border-inline-start: 0;
+        border-top: 1px solid var(--mtw-border);
+    }
+
+    .mtw-topup__chips {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mtw-topup__checkout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .mtw-topup__panel-head {
+        align-items: flex-start;
+    }
+}
+
+/* Keep in-page anchors clear of the sticky Elementor header + WP admin bar. */
+.sheyda_wallet_wrap,
+.mtw-topup__panel,
+.mtw-topup__head {
+    scroll-margin-top: 140px;
+}
+
+.admin-bar .sheyda_wallet_wrap,
+.admin-bar .mtw-topup__panel,
+.admin-bar .mtw-topup__head {
+    scroll-margin-top: 172px;
+}
+
+.sheyda_wallet_button,
+.sheyda_wallet_topup-submit,
+.sheyda_wallet_withdrawal-submit,
+#sheyda_wallet_topup-submit,
+#sheyda_wallet_withdrawal-submit {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 12px 20px !important;
+    border: 0 !important;
+    border-radius: var(--mtw-r) !important;
+    background: var(--mtw-primary) !important;
+    color: #fff !important;
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    font-family: inherit !important;
+    cursor: pointer;
+    transition: background var(--mtw-ease);
+    width: 100%;
+    max-width: 360px;
+    box-shadow: none !important;
+    position: relative;
+}
+
+.sheyda_wallet_button:hover,
+.sheyda_wallet_topup-submit:hover,
+.sheyda_wallet_withdrawal-submit:hover {
+    background: var(--mtw-primary-hover) !important;
+}
+
+.sheyda_wallet_button:focus-visible,
+.sheyda_wallet_topup-submit:focus-visible,
+.sheyda_wallet_withdrawal-submit:focus-visible {
+    outline: 2px solid var(--mtw-primary);
+    outline-offset: 2px;
+}
+
+.sheyda_wallet_button.loading,
+.sheyda_wallet_button.is-loading,
+.sheyda_wallet_button.disabled,
+.sheyda_wallet_button:disabled {
+    pointer-events: none;
+    cursor: progress;
+}
+
+/* Match ARP submit loading: keep button solid, hide label, center ::after spinner. */
+.sheyda_wallet_wrap .sheyda_wallet_button.loading,
+.sheyda_wallet_wrap .sheyda_wallet_button.is-loading,
+.sheyda_wallet_wrap .sheyda_wallet_button.loading.disabled,
+.sheyda_wallet_wrap .sheyda_wallet_button.loading:disabled,
+.sheyda_wallet_wrap .sheyda_wallet_button.loading[disabled],
+.sheyda_wallet_wrap .sheyda_wallet_button.is-loading:disabled,
+.sheyda_wallet_wrap .sheyda_wallet_button.is-loading[disabled],
+.sheyda_wallet_wrap #sheyda_wallet_topup-submit.loading,
+.sheyda_wallet_wrap #sheyda_wallet_topup-submit.is-loading,
+.sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.loading,
+.sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.is-loading,
+.mtw-vault .button-loading,
+.bank-cards-section .button-loading,
+#submitCardBtn.button-loading {
+    opacity: 1 !important;
+    color: transparent !important;
+    position: relative;
+    cursor: progress;
+    pointer-events: none;
+}
+
+.sheyda_wallet_button.disabled:not(.loading):not(.is-loading),
+.sheyda_wallet_button:disabled:not(.loading):not(.is-loading) {
+    opacity: 0.7;
+}
+
+.sheyda_wallet_button .button-loading {
+    display: none !important;
+}
+
+.sheyda_wallet_button.loading .button-text,
+.sheyda_wallet_button.is-loading .button-text,
+.sheyda_wallet_button.loading > :not(.button-loading),
+.sheyda_wallet_button.is-loading > :not(.button-loading) {
+    visibility: hidden !important;
+    color: transparent !important;
+}
+
+/* ARP-identical spinner: inset + margin:auto, no transform lock (that killed rotate). */
+.sheyda_wallet_wrap .sheyda_wallet_button.loading::after,
+.sheyda_wallet_wrap .sheyda_wallet_button.is-loading::after,
+.sheyda_wallet_wrap #sheyda_wallet_topup-submit.loading::after,
+.sheyda_wallet_wrap #sheyda_wallet_topup-submit.is-loading::after,
+.sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.loading::after,
+.sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.is-loading::after,
+.mtw-vault .button-loading::after,
+.bank-cards-section .button-loading::after,
+#submitCardBtn.button-loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 20px;
+    height: 20px;
+    margin: auto;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #fff;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    animation: mtw-btn-spin 0.7s linear infinite;
+    pointer-events: none;
+    z-index: 3;
+    box-sizing: border-box;
+    display: block;
+    opacity: 1;
+}
+
+@keyframes mtw-btn-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheyda_wallet_wrap .sheyda_wallet_button.loading::after,
+    .sheyda_wallet_wrap .sheyda_wallet_button.is-loading::after,
+    .sheyda_wallet_wrap #sheyda_wallet_topup-submit.loading::after,
+    .sheyda_wallet_wrap #sheyda_wallet_topup-submit.is-loading::after,
+    .sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.loading::after,
+    .sheyda_wallet_wrap #sheyda_wallet_withdrawal-submit.is-loading::after,
+    .mtw-vault .button-loading::after,
+    .bank-cards-section .button-loading::after,
+    #submitCardBtn.button-loading::after {
+        animation-duration: 2s;
+    }
+}
+
+.sheyda_wallet_topup-errors,
+.sheyda_wallet_withdrawal-errors,
+.sheyda_wallet_wrap .note-error {
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-radius: var(--mtw-r-sm);
+    background: color-mix(in srgb, var(--mtw-danger) 8%, var(--mtw-surface));
+    border: 1px solid color-mix(in srgb, var(--mtw-danger) 25%, var(--mtw-border));
+    color: var(--mtw-danger);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.mtw-pay-notice {
+    margin: 16px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--mtw-r-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.mtw-pay-notice--ok {
+    background: color-mix(in srgb, var(--mtw-success, #1a7f4b) 10%, var(--mtw-surface));
+    border: 1px solid color-mix(in srgb, var(--mtw-success, #1a7f4b) 28%, var(--mtw-border));
+    color: var(--mtw-success, #1a7f4b);
+}
+
+.mtw-pay-notice--fail {
+    background: color-mix(in srgb, var(--mtw-danger) 8%, var(--mtw-surface));
+    border: 1px solid color-mix(in srgb, var(--mtw-danger) 25%, var(--mtw-border));
+    color: var(--mtw-danger);
+}
+
+.sheyda_wallet_withdrawal-single-details {
+    display: grid;
+    gap: 12px;
+}
+
+.sheyda_wallet_withdrawal-single-details-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--mtw-r);
+    background: var(--mtw-canvas);
+    border: 1px solid var(--mtw-border);
+}
+
+.sheyda_wallet_withdrawal-single-detail-item-title {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mtw-muted);
+}
+
+.sheyda_wallet_withdrawal-single-detail-item-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--mtw-heading);
+}
+
+.sheyda_wallet_button.button-action,
+.sheyda_wallet_button.button-small {
+    width: auto;
+    min-height: 40px;
+    max-width: none;
+    padding: 8px 14px !important;
+    font-size: 0.8125rem !important;
+}
+
+/* ---------- Pagination ---------- */
+.sheyda_wallet_withdrawals-list,
+.sheyda_wallet_transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+/* ---------- Wallet pagination (transactions / withdrawals) ---------- */
+.woocommerce-MyAccount-content .sheyda_wallet_wrap .mtw-pagination.sheyda_wallet_pagination,
+.sheyda_wallet_wrap .mtw-pagination.sheyda_wallet_pagination,
+.woocommerce-MyAccount-content .sheyda_wallet_wrap .sheyda_wallet_pagination,
+.sheyda_wallet_wrap .sheyda_wallet_pagination {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 20px 0 0 !important;
+    padding: 12px 14px !important;
+    box-sizing: border-box;
+    background: var(--mtw-canvas, #f7f7f7) !important;
+    border: 1px solid var(--mtw-border, #e6e6e6) !important;
+    border-radius: var(--mtw-r, 10px) !important;
+    box-shadow: none !important;
+    list-style: none !important;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination .page-numbers,
+.sheyda_wallet_wrap .sheyda_wallet_pagination ul.page-numbers,
+.sheyda_wallet_wrap .sheyda_wallet_pagination > ul {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination ul.page-numbers > li,
+.sheyda_wallet_wrap .sheyda_wallet_pagination > ul > li {
+    display: inline-flex;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination a.page-numbers,
+.sheyda_wallet_wrap .sheyda_wallet_pagination span.page-numbers,
+.sheyda_wallet_wrap .sheyda_wallet_pagination a,
+.sheyda_wallet_wrap .sheyda_wallet_pagination span {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px !important;
+    margin: 0 !important;
+    border-radius: var(--mtw-r-sm, 8px) !important;
+    border: 1px solid var(--mtw-border, #e6e6e6) !important;
+    background: var(--mtw-surface, #fff) !important;
+    color: var(--mtw-text, #383838) !important;
+    text-decoration: none !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    float: none !important;
+    transition: background var(--mtw-ease, 0.18s ease), border-color var(--mtw-ease, 0.18s ease), color var(--mtw-ease, 0.18s ease);
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination a.page-numbers:hover,
+.sheyda_wallet_wrap .sheyda_wallet_pagination a.page-numbers:focus,
+.sheyda_wallet_wrap .sheyda_wallet_pagination a:hover,
+.sheyda_wallet_wrap .sheyda_wallet_pagination a:focus {
+    background: var(--mtw-primary-soft, #0272b133) !important;
+    border-color: var(--mtw-primary, #0272b1) !important;
+    color: var(--mtw-primary, #0272b1) !important;
+    outline: none;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination span.page-numbers.current,
+.sheyda_wallet_wrap .sheyda_wallet_pagination .current {
+    background: var(--mtw-primary, #0272b1) !important;
+    border-color: var(--mtw-primary, #0272b1) !important;
+    color: #fff !important;
+    cursor: default;
+    pointer-events: none;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination span.page-numbers.dots,
+.sheyda_wallet_wrap .sheyda_wallet_pagination .dots {
+    min-width: 28px;
+    border-color: transparent !important;
+    background: transparent !important;
+    color: var(--mtw-muted, #a6a6a6) !important;
+    font-weight: 700 !important;
+    pointer-events: none;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination .prev,
+.sheyda_wallet_wrap .sheyda_wallet_pagination .next {
+    min-width: 64px;
+    padding-inline: 14px !important;
+}
+
+.sheyda_wallet_wrap .sheyda_wallet_pagination .screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 680px) {
+    .sheyda_wallet_wrap .sheyda_wallet_pagination {
+        padding: 10px !important;
+    }
+    .sheyda_wallet_wrap .sheyda_wallet_pagination a.page-numbers,
+    .sheyda_wallet_wrap .sheyda_wallet_pagination span.page-numbers,
+    .sheyda_wallet_wrap .sheyda_wallet_pagination a,
+    .sheyda_wallet_wrap .sheyda_wallet_pagination span {
+        min-width: 36px;
+        height: 36px;
+        font-size: 0.75rem !important;
+    }
+}
+
+.woocommerce-MyAccount-content .sheyda_wallet_wrap [style*="box-shadow"],
+.woocommerce-MyAccount-content .sheyda_wallet_section {
+    box-shadow: none !important;
+}
+
+/* ---------- Responsive: all wallet tabs ---------- */
+@media (max-width: 680px) {
+    .woocommerce-MyAccount-content .sheyda_wallet_wrap,
+    .sheyda_wallet_wrap,
+    .sheyda_wallet_section_content,
+    .mtw-dash,
+    .mtw-tx,
+    .mtw-dash__recent,
+    .mtw-dash__tx-list,
+    .mtw-tx__list,
+    .mtw-tx__item {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .sheyda_wallet_transaction,
+    article.sheyda_wallet_transaction,
+    .mtw-tx__item.sheyda_wallet_transaction {
+        padding: 0 !important;
+    }
+
+    .sheyda_wallet_section,
+    .sheyda_wallet_dashboard.sheyda_wallet_section,
+    .sheyda_wallet_topup-form.sheyda_wallet_section,
+    .sheyda_wallet_wrap .sheyda_wallet_section {
+        padding: 12px !important;
+        gap: 12px;
+        border-radius: var(--mtw-r) !important;
+        overflow-x: hidden;
+    }
+
+    #mtw_withdrawals {
+        margin-top: 12px !important;
+    }
+
+    .mtw-dash__hero-row,
+    .sheyda_wallet_dashboard-info {
+        grid-template-columns: 1fr !important;
+    }
+
+    .mtw-dash__balance {
+        min-height: 84px;
+        padding: 14px !important;
+    }
+
+    .sheyda_wallet_dashboard-balance-value {
+        font-size: 1.25rem;
+    }
+
+    .sheyda_wallet_wrap .mtw-section-icon.drplus-simple-icon-wrap {
+        font-size: 1rem;
+    }
+
+    .mtw-tx__row {
+        grid-template-columns: 36px minmax(0, 1fr) auto 32px;
+        grid-template-areas: "kind main amount toggle";
+        gap: 8px;
+        padding: 12px !important;
+    }
+
+    .mtw-tx__main {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .mtw-tx__op,
+    .mtw-tx__amount-value {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .mtw-tx__amount {
+        min-width: 0;
+    }
+
+    .mtw-tx__amount-value {
+        white-space: normal;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .sheyda_wallet_nav_item {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    .mtw-dash__action-label em {
+        display: none;
+    }
+
+    .sheyda_wallet_section,
+    .sheyda_wallet_wrap .sheyda_wallet_section {
+        padding: 10px !important;
+    }
+
+    .mtw-tx__row {
+        padding: 10px !important;
+        gap: 6px;
+    }
+}

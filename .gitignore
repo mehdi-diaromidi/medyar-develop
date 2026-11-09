@@ -1,0 +1,41 @@
+# Secrets / local tooling
+.ftp.env
+.env*
+.vscode/
+/deploy.sh
+/deploy.ps1
+
+# Not part of the site
+token-optimizer/
+For Cursor/
+
+# wp-content: only Medyar custom plugins + the patched dr-plus theme are versioned and deployed
+/wp-content/*
+!/wp-content/plugins/
+/wp-content/plugins/*
+!/wp-content/plugins/affiliate-referral/
+!/wp-content/plugins/lab-booking-system/
+!/wp-content/plugins/medical-records/
+!/wp-content/plugins/medyar-chat-pro/
+!/wp-content/plugins/medyar-myaccount-dashboard/
+!/wp-content/plugins/medyar-nursing-services/
+!/wp-content/plugins/medyar-sms-queue/
+!/wp-content/plugins/medyar-toman-wallet/
+!/wp-content/plugins/pharmacy-pro-system/
+!/wp-content/themes/
+/wp-content/themes/*
+!/wp-content/themes/dr-plus/
+/wp-content/themes/dr-plus/log.txt
+
+# Never versioned / deployed
+*.zip
+*.sql
+*.log
+error_log
+wp-config.php
+node_modules/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/

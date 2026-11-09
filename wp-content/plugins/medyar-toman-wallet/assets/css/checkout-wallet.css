@@ -1,0 +1,410 @@
+/**
+ * Checkout wallet — aligned with my-account Medyar wallet skin.
+ * Scoped under #order_review-wrap / .mtw-checkout-wallet
+ */
+
+#order_review-wrap .sheyda-wallet-partial.mtw-checkout-wallet,
+.mtw-order-pay-wallet-wrap .sheyda-wallet-partial.mtw-checkout-wallet {
+  --mtw-primary: var(--primary-100, #0272b1);
+  --mtw-primary-soft: var(--primary-100-20, #0272b133);
+  --mtw-secondary: var(--secondary-100, #114b5f);
+  --mtw-surface: var(--general-bg, #fff);
+  --mtw-canvas: var(--gray-100, #f7f7f7);
+  --mtw-border: var(--gray-200, #e6e6e6);
+  --mtw-muted: var(--text-200, #a6a6a6);
+  --mtw-text: var(--text-main, #383838);
+  --mtw-heading: var(--heading-200, #181616);
+  --mtw-success: #16a34a;
+  --mtw-success-soft: color-mix(in srgb, var(--mtw-success) 12%, #fff);
+  --mtw-input: var(--input-bg, #f5f6f7);
+  --mtw-r-sm: 4px;
+  --mtw-r: 8px;
+  --mtw-ease: 0.18s ease;
+  --mtw-font: var(--main-font, IRANYekanXFANum, sans-serif);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin-block: 8px 4px;
+  padding: 14px 0 10px;
+  border-top: 1px solid var(--mtw-border);
+  border-bottom: 0;
+  background: transparent;
+  font-family: var(--mtw-font);
+  color: var(--mtw-text);
+  box-sizing: border-box;
+  transition: background var(--mtw-ease);
+}
+
+#order_review-wrap .mtw-checkout-wallet th,
+#order_review-wrap .mtw-checkout-wallet td,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet th,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet td {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  font-weight: inherit;
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-title,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-title {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--mtw-heading);
+  line-height: 1.4;
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-form,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-balance,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--mtw-r);
+  border: 1px solid var(--mtw-border);
+  background: var(--mtw-canvas);
+}
+
+.mtw-checkout-wallet__balance-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mtw-muted);
+}
+
+.mtw-checkout-wallet__balance-value {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--mtw-primary);
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-toggle,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mtw-heading);
+  cursor: pointer;
+  user-select: none;
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-toggle input,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--mtw-primary);
+  flex: 0 0 auto;
+}
+
+.mtw-checkout-wallet__field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+#order_review-wrap .mtw-checkout-wallet .sheyda-wallet-partial-field label,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet .sheyda-wallet-partial-field label {
+  display: block;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--mtw-muted);
+}
+
+.mtw-checkout-wallet__max-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--mtw-primary) 28%, var(--mtw-border));
+  border-radius: var(--mtw-r-sm);
+  background: var(--mtw-primary-soft);
+  color: var(--mtw-primary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background var(--mtw-ease), border-color var(--mtw-ease), color var(--mtw-ease);
+}
+
+.mtw-checkout-wallet__max-btn:hover:not(:disabled) {
+  background: var(--mtw-primary);
+  border-color: var(--mtw-primary);
+  color: #fff;
+}
+
+.mtw-checkout-wallet__max-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mtw-checkout-wallet__max-btn:focus-visible {
+  outline: 2px solid var(--mtw-primary);
+  outline-offset: 2px;
+}
+
+#order_review-wrap .mtw-checkout-wallet #mtw_wallet_amount,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet #mtw_wallet_amount {
+  width: 100%;
+  min-height: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0 36px 0 12px !important;
+  box-sizing: border-box;
+  border: 1px solid var(--mtw-border) !important;
+  border-radius: var(--mtw-r) !important;
+  background: var(--mtw-input) !important;
+  color: var(--mtw-text) !important;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  box-shadow: none !important;
+  transition: border-color var(--mtw-ease), background var(--mtw-ease);
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
+}
+
+#order_review-wrap .mtw-checkout-wallet #mtw_wallet_amount:focus,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet #mtw_wallet_amount:focus {
+  outline: none;
+  border-color: var(--mtw-primary) !important;
+  background: #fff !important;
+}
+
+/* Active state — quiet, panel-like */
+#order_review-wrap .mtw-checkout-wallet.is-active,
+.mtw-order-pay-wallet-wrap .mtw-checkout-wallet.is-active {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading — calm, panel-aligned                                         */
+/* ------------------------------------------------------------------ */
+
+/* Theme sticky header (#header-container) is z-index:100 — stay below it. */
+form.woocommerce-checkout .woocommerce-checkout-review-order-table .blockOverlay,
+form.woocommerce-checkout .woocommerce-checkout-payment .blockOverlay,
+form.woocommerce-checkout .blockUI.blockOverlay,
+form.checkout.woocommerce-checkout .blockUI.blockOverlay,
+form.checkout.woocommerce-checkout > .blockUI.blockOverlay,
+.drplus-booking-checkout .blockUI.blockOverlay,
+#order_review-wrap .blockOverlay,
+#order_review-wrap .blockUI.blockOverlay,
+.mtw-order-pay-wallet-wrap .blockOverlay {
+  background: transparent !important;
+  background-color: transparent !important;
+  opacity: 0 !important;
+  cursor: default !important;
+  z-index: 40 !important;
+}
+
+/* Visible panel loader: wallet fee refresh (JS class) + place order (WC adds .processing to form). */
+#order_review-wrap {
+  position: relative;
+}
+
+#order_review-wrap.mtw-is-loading::after,
+form.woocommerce-checkout.processing #order_review-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--gray-100, #f5f5f5) 72%, transparent);
+  -webkit-backdrop-filter: blur(1.5px);
+  backdrop-filter: blur(1.5px);
+  z-index: 45;
+  cursor: default;
+}
+
+#order_review-wrap.mtw-is-loading::before,
+form.woocommerce-checkout.processing #order_review-wrap::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--mtw-primary, var(--primary-100, #0272b1)) 20%, transparent);
+  border-top-color: var(--mtw-primary, var(--primary-100, #0272b1));
+  background: none;
+  animation: mtw-load-spin 0.7s linear infinite;
+  z-index: 46;
+  pointer-events: none;
+}
+
+/* Panel is tall — keep the submit spinner over #place_order where the user is looking. */
+form.woocommerce-checkout.processing #order_review-wrap::before {
+  top: auto;
+  bottom: 35px;
+  margin: 0 0 0 -18px;
+}
+
+form.woocommerce-checkout .blockUI.blockMsg,
+#order_review-wrap .blockUI.blockMsg {
+  display: none !important;
+}
+
+#order_review-wrap.mtw-is-refreshing,
+.mtw-order-pay-wallet-wrap.mtw-is-refreshing {
+  position: relative;
+}
+
+#order_review-wrap.mtw-is-refreshing::before,
+.mtw-order-pay-wallet-wrap.mtw-is-refreshing::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--mtw-primary, #0272b1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: mtw-load-sweep 1.05s ease-in-out infinite;
+  z-index: 4;
+  pointer-events: none;
+}
+
+#order_review-wrap.mtw-is-refreshing .order-total .woocommerce-Price-amount,
+#order_review-wrap.mtw-is-refreshing tr.fee .woocommerce-Price-amount {
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+}
+
+.sheyda-wallet-partial.mtw-checkout-wallet.is-refreshing {
+  /* Soft tint only — never change padding/margin/width (causes horizontal jump). */
+  background: color-mix(in srgb, var(--mtw-primary-soft) 45%, transparent);
+  border-radius: var(--mtw-r-sm);
+}
+
+.sheyda-wallet-partial.mtw-checkout-wallet.is-refreshing #mtw_wallet_amount {
+  border-color: color-mix(in srgb, var(--mtw-primary) 40%, var(--mtw-border)) !important;
+}
+
+.sheyda-wallet-partial-field {
+  position: relative;
+}
+
+.sheyda-wallet-partial.mtw-checkout-wallet.is-refreshing .sheyda-wallet-partial-field::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  /* Center inside the 44px amount input at the bottom of the field (label sits above). */
+  top: auto;
+  bottom: 16px;
+  width: 12px;
+  height: 12px;
+  margin-top: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--mtw-primary) 22%, transparent);
+  border-top-color: var(--mtw-primary);
+  animation: mtw-load-spin 0.65s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mtw-order-pay-wallet-wrap {
+  margin: 0 0 16px;
+  position: relative;
+}
+
+.mtw-order-pay-wallet-wrap .shop_table {
+  width: 100%;
+  margin: 0;
+  border: 0;
+}
+
+.mtw-wc-wallet-gateway-desc {
+  margin: 0 0 8px;
+  color: var(--text-200, #a6a6a6);
+  font-size: 0.875rem;
+}
+
+@keyframes mtw-load-sweep {
+  0% {
+    background-position: 100% 0;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -100% 0;
+    opacity: 0.4;
+  }
+}
+
+@keyframes mtw-load-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #order_review-wrap.mtw-is-refreshing::before,
+  .mtw-order-pay-wallet-wrap.mtw-is-refreshing::before,
+  #order_review-wrap.mtw-is-loading::before,
+  form.woocommerce-checkout.processing #order_review-wrap::before,
+  .sheyda-wallet-partial.mtw-checkout-wallet.is-refreshing .sheyda-wallet-partial-field::after {
+    animation: none !important;
+  }
+}
+
+/* Wallet is only used via the checkbox UI — never show WC wallet radio. */
+.woocommerce-checkout li.wc_payment_method.payment_method_wallet,
+.woocommerce-checkout #payment_method_wallet {
+  display: none !important;
+}
+
+/*
+ * Fee amounts (RTL): تومان on the LEFT, number on the RIGHT.
+ * Number itself stays LTR so "-" sits left of digits for wallet debit.
+ */
+#order_review-wrap tr.fee .woocommerce-Price-amount bdi,
+.mtw-order-pay-wallet-wrap tr.fee .woocommerce-Price-amount bdi {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: baseline;
+  gap: 0.2em;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+#order_review-wrap tr.fee .woocommerce-Price-currencySymbol,
+.mtw-order-pay-wallet-wrap tr.fee .woocommerce-Price-currencySymbol {
+  unicode-bidi: isolate;
+}
+
+/* Full wallet cover: theme always prints payment title even when no gateways. */
+#order_review-wrap #payment:not(:has(.wc_payment_methods)) .payment-methods-title,
+.mtw-order-pay-wallet-wrap #payment:not(:has(.wc_payment_methods)) .payment-methods-title,
+#order_review-wrap #payment.mtw-wallet-covers-all .payment-methods-title,
+.mtw-order-pay-wallet-wrap #payment.mtw-wallet-covers-all .payment-methods-title {
+  display: none !important;
+}
+

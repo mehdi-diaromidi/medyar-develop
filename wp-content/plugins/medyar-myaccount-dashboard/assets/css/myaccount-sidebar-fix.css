@@ -1,0 +1,26 @@
+/**
+ * Mobile sidebar expand: keep the toggle above the off-canvas drawer
+ * and ignore pointer events on the closed drawer so taps don't hit nav links
+ * (which looked like a page refresh when "پیشخوان" was under the finger).
+ */
+@media screen and (max-width: 767px) {
+	.myaccount-sidebar-mobile-expand {
+		z-index: 100001 !important;
+		pointer-events: auto !important;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+		user-select: none;
+	}
+
+	.myaccount-sidebar-wrap:not(.mobile-expanded) {
+		pointer-events: none !important;
+	}
+
+	.myaccount-sidebar-wrap.mobile-expanded {
+		pointer-events: auto;
+	}
+
+	.myaccount-sidebar-wrap.arp-drawer-opening {
+		pointer-events: none !important;
+	}
+}

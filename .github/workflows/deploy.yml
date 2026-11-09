@@ -1,0 +1,67 @@
+name: Deploy to host
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: connect and list changes, upload nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-host
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy wp-content
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          lftp --version | head -n 1
+
+      - name: Resolve dry-run mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          VAR_DRY_RUN: ${{ vars.DEPLOY_DRY_RUN }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            dry_run="$INPUT_DRY_RUN"
+          else
+            dry_run="${VAR_DRY_RUN:-true}"
+          fi
+          [[ "$dry_run" == "false" ]] || dry_run="true"
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+          echo "Dry run: $dry_run"
+
+      - name: Deploy
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL }}
+          FTP_PORT: ${{ vars.FTP_PORT }}
+          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTP_TLS_FINGERPRINT: ${{ vars.FTP_TLS_FINGERPRINT }}
+          FTP_TLS_PROTECT_DATA: ${{ vars.FTP_TLS_PROTECT_DATA }}
+          SFTP_KNOWN_HOSTS: ${{ vars.SFTP_KNOWN_HOSTS }}
+          DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+        run: bash .github/scripts/deploy.sh

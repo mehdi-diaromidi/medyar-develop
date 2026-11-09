@@ -1,0 +1,50 @@
+.mcp-wrap { max-width: 1400px; }
+.mcp-tabs { margin-bottom: 16px; }
+.mcp-muted { color: #646970; }
+.mcp-danger { color: #b32d2e !important; }
+.mcp-nowrap { white-space: nowrap; }
+.mcp-empty { text-align: center; padding: 24px !important; color: #646970; }
+
+.mcp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.mcp-stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: #fff; border: 1px solid #dcdcde; border-radius: 10px; text-decoration: none; color: #1d2327; transition: border-color .15s, box-shadow .15s; }
+.mcp-stat:hover, .mcp-stat:focus, .mcp-stat.is-active { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
+.mcp-stat__num { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.mcp-stat__label { color: #646970; font-size: 13px; }
+.mcp-stat--waiting_specialist .mcp-stat__num { color: #b32d2e; }
+.mcp-stat--waiting_patient .mcp-stat__num { color: #996800; }
+.mcp-stat--answered .mcp-stat__num { color: #008a20; }
+.mcp-stat--closed .mcp-stat__num { color: #50575e; }
+
+.mcp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.mcp-card { background: #fff; border: 1px solid #dcdcde; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.mcp-card h2 { margin: 0 0 12px; font-size: 15px; }
+.mcp-card--wide { grid-column: span 2; }
+@media (max-width: 1100px) { .mcp-card--wide { grid-column: auto; } }
+.mcp-kv { width: 100%; border-collapse: collapse; }
+.mcp-kv th { text-align: start; font-weight: 500; color: #50575e; padding: 6px 0; width: 50%; }
+.mcp-kv td { padding: 6px 0; }
+.mcp-actions { margin: 14px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.mcp-inline-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.mcp-code { background: #1d2327; color: #f0f0f1; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; font-size: 12px; text-align: left; }
+
+.mcp-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; }
+.mcp-filters input[type="search"] { min-width: 220px; }
+.mcp-date-input { width: 130px; }
+.mcp-filters .mcp-date-input { max-width: 170px; }
+.mcp-time-input { width: 70px; }
+@media (max-width: 782px) { .mcp-filters .mcp-date-input { max-width: none; } }
+.mcp-table td { vertical-align: top; }
+.mcp-details { max-width: 420px; font-size: 12px; color: #50575e; word-break: break-word; }
+
+.mcp-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; background: #f0f0f1; color: #3c434a; line-height: 1.7; vertical-align: middle; }
+.mcp-badge--open { background: #dfe9f7; color: #135e96; }
+.mcp-badge--waiting_specialist { background: #fbe0e0; color: #8a1f1f; }
+.mcp-badge--waiting_patient { background: #fcf0d4; color: #7a5300; }
+.mcp-badge--answered { background: #d7f2dd; color: #00691a; }
+.mcp-badge--closed { background: #e9e9ea; color: #50575e; }
+
+.mcp-notes { margin: 0; }
+.mcp-notes li { border-bottom: 1px solid #f0f0f1; padding: 8px 0; margin: 0; }
+.mcp-notes li:last-child { border-bottom: 0; }
+.mcp-note-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mcp-note-body { margin-top: 4px; white-space: pre-wrap; }

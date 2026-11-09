@@ -1,0 +1,622 @@
+/* Custom reserve settings — MTW SMS category look. */
+
+.mmad-admin-reserve-sms .arp-tab-body,
+.mmad-admin-reserve-sms .mmad-tab-body {
+	margin-top: 16px;
+}
+
+/* Same visual language as .mtw-sms-category */
+.mmad-admin-reserve-sms .mmad-sms-category {
+	margin: 0 0 28px;
+	padding: 16px 18px 8px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category > .title {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 1.3em;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category > .mmad-sms-lead {
+	margin: 0 0 14px;
+	color: #646970;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category__item {
+	margin: 0 0 18px;
+	padding: 12px 14px 8px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category__subtitle {
+	margin: 0 0 4px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category__hint {
+	margin: 0 0 10px !important;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-category .form-table {
+	margin-top: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-repeater-item {
+	margin: 0 0 12px;
+	padding: 10px 12px 4px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-repeater-item__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0 0 4px;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-repeater-item__label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-repeater-index {
+	font-weight: 600;
+}
+
+.mmad-admin-reserve-sms .mmad-sms-repeater-remove {
+	color: #b32d2e;
+}
+
+.mmad-admin-reserve-sms code,
+.mmad-admin-reserve-sms .ltr {
+	direction: ltr;
+	unicode-bidi: embed;
+}
+
+.mmad-admin-reserve-sms .mmad-kpis {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+	gap: 16px;
+	margin: 16px 0 20px;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi {
+	--mmad-tone: #2271b1;
+	--mmad-tint: #e8f1f9;
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	padding: 16px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	color: #1d2327;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi--green {
+	--mmad-tone: #00a32a;
+	--mmad-tint: #e7f6ea;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi--teal {
+	--mmad-tone: #0f766e;
+	--mmad-tint: #e6f4f2;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__icon {
+	flex: none;
+	width: 40px;
+	height: 40px;
+	border-radius: 8px;
+	background: var(--mmad-tint);
+	color: var(--mmad-tone);
+	font-size: 22px;
+	line-height: 40px;
+	text-align: center;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__label {
+	color: #50575e;
+	font-size: 13px;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__value {
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__value small {
+	color: #646970;
+	font-size: 12px;
+	font-weight: 400;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi__meta {
+	color: #646970;
+	font-size: 12px;
+}
+
+.mmad-admin-reserve-sms .mmad-empty {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	margin: 0 0 12px;
+	padding: 4px 0 12px;
+	color: #646970;
+}
+
+.mmad-admin-reserve-sms .mmad-compact th,
+.mmad-admin-reserve-sms .mmad-compact td {
+	padding: 8px 10px;
+	vertical-align: middle;
+}
+
+.mmad-admin-reserve-sms .mmad-income-table th,
+.mmad-admin-reserve-sms .mmad-income-table td {
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mmad-admin-reserve-sms .mmad-income-table .button-small {
+	vertical-align: middle;
+}
+
+.mmad-admin-reserve-sms .mmad-income-table td a strong {
+	margin-inline-end: 4px;
+}
+
+.mmad-admin-reserve-sms .mmad-cell-sub {
+	display: block;
+	margin-top: 2px;
+	color: #646970;
+	font-size: 12px;
+}
+
+.mmad-admin-reserve-sms .mmad-table-scroll {
+	overflow-x: auto;
+	margin: 0 0 12px;
+}
+
+.mmad-admin-reserve-sms .mmad-kpi--purple {
+	--mmad-tone: #6b3fa0;
+	--mmad-tint: #f1ebf8;
+}
+
+/* Filter card — same as wallet .wallet-filter-card.wwp-admin-list-bar */
+.mmad-admin-reserve-sms .mmad-filter-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 12px 14px;
+	margin: 0 0 16px;
+	box-shadow: none;
+	box-sizing: border-box;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-card > h2 {
+	margin: -12px -14px 12px;
+	padding: 8px 12px;
+	border-bottom: 1px solid #c3c4c7;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+	background: #fff;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-form {
+	margin: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 10px;
+	align-items: end;
+	margin-bottom: 12px;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-grid label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	font-size: 12px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-grid input[type="search"],
+.mmad-admin-reserve-sms .mmad-filter-grid select {
+	width: 100%;
+	max-width: 100%;
+	font-weight: 400;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-filter-meta {
+	margin-inline-start: auto;
+}
+
+.mmad-admin-reserve-sms .mmad-pagination {
+	margin: 0 0 8px;
+}
+
+.mmad-admin-reserve-sms .mmad-pagination .tablenav-pages {
+	float: none;
+	text-align: center;
+}
+
+.mmad-admin-reserve-sms .mmad-pagination .page-numbers {
+	display: inline-block;
+	min-width: 28px;
+	padding: 3px 8px;
+	margin: 0 2px;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	background: #fff;
+	text-decoration: none;
+	text-align: center;
+}
+
+.mmad-admin-reserve-sms .mmad-pagination .page-numbers.current {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+}
+
+/* Admin recipient picker — same as wallet .wwp-admin-picker */
+.mmad-admin-reserve-sms .mmad-admin-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-width: 480px;
+	max-height: 260px;
+	overflow: auto;
+	margin-bottom: 8px;
+	padding: 8px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 4px;
+	border: 1px solid transparent;
+	background: #f6f7f7;
+	cursor: pointer;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__item:hover {
+	background: #f0f6fc;
+	border-color: #c5d9ed;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__item:has(input:checked) {
+	background: #f0f6fc;
+	border-color: #2271b1;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__item input[type="checkbox"] {
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__name {
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.3;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__sub {
+	font-size: 12px;
+	color: #646970;
+	line-height: 1.3;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mmad-admin-reserve-sms .mmad-admin-picker__warn {
+	color: #b32d2e;
+}
+
+/* ── Income detail modal (wallet-like, RTL-friendly) ───────────── */
+#mmad-income-modal-overlay {
+	display: none;
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.55);
+	z-index: 100100;
+	justify-content: center;
+	align-items: center;
+	padding: 24px 16px;
+	overflow-y: auto;
+	box-sizing: border-box;
+}
+
+#mmad-income-modal-overlay.is-open {
+	display: flex;
+}
+
+#mmad-income-modal {
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border-radius: 4px;
+	width: 100%;
+	max-width: 720px;
+	max-height: min(88vh, 860px);
+	box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
+	position: relative;
+	margin: auto;
+	overflow: hidden;
+}
+
+.mmad-modal-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+	padding: 12px 16px 12px 12px;
+	border-bottom: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+
+.mmad-modal-header h2 {
+	font-size: 15px;
+	font-weight: 600;
+	margin: 0;
+	line-height: 1.4;
+	color: #1d2327;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#mmad-income-status-wrap {
+	flex: none;
+	display: flex;
+	align-items: center;
+}
+
+.mmad-modal-close {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	background: none;
+	border: none;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 22px;
+	color: #646970;
+	line-height: 1;
+	padding: 0;
+}
+
+.mmad-modal-close:hover {
+	color: #d63638;
+	background: #f0f0f1;
+}
+
+.mmad-modal-body {
+	flex: 1 1 auto;
+	padding: 0;
+	overflow-y: auto;
+	min-height: 0;
+	-webkit-overflow-scrolling: touch;
+}
+
+.mmad-modal-footer {
+	flex: none;
+	padding: 12px 16px;
+	border-top: 1px solid #dcdcde;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 8px;
+	background: #f6f7f7;
+}
+
+.mmad-modal-footer .button {
+	min-width: 96px;
+	text-align: center;
+}
+
+.mmad-modal-section {
+	padding: 16px 20px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.mmad-modal-section:last-child {
+	border-bottom: none;
+}
+
+.mmad-modal-section-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	margin: 0 0 12px;
+	padding: 0 0 8px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.mmad-info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px 24px;
+}
+
+.mmad-info-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.mmad-info-label {
+	font-size: 12px;
+	color: #646970;
+	font-weight: 500;
+	line-height: 1.3;
+}
+
+.mmad-info-value {
+	font-size: 13px;
+	color: #1d2327;
+	line-height: 1.45;
+	word-break: break-word;
+}
+
+.mmad-info-value .mmad-num,
+.mmad-pnl-row .mmad-num {
+	direction: ltr;
+	unicode-bidi: isolate;
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: "tnum" 1;
+}
+
+.mmad-pnl-box {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 4px 14px;
+}
+
+.mmad-pnl-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	font-size: 13px;
+	padding: 10px 0;
+	color: #3c434a;
+	border-bottom: 1px solid #e8e8e9;
+}
+
+.mmad-pnl-row:last-child {
+	border-bottom: none;
+}
+
+.mmad-pnl-row > span:first-child {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.mmad-pnl-row > span:last-child {
+	flex: none;
+	white-space: nowrap;
+}
+
+.mmad-pnl-row.highlight {
+	font-weight: 700;
+	font-size: 14px;
+	color: #1d2327;
+	margin-top: 2px;
+	padding-top: 12px;
+	border-top: 1px solid #c3c4c7;
+	border-bottom: none;
+}
+
+.mmad-pnl-plus {
+	color: #1a7c34;
+}
+
+.mmad-badge {
+	display: inline-block;
+	padding: 3px 9px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.mmad-badge-success {
+	background: #edfaef;
+	color: #1e7e34;
+	border: 1px solid #68de7c;
+}
+
+.mmad-badge-warning {
+	background: #fcf9e8;
+	color: #996800;
+	border: 1px solid #f0c33c;
+}
+
+.mmad-badge-danger {
+	background: #fcf0f1;
+	color: #d63638;
+	border: 1px solid rgba(214, 54, 56, 0.4);
+}
+
+.mmad-badge-info {
+	background: #f0f6fc;
+	color: #2271b1;
+	border: 1px solid #72aee6;
+}
+
+body.mmad-modal-open {
+	overflow: hidden;
+}
+
+@media (max-width: 782px) {
+	.mmad-info-grid {
+		grid-template-columns: 1fr;
+	}
+
+	#mmad-income-modal-overlay {
+		align-items: flex-start;
+		padding: 12px;
+	}
+
+	#mmad-income-modal {
+		max-height: 94vh;
+	}
+}
