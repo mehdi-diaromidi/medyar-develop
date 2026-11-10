@@ -1,0 +1,5 @@
+- [Nova persona trigger](nova-persona-trigger.md) — UI/UX+frontend skill runs only when user says "nova"
+- [ARP UI baseline](arp-ui-baseline.md) — MNS pages must match affiliate-referral plugin's basic UI
+- [Delivery rules](delivery-rules.md) — no commit/push unless told; FTP via deploy.ps1; assets cached a year
+- [Nova: best UI/UX = logic first](nova-best-uiux-means-logic.md) — rethink defaults/flow, mockup before code
+- [Gold-standard page](gold-standard-new-order-page.md) — patient new-order wizard is the approved reference for all other pages
