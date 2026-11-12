@@ -49,3 +49,13 @@ Select text was centred by the button default: set `justify-content: flex-start`
 - "Loading shows over the text" → fade the label, then the spinner (rule 19).
 - "Narrower qty, wider select" → grid `1fr auto`, qty 136px (112px on phones).
 - "Selected button needn't be bolder" → remove weight change (it also beat the `!important` base rule, so the override needed `!important`).
+
+## Example 6 — Nurse dashboard (Medyar), five rounds
+
+1. **First rewrite from the spec** (status bar, "now" card, unfinished steps, notices, plan, wallet, rating, week). The user: more colours (it was all blue), and "unfinished steps" is useless because a nurse finishes one service completely.
+2. **Questions, then redesign.** Four questions to the user (when they open it, what to do with the block, colour direction, daily volume) led to: the unfinished block merged into the "now" card as a step track (rule 26), hours with minutes, no elapsed timer (rule 27), colour with meaning (rule 28), the three summary cards as one coloured strip.
+3. **"Plan, summaries and weekly plan could look much better."** Mockup first: day chips with side-bar rows, wallet as a full row with a "withdraw" button, rating and month as two equal cards.
+4. **Weekly plan:** heatmap grid ("unclear") → list of day lines ("clear, not pretty") → Google Calendar style week strip + day hour view (rule 29). The brown solid event blocks were then replaced by pastel + side bar, and the hour axis turned horizontal on desktop.
+5. **Result:** the user accepted it ("it works now") and asked for the skill to be updated.
+
+**Lessons:** domain questions beat spec-reading (rule 25); each visual round was a mockup first; when words fail ("not pretty"), point at a familiar product instead of guessing again.
