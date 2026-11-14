@@ -3,3 +3,4 @@
 - [Delivery rules](delivery-rules.md) — no commit/push unless told; FTP via deploy.ps1; assets cached a year
 - [Nova: best UI/UX = logic first](nova-best-uiux-means-logic.md) — rethink defaults/flow, mockup before code
 - [Gold-standard page](gold-standard-new-order-page.md) — patient new-order wizard is the approved reference for all other pages
+- [Always vertically centred](always-vertically-centred.md) — house rule: centre everything vertically
