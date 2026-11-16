@@ -142,6 +142,11 @@ class MNS_Backend {
 				'file'  => 'includes/backend/class-mns-backend-domain.php',
 				'class' => 'MNS_Backend_Domain',
 			),
+			array(
+				'slug'  => 'selftest',
+				'file'  => 'includes/backend/class-mns-backend-selftest.php',
+				'class' => 'MNS_Backend_Selftest',
+			),
 		);
 
 		if ( self::should_load_selftest_broken() ) {

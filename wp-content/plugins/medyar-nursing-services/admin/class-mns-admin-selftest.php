@@ -1,0 +1,83 @@
+<?php
+/**
+ * Tools → MNS Self-test (T-0.6).
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class MNS_Admin_Selftest {
+
+	public const PAGE = 'mns-selftest';
+
+	public static function boot(): void {
+		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+		add_action( 'admin_post_mns_selftest_run', array( __CLASS__, 'handle' ) );
+	}
+
+	public static function menu(): void {
+		add_management_page(
+			__( 'MNS Self-test', 'medyar-nursing-services' ),
+			__( 'MNS Self-test', 'medyar-nursing-services' ),
+			'manage_options',
+			self::PAGE,
+			array( __CLASS__, 'render' )
+		);
+	}
+
+	public static function handle(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'شما اجازهٔ این کار را ندارید.', 'medyar-nursing-services' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( 'mns_selftest_run' );
+		$result = MNS_Selftest::run();
+		set_transient( 'mns_selftest_flash_' . get_current_user_id(), $result, 120 );
+		wp_safe_redirect( admin_url( 'tools.php?page=' . self::PAGE ) );
+		exit;
+	}
+
+	public static function render(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'شما اجازهٔ این کار را ندارید.', 'medyar-nursing-services' ) );
+		}
+
+		$flash = get_transient( 'mns_selftest_flash_' . get_current_user_id() );
+		if ( false !== $flash ) {
+			delete_transient( 'mns_selftest_flash_' . get_current_user_id() );
+		}
+
+		$pass = is_array( $flash ) ? (int) $flash['pass'] : 0;
+		$fail = is_array( $flash ) ? (int) $flash['fail'] : 0;
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'MNS Self-test', 'medyar-nursing-services' ) . '</h1>';
+
+		echo '<div id="mns-selftest-summary" data-pass="' . esc_attr( (string) $pass ) . '" data-fail="' . esc_attr( (string) $fail ) . '">';
+		if ( is_array( $flash ) ) {
+			echo esc_html( sprintf( 'PASS=%d FAIL=%d', $pass, $fail ) );
+		} else {
+			echo esc_html__( 'هنوز اجرا نشده', 'medyar-nursing-services' );
+		}
+		echo '</div>';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( 'mns_selftest_run' );
+		echo '<input type="hidden" name="action" value="mns_selftest_run" />';
+		submit_button( __( 'اجرای همه', 'medyar-nursing-services' ) );
+		echo '</form>';
+
+		if ( is_array( $flash ) && ! empty( $flash['rows'] ) ) {
+			echo '<table class="widefat striped"><thead><tr><th>AC</th><th>عنوان</th><th>نتیجه</th><th>جزئیات</th></tr></thead><tbody>';
+			foreach ( $flash['rows'] as $row ) {
+				echo '<tr>';
+				echo '<td><code>' . esc_html( (string) $row['id'] ) . '</code></td>';
+				echo '<td>' . esc_html( (string) $row['title'] ) . '</td>';
+				echo '<td>' . esc_html( ! empty( $row['ok'] ) ? 'PASS' : 'FAIL' ) . '</td>';
+				echo '<td>' . esc_html( (string) $row['detail'] ) . '</td>';
+				echo '</tr>';
+			}
+			echo '</tbody></table>';
+		}
+		echo '</div>';
+	}
+}
