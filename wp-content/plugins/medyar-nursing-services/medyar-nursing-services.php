@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MNS_VERSION', '0.5.39' );
+define( 'MNS_VERSION', '0.5.40' );
 define( 'MNS_DB_VERSION', '0.0.0' );
 define( 'MNS_PLUGIN_FILE', __FILE__ );
 define( 'MNS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

@@ -16,11 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 MNS_UI::boot_icons();
 
 $data  = MNS_Static_Fixtures::get( 'nurse/orders' );
-$use_real = is_user_logged_in()
-	&& MNS_Roles::user_is_nurse()
-	&& class_exists( 'MNS_Nurse_Access', true )
-	&& MNS_Nurse_Access::can_use_panel()
-	&& ! current_user_can( 'manage_options' );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
 if ( $use_real && class_exists( 'MNS_Nurse_Orders_Api', true ) ) {
 	try {
 		$pack = MNS_Nurse_Orders_Api::list_for( get_current_user_id(), array( 'tab' => 'upcoming', 'p' => 1, 'per' => 50 ) );

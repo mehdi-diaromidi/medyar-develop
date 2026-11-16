@@ -11,6 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+if ( MNS_UI::soon_for_real( 'patient' ) ) {
+	return;
+}
+
 $d        = MNS_Static_Fixtures::get( 'patient/loyalty' );
 $filled   = isset( $d['filled'] ) ? max( 0, (int) $d['filled'] ) : 0;
 $required = isset( $d['required'] ) ? max( 1, (int) $d['required'] ) : 5;

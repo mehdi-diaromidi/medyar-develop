@@ -14,9 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$use_real = is_user_logged_in()
-	&& ! current_user_can( 'manage_options' )
-	&& current_user_can( MNS_Roles::CAP_PATIENT_PANEL );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
 
 $data = MNS_Static_Fixtures::get( 'patient/new_order' );
 if ( $use_real && class_exists( 'MNS_Patients', true ) ) {

@@ -23,10 +23,7 @@ $fa  = static function ( $v ): string {
 };
 
 $preview = MNS_Dev::enabled() || ( class_exists( 'MNS_Plugin' ) && MNS_Plugin::is_ui_static() );
-$use_real = is_user_logged_in()
-	&& MNS_Roles::user_is_nurse()
-	&& MNS_Nurse_Access::can_use_panel()
-	&& ! current_user_can( 'manage_options' );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
 
 $bundle     = null;
 $data       = MNS_Static_Fixtures::get( 'nurse/availability' );

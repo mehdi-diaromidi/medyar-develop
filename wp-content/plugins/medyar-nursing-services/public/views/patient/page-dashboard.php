@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
+$new_url  = MNS_Pages::panel_url( 'patient', 'new-order' );
+
 $data     = MNS_Static_Fixtures::get( 'patient/dashboard' );
 $variants = isset( $data['variants'] ) && is_array( $data['variants'] ) ? $data['variants'] : array();
 $action   = isset( $data['primary_action'] ) && is_array( $data['primary_action'] ) ? $data['primary_action'] : array();
@@ -28,11 +31,51 @@ $loyalty    = isset( $data['loyalty'] ) && is_array( $data['loyalty'] ) ? $data[
 $last       = isset( $data['last_service'] ) && is_array( $data['last_service'] ) ? $data['last_service'] : array();
 $stats      = isset( $data['stats'] ) && is_array( $data['stats'] ) ? $data['stats'] : array();
 
-if ( MNS_Dev::is( 'empty' ) || ( isset( $action['type'] ) && 'new_user' === $action['type'] ) ) {
+if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
+	$upcoming   = array();
+	$loyalty    = array();
+	$last       = array();
+	$stats      = array();
+	$categories = array();
+	try {
+		$pack = MNS_Patient_Orders_Api::list_for(
+			get_current_user_id(),
+			array(
+				'tab' => 'active',
+				'p'   => 1,
+				'per' => 10,
+			)
+		);
+		foreach ( (array) ( $pack['data']['items'] ?? array() ) as $it ) {
+			$upcoming[] = array(
+				'service'  => (string) ( $it['service'] ?? '' ),
+				'when'     => (string) ( $it['when'] ?? '' ),
+				'patient'  => (string) ( $it['patient'] ?? $it['patient_name'] ?? '' ),
+				'nurse'    => is_array( $it['nurse'] ?? null ) ? (string) ( $it['nurse']['name'] ?? '' ) : (string) ( $it['nurse_name'] ?? '' ),
+				'status'   => (string) ( $it['status'] ?? 'submitted' ),
+				'tracking' => (string) ( $it['code'] ?? '' ),
+				'url'      => (string) ( $it['url'] ?? MNS_Patient_Orders::view_url( $it ) ),
+			);
+		}
+		$tabs_all = (int) ( $pack['data']['tabs']['all'] ?? 0 );
+		$action   = array(
+			'type'  => empty( $upcoming ) ? 'new_user' : 'orders',
+			'url'   => $new_url,
+			'label' => __( 'ثبت سفارش جدید', 'medyar-nursing-services' ),
+			'count' => $tabs_all,
+		);
+	} catch ( \Throwable $e ) {
+		$upcoming = array();
+		$action   = array(
+			'type'  => 'new_user',
+			'url'   => $new_url,
+			'label' => __( 'ثبت سفارش جدید', 'medyar-nursing-services' ),
+		);
+	}
+} elseif ( MNS_Dev::is( 'empty' ) || ( isset( $action['type'] ) && 'new_user' === $action['type'] ) ) {
 	$upcoming = array();
 }
 
-$new_url     = MNS_Pages::panel_url( 'patient', 'new-order' );
 $action_type = (string) ( $action['type'] ?? '' );
 
 /**

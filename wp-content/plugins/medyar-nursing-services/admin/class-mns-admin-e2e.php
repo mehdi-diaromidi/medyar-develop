@@ -22,6 +22,7 @@ class MNS_Admin_E2E {
 		add_action( 'admin_post_mns_e2e_seed', array( __CLASS__, 'handle_seed' ) );
 		add_action( 'admin_post_mns_e2e_links', array( __CLASS__, 'handle_links' ) );
 		add_action( 'admin_post_mns_e2e_purge', array( __CLASS__, 'handle_purge' ) );
+		add_action( 'admin_post_mns_e2e_seed_assigned', array( __CLASS__, 'handle_seed_assigned' ) );
 	}
 
 	public static function menu(): void {
@@ -92,6 +93,31 @@ class MNS_Admin_E2E {
 		self::redirect( 'purged' );
 	}
 
+	public static function handle_seed_assigned(): void {
+		self::guard();
+		check_admin_referer( 'mns_e2e_seed_assigned' );
+		if ( ! MNS_E2E::is_enabled() ) {
+			self::redirect( 'disabled' );
+		}
+		try {
+			$result = MNS_E2E::seed_assigned_orders();
+			set_transient( 'mns_e2e_flash_' . get_current_user_id(), $result, 600 );
+		} catch ( MNS_Error $e ) {
+			set_transient(
+				'mns_e2e_flash_' . get_current_user_id(),
+				array( 'error' => $e->getMessage() ),
+				600
+			);
+		} catch ( \Throwable $e ) {
+			set_transient(
+				'mns_e2e_flash_' . get_current_user_id(),
+				array( 'error' => $e->getMessage() ),
+				600
+			);
+		}
+		self::redirect( 'seed_assigned' );
+	}
+
 	public static function render(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'شما اجازهٔ این کار را ندارید.', 'medyar-nursing-services' ) );
@@ -134,6 +160,12 @@ class MNS_Admin_E2E {
 		submit_button( 'لینک‌های تازه', 'secondary', 'submit', false, $enabled ? array() : array( 'disabled' => 'disabled' ) );
 		echo '</form>';
 
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin:0 8px 8px 0;">';
+		wp_nonce_field( 'mns_e2e_seed_assigned' );
+		echo '<input type="hidden" name="action" value="mns_e2e_seed_assigned" />';
+		submit_button( 'ساخت سفارش نمونهٔ تخصیص‌یافته', $enabled ? 'primary' : 'secondary', 'submit', false, $enabled ? array() : array( 'disabled' => 'disabled' ) );
+		echo '</form>';
+
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin:0 8px 8px 0;" onsubmit="return confirm(\'پاک‌سازی همهٔ mns_e2e_* ؟\');">';
 		wp_nonce_field( 'mns_e2e_purge' );
 		echo '<input type="hidden" name="action" value="mns_e2e_purge" />';
@@ -154,6 +186,21 @@ class MNS_Admin_E2E {
 			}
 			echo '</tbody></table>';
 			echo '<p class="description">آمادهٔ ساخت لینک توسط ناظر — هر لینک یکبارمصرف است (۳۰ دقیقه).</p>';
+		}
+
+		$orders = ( is_array( $flash ) && ! empty( $flash['orders'] ) && is_array( $flash['orders'] ) ) ? $flash['orders'] : array();
+		if ( ! empty( $orders ) ) {
+			echo '<h2>' . esc_html__( 'سفارش‌های نمونهٔ تخصیص‌یافته', 'medyar-nursing-services' ) . '</h2>';
+			echo '<table class="widefat striped"><thead><tr><th>کد</th><th>پرستار</th><th>منطقه</th><th>وضعیت</th></tr></thead><tbody>';
+			foreach ( $orders as $row ) {
+				echo '<tr>';
+				echo '<td><code>' . esc_html( (string) ( $row['code'] ?? '' ) ) . '</code></td>';
+				echo '<td><code>' . esc_html( (string) ( $row['nurse'] ?? '' ) ) . '</code></td>';
+				echo '<td>' . esc_html( (string) ( $row['district'] ?? '' ) ) . '</td>';
+				echo '<td>' . esc_html( (string) ( $row['status'] ?? '' ) ) . '</td>';
+				echo '</tr>';
+			}
+			echo '</tbody></table>';
 		}
 		echo '</div>';
 	}

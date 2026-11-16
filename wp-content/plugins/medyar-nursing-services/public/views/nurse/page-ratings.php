@@ -60,8 +60,9 @@ $cases    = array(
 
 $sample    = (int) ( $r['sample'] ?? 0 );
 $services  = (int) ( $r['services'] ?? 0 );
-$threshold = (float) ( $r['badge_threshold'] ?? 4.8 );
-$min       = (int) ( $r['badge_min_sample'] ?? 5 );
+// TODO: set deafult threshold and min vars num
+$threshold = (float) ( $r['badge_threshold'] ?? 4.8);
+$min       = (int) ( $r['badge_min_sample'] ?? 5);
 $overall   = (float) ( $r['overall'] ?? 0 );
 $few       = $sample > 0 && $sample < $min;
 

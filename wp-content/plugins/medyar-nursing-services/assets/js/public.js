@@ -2165,6 +2165,57 @@ function genTrackCode() {
 		setStepper('repeat', 4);
 	}
 
+	function initOrderViewCancel() {
+		var root = qs('[data-mns-oview][data-mns-live]');
+		if (!root) return;
+		var btn = qs('[data-mns-order-cancel-submit]', root.closest('body') || document);
+		if (!btn) return;
+		btn.addEventListener('click', function () {
+			var code = root.getAttribute('data-mns-order-code') || '';
+			if (!code || btn.classList.contains('is-loading')) return;
+			var cfg = window.mnsPublic || {};
+			var restBase = (cfg.restUrl || '').replace(/\/$/, '');
+			var restNonce = cfg.restNonce || '';
+			if (!restBase || !restNonce) {
+				showNoticeNear(root, 'ثبت نشد، دوباره تلاش کنید.', true);
+				return;
+			}
+			var reasonEl = qs('#mns-cancel-order textarea[name="reason"]');
+			var reason = reasonEl ? String(reasonEl.value || '').trim() : '';
+			btn.classList.add('is-loading');
+			btn.disabled = true;
+			fetch(restBase + '/orders/' + encodeURIComponent(code) + '/cancel?_envelope=1', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': restNonce
+				},
+				body: JSON.stringify({ reason: reason })
+			})
+				.then(function (r) {
+					return r.json();
+				})
+				.then(function (raw) {
+					var body = unwrapMns(raw);
+					if (body && body.ok) {
+						window.location.reload();
+						return;
+					}
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					var err = body && body.error ? body.error : null;
+					var msg = err && err.message ? err.message : 'ثبت نشد، دوباره تلاش کنید.';
+					showNoticeNear(root, msg, true);
+				})
+				.catch(function () {
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					showNoticeNear(root, 'ثبت نشد، دوباره تلاش کنید.', true);
+				});
+		});
+	}
+
 	function initMockActions() {
 		qsa('[data-mns-mock-action]').forEach(function (btn) {
 			btn.addEventListener('click', function () {
@@ -2541,6 +2592,7 @@ function genTrackCode() {
 		initRowToggles();
 		initOrderForm();
 		initMockActions();
+		initOrderViewCancel();
 		initDevTools();
 		initAlerts();
 		initDialogs();
@@ -2926,13 +2978,56 @@ function genTrackCode() {
 		if (cancelForm) {
 			cancelForm.addEventListener('submit', function (e) {
 				e.preventDefault();
-				/*
-				 * TODO(backend): POST order + reason + nonce; server runs an atomic
-				 * `UPDATE … WHERE status IN ('submitted','assigned')`, frees the nurse slot,
-				 * SMS to nurse/admins. If the nurse already started, show
-				 * «پرستار خدمت را شروع کرده، برای لغو با پشتیبانی تماس بگیرید» instead.
-				 */
 				var row = cancelRow;
+				var codeEl = qs('[data-mns-order-cancel-code]', cancelDlg);
+				var code = codeEl ? String(codeEl.value || '').trim() : '';
+				var reasonEl = qs('textarea[name="reason"], [data-mns-order-cancel-reason]', cancelDlg);
+				var reason = reasonEl ? String(reasonEl.value || '').trim() : '';
+				var cfg = window.mnsPublic || {};
+				var restBase = (cfg.restUrl || '').replace(/\/$/, '');
+				var restNonce = cfg.restNonce || '';
+				var live = !!(restBase && restNonce && code && /^\d{5,6}$/.test(code));
+				if (live) {
+					var submitBtn = qs('[type="submit"]', cancelForm);
+					if (submitBtn) {
+						submitBtn.disabled = true;
+						submitBtn.classList.add('is-loading');
+					}
+					fetch(restBase + '/orders/' + encodeURIComponent(code) + '/cancel?_envelope=1', {
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-WP-Nonce': restNonce
+						},
+						body: JSON.stringify({ reason: reason })
+					})
+						.then(function (r) {
+							return r.json();
+						})
+						.then(function (raw) {
+							var body = unwrapMns(raw);
+							if (body && body.ok) {
+								hideDialog(cancelDlg);
+								window.location.reload();
+								return;
+							}
+							if (submitBtn) {
+								submitBtn.disabled = false;
+								submitBtn.classList.remove('is-loading');
+							}
+							var err = body && body.error ? body.error : null;
+							showNoticeNear(root, err && err.message ? err.message : 'ثبت نشد، دوباره تلاش کنید.', true);
+						})
+						.catch(function () {
+							if (submitBtn) {
+								submitBtn.disabled = false;
+								submitBtn.classList.remove('is-loading');
+							}
+							showNoticeNear(root, 'ثبت نشد، دوباره تلاش کنید.', true);
+						});
+					return;
+				}
 				hideDialog(cancelDlg);
 				if (!row) return;
 				var badge = qs('[data-mns-order-badge]', row);

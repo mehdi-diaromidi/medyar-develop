@@ -15,6 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+if ( MNS_UI::soon_for_real( 'nurse' ) ) {
+	return;
+}
+
 $data     = MNS_Static_Fixtures::get( 'nurse/report' );
 $services = isset( $data['services'] ) && is_array( $data['services'] ) ? $data['services'] : array();
 

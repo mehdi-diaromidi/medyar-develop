@@ -12,62 +12,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$pack     = MNS_Static_Fixtures::get( 'patient/order_view' );
-$by       = isset( $pack['by_status'] ) && is_array( $pack['by_status'] ) ? $pack['by_status'] : array();
-$by_track = isset( $pack['by_tracking'] ) && is_array( $pack['by_tracking'] ) ? $pack['by_tracking'] : array();
-$default  = (string) ( $pack['default_status'] ?? MNS_Order_Status::ASSIGNED );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
 $track_q  = isset( $_GET['mns_order'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_order'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-/* The same order must read the same here as in «my orders»: take status, service, patient, time and nurse from that list. */
 $list_row = null;
-if ( '' !== $track_q ) {
-	$list      = MNS_Static_Fixtures::get( 'patient/orders' );
-	$list_pats = array();
-	foreach ( (array) ( $list['patients'] ?? array() ) as $p ) {
-		$list_pats[ (string) ( $p['id'] ?? '' ) ] = (string) ( $p['name'] ?? '' );
+$d        = array();
+$status   = MNS_Order_Status::ASSIGNED;
+
+if ( $use_real ) {
+	if ( '' === $track_q || ! class_exists( 'MNS_Patient_Orders_Api', true ) ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'patient' ) );
+		return;
 	}
-	foreach ( (array) ( $list['items'] ?? array() ) as $item ) {
-		if ( (string) ( $item['code'] ?? '' ) === $track_q ) {
-			$list_row            = $item;
-			$list_row['patient'] = $list_pats[ (string) ( $item['patient_id'] ?? '' ) ] ?? '';
-			break;
+	try {
+		$d      = MNS_Patient_Orders_Api::view_model_for( get_current_user_id(), $track_q );
+		$status = (string) ( $d['status'] ?? '' );
+	} catch ( MNS_Error $e ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'patient' ) );
+		return;
+	} catch ( \Throwable $e ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'patient' ) );
+		return;
+	}
+} else {
+	$pack     = MNS_Static_Fixtures::get( 'patient/order_view' );
+	$by       = isset( $pack['by_status'] ) && is_array( $pack['by_status'] ) ? $pack['by_status'] : array();
+	$by_track = isset( $pack['by_tracking'] ) && is_array( $pack['by_tracking'] ) ? $pack['by_tracking'] : array();
+	$default  = (string) ( $pack['default_status'] ?? MNS_Order_Status::ASSIGNED );
+
+	/* The same order must read the same here as in «my orders»: take status, service, patient, time and nurse from that list. */
+	if ( '' !== $track_q ) {
+		$list      = MNS_Static_Fixtures::get( 'patient/orders' );
+		$list_pats = array();
+		foreach ( (array) ( $list['patients'] ?? array() ) as $p ) {
+			$list_pats[ (string) ( $p['id'] ?? '' ) ] = (string) ( $p['name'] ?? '' );
+		}
+		foreach ( (array) ( $list['items'] ?? array() ) as $item ) {
+			if ( (string) ( $item['code'] ?? '' ) === $track_q ) {
+				$list_row            = $item;
+				$list_row['patient'] = $list_pats[ (string) ( $item['patient_id'] ?? '' ) ] ?? '';
+				break;
+			}
 		}
 	}
-}
 
-$status = $default;
-if ( $list_row && MNS_Order_Status::is_valid( (string) ( $list_row['status'] ?? '' ) ) ) {
-	$status = (string) $list_row['status'];
-} elseif ( '' !== $track_q && isset( $by_track[ $track_q ] ) ) {
-	$status = (string) $by_track[ $track_q ];
-} elseif ( MNS_Dev::enabled() ) {
-	$raw = MNS_Dev::state();
-	if ( MNS_Order_Status::is_valid( $raw ) && isset( $by[ $raw ] ) ) {
-		$status = $raw;
+	$status = $default;
+	if ( $list_row && MNS_Order_Status::is_valid( (string) ( $list_row['status'] ?? '' ) ) ) {
+		$status = (string) $list_row['status'];
+	} elseif ( '' !== $track_q && isset( $by_track[ $track_q ] ) ) {
+		$status = (string) $by_track[ $track_q ];
+	} elseif ( MNS_Dev::enabled() ) {
+		$raw = MNS_Dev::state();
+		if ( MNS_Order_Status::is_valid( $raw ) && isset( $by[ $raw ] ) ) {
+			$status = $raw;
+		}
 	}
-}
 
-$d = isset( $by[ $status ] ) && is_array( $by[ $status ] ) ? $by[ $status ] : ( $by[ $default ] ?? array() );
-if ( $list_row ) {
-	$d['status']  = $status;
-	$d['service'] = (string) ( $list_row['service'] ?? ( $d['service'] ?? '' ) );
-	$d['when']    = (string) ( $list_row['when'] ?? ( $d['when'] ?? '' ) );
-	if ( '' !== (string) $list_row['patient'] ) {
-		$d['patient'] = (string) $list_row['patient'];
+	$d = isset( $by[ $status ] ) && is_array( $by[ $status ] ) ? $by[ $status ] : ( $by[ $default ] ?? array() );
+	if ( $list_row ) {
+		$d['status']  = $status;
+		$d['service'] = (string) ( $list_row['service'] ?? ( $d['service'] ?? '' ) );
+		$d['when']    = (string) ( $list_row['when'] ?? ( $d['when'] ?? '' ) );
+		if ( '' !== (string) $list_row['patient'] ) {
+			$d['patient'] = (string) $list_row['patient'];
+		}
+		if ( empty( $list_row['nurse'] ) ) {
+			$d['nurse'] = null;
+		} elseif ( isset( $d['nurse'] ) && is_array( $d['nurse'] ) ) {
+			$d['nurse']['name'] = (string) ( $list_row['nurse']['name'] ?? $d['nurse']['name'] );
+		}
+		if ( ! empty( $list_row['recurring'] ) && is_array( $list_row['recurring'] ) ) {
+			$d['recurring'] = $list_row['recurring'];
+		}
+		$d['can_cancel'] = in_array( $status, array( MNS_Order_Status::SUBMITTED, MNS_Order_Status::ASSIGNED ), true );
 	}
-	if ( empty( $list_row['nurse'] ) ) {
-		$d['nurse'] = null;
-	} elseif ( isset( $d['nurse'] ) && is_array( $d['nurse'] ) ) {
-		$d['nurse']['name'] = (string) ( $list_row['nurse']['name'] ?? $d['nurse']['name'] );
+	$status = (string) ( $d['status'] ?? $status );
+	if ( '' !== $track_q ) {
+		$d['tracking'] = $track_q;
 	}
-	if ( ! empty( $list_row['recurring'] ) && is_array( $list_row['recurring'] ) ) {
-		$d['recurring'] = $list_row['recurring'];
-	}
-	$d['can_cancel'] = in_array( $status, array( MNS_Order_Status::SUBMITTED, MNS_Order_Status::ASSIGNED ), true );
-}
-$status = (string) ( $d['status'] ?? $status );
-if ( '' !== $track_q ) {
-	$d['tracking'] = $track_q;
 }
 
 $orders_url = MNS_Pages::panel_url( 'patient', 'orders' );
@@ -118,7 +139,7 @@ $meta = array_filter(
 	)
 );
 ?>
-<div class="mns-oview" data-mns-oview>
+<div class="mns-oview" data-mns-oview<?php echo $use_real ? ' data-mns-live="1" data-mns-order-code="' . esc_attr( $tracking ) . '"' : ''; ?>>
 	<p class="mns-notice mns-form-notice" data-mns-notice tabindex="-1" hidden></p>
 	<p class="mns-breadcrumb mns-oview__back">
 		<a href="<?php echo esc_url( $orders_url ); ?>">
@@ -354,7 +375,11 @@ if ( $can_cancel ) {
 	echo '<label class="mns-oview-field"><span class="screen-reader-text">' . esc_html__( 'دلیل لغو (اختیاری)', 'medyar-nursing-services' ) . '</span><textarea name="reason" rows="3" maxlength="500" placeholder="' . esc_attr__( 'دلیل لغو (اختیاری)', 'medyar-nursing-services' ) . '"></textarea></label>';
 	$body = ob_get_clean();
 	ob_start();
-	echo '<button type="button" class="mns-submit-btn mns-submit-btn--auto mns-oview-danger" data-mns-mock-action data-mns-success="' . esc_attr__( 'سفارش لغو شد.', 'medyar-nursing-services' ) . '" data-mns-dialog-close>' . esc_html__( 'بله، لغو شود', 'medyar-nursing-services' ) . '</button>';
+	if ( $use_real ) {
+		echo '<button type="button" class="mns-submit-btn mns-submit-btn--auto mns-oview-danger" data-mns-order-cancel-submit>' . esc_html__( 'بله، لغو شود', 'medyar-nursing-services' ) . '</button>';
+	} else {
+		echo '<button type="button" class="mns-submit-btn mns-submit-btn--auto mns-oview-danger" data-mns-mock-action data-mns-success="' . esc_attr__( 'سفارش لغو شد.', 'medyar-nursing-services' ) . '" data-mns-dialog-close>' . esc_html__( 'بله، لغو شود', 'medyar-nursing-services' ) . '</button>';
+	}
 	echo '<button type="button" class="mns-outline-btn" data-mns-dialog-close>' . esc_html__( 'انصراف', 'medyar-nursing-services' ) . '</button>';
 	$footer = ob_get_clean();
 	MNS_UI::partial(

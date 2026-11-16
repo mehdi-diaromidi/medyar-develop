@@ -14,9 +14,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$data  = MNS_Static_Fixtures::get( 'nurse/dashboard' );
-$state = MNS_Dev::state();
-$arr   = static function ( $value ): array {
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
+$data     = MNS_Static_Fixtures::get( 'nurse/dashboard' );
+$state    = MNS_Dev::state();
+$arr      = static function ( $value ): array {
 	return is_array( $value ) ? $value : array();
 };
 
@@ -38,27 +39,86 @@ $done_today  = (int) ( $data['done_today'] ?? 0 );
 $is_new       = 'new_nurse' === $state;
 $is_suspended = 'suspended' === $state;
 
-if ( 'ended' === $state ) {
-	$in_progress = array();
-}
-if ( 'next' === $state ) {
-	$in_progress = array();
-	$unfinished  = array();
-}
-if ( 'offline' === $state ) {
-	$accepting = false;
-}
-if ( 'empty' === $state || $is_new ) {
+if ( $use_real ) {
+	$user        = wp_get_current_user();
+	$first_name  = (string) ( $user->first_name ?: $user->display_name );
+	$row         = MNS_Nurse_Access::nurse_row();
+	$accepting   = $row ? ! empty( $row['accepting'] ) : false;
+	$now_ts      = time();
 	$in_progress = array();
 	$next        = array();
 	$unfinished  = array();
 	$news        = array();
 	$agenda      = array();
+	$wallet      = array();
+	$rating      = array();
+	$month       = array();
+	$week        = array();
+	$onboarding  = array();
 	$done_today  = 0;
-}
-if ( $is_new ) {
-	$accepting = false;
-	$week      = array();
+	$is_new       = false;
+	$is_suspended = false;
+	$data['tomorrow'] = array();
+	if ( class_exists( 'MNS_Nurse_Orders_Api', true ) ) {
+		try {
+			$pack = MNS_Nurse_Orders_Api::list_for(
+				get_current_user_id(),
+				array(
+					'tab' => 'upcoming',
+					'p'   => 1,
+					'per' => 20,
+				)
+			);
+			foreach ( (array) ( $pack['data']['items'] ?? array() ) as $it ) {
+				$st = (string) ( $it['status'] ?? '' );
+				$url = add_query_arg(
+					'mns_order',
+					rawurlencode( (string) ( $it['code'] ?? '' ) ),
+					MNS_Pages::panel_url( 'nurse', 'order-view' )
+				);
+				$entry = array(
+					'service' => (string) ( $it['service'] ?? '' ),
+					'when'    => (string) ( $it['when'] ?? '' ),
+					'status'  => $st,
+					'code'    => (string) ( $it['code'] ?? '' ),
+					'url'     => $url,
+					'title'   => (string) ( $it['service'] ?? '' ),
+					'meta'    => (string) ( $it['when'] ?? '' ),
+				);
+				$agenda[] = $entry;
+				if ( 'in_progress' === $st && empty( $in_progress ) ) {
+					$in_progress = $entry;
+				} elseif ( empty( $next ) && 'assigned' === $st ) {
+					$next = $entry;
+				}
+			}
+		} catch ( \Throwable $e ) {
+			$agenda = array();
+		}
+	}
+} else {
+	if ( 'ended' === $state ) {
+		$in_progress = array();
+	}
+	if ( 'next' === $state ) {
+		$in_progress = array();
+		$unfinished  = array();
+	}
+	if ( 'offline' === $state ) {
+		$accepting = false;
+	}
+	if ( 'empty' === $state || $is_new ) {
+		$in_progress = array();
+		$next        = array();
+		$unfinished  = array();
+		$news        = array();
+		$agenda      = array();
+		$done_today  = 0;
+	}
+	if ( $is_new ) {
+		$accepting = false;
+		$week      = array();
+	}
 }
 
 $orders_url  = MNS_Pages::panel_url( 'nurse', 'orders' );
@@ -76,6 +136,9 @@ $hhmm = static function ( $hour ): string {
 	return MNS_Format::digits( sprintf( '%02d:00', (int) $hour ) );
 };
 $slot = static function ( array $o ) use ( $hhmm ): string {
+	if ( ! empty( $o['when'] ) && ( empty( $o['from'] ) && empty( $o['to'] ) ) ) {
+		return (string) $o['when'];
+	}
 	/* translators: 1: window start time, 2: window end time */
 	return sprintf( __( '%1$s تا %2$s', 'medyar-nursing-services' ), $hhmm( $o['from'] ?? 0 ), $hhmm( $o['to'] ?? 0 ) );
 };

@@ -16,6 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+if ( MNS_UI::soon_for_real( 'nurse' ) ) {
+	return;
+}
+
 $data = MNS_Static_Fixtures::get( 'nurse/drug' );
 $arr  = static function ( $value ): array {
 	return is_array( $value ) ? $value : array();

@@ -334,6 +334,24 @@ class MNS_UI {
 	}
 
 	/**
+	 * M4+ placeholder for real panel users (T-E.4): no fixture data.
+	 */
+	public static function soon_for_real( string $panel ): bool {
+		if ( ! class_exists( 'MNS_Nurse_Access', true ) || ! MNS_Nurse_Access::is_real_panel_user( $panel ) ) {
+			return false;
+		}
+		echo '<div class="mns-preview-banner" role="status">' . esc_html__( 'این بخش به‌زودی فعال می‌شود', 'medyar-nursing-services' ) . '</div>';
+		self::empty_state(
+			array(
+				'title' => __( 'به‌زودی', 'medyar-nursing-services' ),
+				'text'  => __( 'این بخش هنوز برای حساب شما فعال نشده است. از منو به بخش‌های فعال بروید.', 'medyar-nursing-services' ),
+				'icon'  => 'clock',
+			)
+		);
+		return true;
+	}
+
+	/**
 	 * Render a partial relative to public/views/partials/.
 	 *
 	 * @param array<string,mixed> $args Variables extracted into the partial.

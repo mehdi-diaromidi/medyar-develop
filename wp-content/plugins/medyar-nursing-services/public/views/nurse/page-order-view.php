@@ -14,20 +14,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$pack    = MNS_Static_Fixtures::get( 'nurse/order_view' );
-$by      = isset( $pack['by_status'] ) && is_array( $pack['by_status'] ) ? $pack['by_status'] : array();
-$default = (string) ( $pack['default_status'] ?? MNS_Order_Status::ASSIGNED );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
+$track_q  = isset( $_GET['mns_order'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_order'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$by       = array();
+$d        = array();
+$status   = MNS_Order_Status::ASSIGNED;
+$preview  = false;
 
-$status  = $default;
-$preview = MNS_Dev::enabled() || ( class_exists( 'MNS_Plugin' ) && MNS_Plugin::is_ui_static() );
-if ( $preview ) {
-	$raw = isset( $_GET['mns_state'] ) ? sanitize_key( wp_unslash( $_GET['mns_state'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	if ( MNS_Order_Status::is_valid( $raw ) && isset( $by[ $raw ] ) ) {
-		$status = $raw;
+if ( $use_real ) {
+	if ( '' === $track_q || ! class_exists( 'MNS_Nurse_Orders_Api', true ) ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'nurse' ) );
+		return;
+	}
+	try {
+		$d      = MNS_Nurse_Orders_Api::view_model_for( get_current_user_id(), $track_q );
+		$status = (string) ( $d['status'] ?? '' );
+	} catch ( MNS_Error $e ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'nurse' ) );
+		return;
+	} catch ( \Throwable $e ) {
+		MNS_UI::partial( 'not-found', array( 'panel' => 'nurse' ) );
+		return;
+	}
+} else {
+	$pack    = MNS_Static_Fixtures::get( 'nurse/order_view' );
+	$by      = isset( $pack['by_status'] ) && is_array( $pack['by_status'] ) ? $pack['by_status'] : array();
+	$default = (string) ( $pack['default_status'] ?? MNS_Order_Status::ASSIGNED );
+
+	$status  = $default;
+	$preview = MNS_Dev::enabled() || ( class_exists( 'MNS_Plugin' ) && MNS_Plugin::is_ui_static() );
+	if ( $preview ) {
+		$raw = isset( $_GET['mns_state'] ) ? sanitize_key( wp_unslash( $_GET['mns_state'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( MNS_Order_Status::is_valid( $raw ) && isset( $by[ $raw ] ) ) {
+			$status = $raw;
+		}
+	}
+	$d      = isset( $by[ $status ] ) && is_array( $by[ $status ] ) ? $by[ $status ] : ( $by[ $default ] ?? array() );
+	$status = (string) ( $d['status'] ?? $status );
+	if ( '' !== $track_q ) {
+		$d['tracking'] = $track_q;
 	}
 }
-$d      = isset( $by[ $status ] ) && is_array( $by[ $status ] ) ? $by[ $status ] : ( $by[ $default ] ?? array() );
-$status = (string) ( $d['status'] ?? $status );
 
 $arr = static function ( $value ): array {
 	return is_array( $value ) ? $value : array();
@@ -35,7 +62,7 @@ $arr = static function ( $value ): array {
 
 $list_url   = MNS_Pages::panel_url( 'nurse', 'orders' );
 $view_url   = MNS_Pages::panel_url( 'nurse', 'order-view' );
-$code       = (string) ( $d['tracking'] ?? '' );
+$code       = (string) ( $d['tracking'] ?? $track_q );
 $steps      = $arr( $d['steps'] ?? array() );
 $needs_drug = ! empty( $d['needs_drug'] );
 $restricted = ! empty( $d['restricted'] );

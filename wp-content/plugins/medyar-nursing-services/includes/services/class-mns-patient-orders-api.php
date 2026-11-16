@@ -230,15 +230,82 @@ class MNS_Patient_Orders_Api {
 			$u = get_userdata( (int) $row['nurse_user_id'] );
 			$nurse_name = $u ? $u->display_name : '';
 		}
+		$patient_id = (int) ( $row['patient_id'] ?? 0 );
+		$patient_name = '';
+		if ( $patient_id > 0 ) {
+			try {
+				$pat = MNS_Patients::get_owned( $patient_id, (int) $row['account_user_id'] );
+				$patient_name = (string) ( $pat['name'] ?? '' );
+			} catch ( \Throwable $e ) {
+				$patient_name = '';
+			}
+		}
 		return array(
 			'code'         => (string) $row['code'],
 			'service'      => $svc ? $svc['name'] : '',
-			'patient'      => '',
+			'patient_id'   => $patient_id,
+			'patient'      => $patient_name,
+			'patient_name' => $patient_name,
 			'when'         => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
 			'status'       => $status,
 			'status_label' => self::$labels[ $status ] ?? $status,
 			'tone'         => self::tone( $status ),
 			'nurse_name'   => $nurse_name,
+			'nurse'        => $nurse_name ? array( 'name' => $nurse_name ) : null,
+			'amount'       => null,
+			'url'          => add_query_arg(
+				'mns_order',
+				rawurlencode( (string) $row['code'] ),
+				MNS_Pages::panel_url( 'patient', 'order-view' )
+			),
+			'tracking'     => (string) $row['code'],
+		);
+	}
+
+	/**
+	 * View-model for patient order-view template (T-E.1).
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function view_model_for( int $account_user_id, string $code ): array {
+		$api = self::get_for( $account_user_id, $code );
+		$row = self::owned_row( $account_user_id, $code );
+		$ess_lines = array();
+		$ess = isset( $api['essentials'] ) && is_array( $api['essentials'] ) ? $api['essentials'] : array();
+		$labels = array(
+			'serum_type'  => 'نوع سرم',
+			'allergy'     => 'حساسیت',
+			'allergy_name'=> 'نام حساسیت',
+			'vein_access' => 'دسترسی رگ',
+		);
+		foreach ( $ess as $k => $v ) {
+			if ( 'rx_file_id' === $k || ! is_scalar( $v ) || '' === (string) $v ) {
+				continue;
+			}
+			$lab = $labels[ $k ] ?? (string) $k;
+			$val = (string) $v;
+			if ( 'allergy' === $k ) {
+				$val = ( 'yes' === $val || '1' === $val ) ? 'دارد' : ( ( 'no' === $val || '0' === $val ) ? 'ندارد' : $val );
+			}
+			$ess_lines[] = $lab . ': ' . $val;
+		}
+		return array(
+			'status'     => (string) $api['status'],
+			'service'    => (string) $api['service'],
+			'patient'    => (string) $api['patient'],
+			'when'       => (string) $api['when'],
+			'address'    => (string) ( $api['address'] ?? '' ),
+			'phone'      => (string) ( $row['contact_phone'] ?? '' ),
+			'essentials' => $ess_lines,
+			'nurse'      => $api['nurse'],
+			'can_cancel' => ! empty( $api['can_cancel'] ),
+			'can_edit'   => ! empty( $api['can_edit'] ),
+			'can_repick' => false,
+			'tracking'   => (string) $api['code'],
+			'invoice'    => null,
+			'report'     => '',
+			'medication' => array( 'enabled' => false ),
+			'recurring'  => null,
 		);
 	}
 

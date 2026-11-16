@@ -47,6 +47,27 @@ class MNS_Nurse_Access {
 	}
 
 	/**
+	 * Real panel user (T-E / B-D.1): never see fixtures, even when uiStatic=1.
+	 * Admins and MNS_Dev preview keep fixtures. Panel: patient|nurse.
+	 */
+	public static function is_real_panel_user( string $panel = 'patient', ?int $user_id = null ): bool {
+		$uid = $user_id ? (int) $user_id : get_current_user_id();
+		if ( $uid <= 0 || ! is_user_logged_in() ) {
+			return false;
+		}
+		if ( user_can( $uid, 'manage_options' ) ) {
+			return false;
+		}
+		$panel = sanitize_key( $panel );
+		if ( 'nurse' === $panel ) {
+			return class_exists( 'MNS_Roles', true )
+				&& MNS_Roles::user_is_nurse( $uid )
+				&& self::can_use_panel( $uid );
+		}
+		return current_user_can( MNS_Roles::CAP_PATIENT_PANEL );
+	}
+
+	/**
 	 * Login gate for signup page — redirect guests to site OTP login.
 	 */
 	public static function gate_signup(): void {

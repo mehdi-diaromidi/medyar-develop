@@ -144,6 +144,114 @@ class MNS_E2E {
 		return $out;
 	}
 
+	/**
+	 * Build two assigned sample orders for browser AC (T-E.5).
+	 *
+	 * @return array{orders:array<int,array{code:string,nurse:string,district:int}>}
+	 */
+	public static function seed_assigned_orders(): array {
+		if ( ! self::is_enabled() ) {
+			throw MNS_Error::forbidden( 'جعبهٔ ماسه E2E فعال نیست.' );
+		}
+		$patient = get_user_by( 'login', self::$specs['patient']['login'] );
+		$nurse_f = get_user_by( 'login', self::$specs['nurse_f']['login'] );
+		$nurse_m = get_user_by( 'login', self::$specs['nurse_m']['login'] );
+		if ( ! $patient || ! $nurse_f || ! $nurse_m ) {
+			throw MNS_Error::validation( 'ابتدا «ساخت دادهٔ E2E» را بزنید.' );
+		}
+		if ( ! get_user_meta( (int) $patient->ID, self::META_FLAG, true )
+			|| ! get_user_meta( (int) $nurse_f->ID, self::META_FLAG, true )
+			|| ! get_user_meta( (int) $nurse_m->ID, self::META_FLAG, true ) ) {
+			throw MNS_Error::forbidden( 'کاربران E2E معتبر نیستند.' );
+		}
+
+		MNS_Services_Seed::ensure_slice1();
+		$serum = MNS_Services::get( 'serum' );
+		$thr   = MNS_Locations::city_id( 'THR', 'تهران' );
+		if ( ! $serum || ! $thr ) {
+			throw MNS_Error::server( 'خدمت سرم یا شهر تهران آماده نیست.' );
+		}
+		$serum_types = isset( $serum['config']['order_fields']['serum_types'] ) && is_array( $serum['config']['order_fields']['serum_types'] )
+			? $serum['config']['order_fields']['serum_types']
+			: array( 'نرمال سالین' );
+		$serum_type = (string) reset( $serum_types );
+
+		$pat = MNS_Patients::ensure_self( (int) $patient->ID );
+		$tz  = new DateTimeZone( MNS_Time::TZ );
+		$day = ( new DateTimeImmutable( 'now', $tz ) )->modify( '+1 day' )->format( 'Y-m-d' );
+		$phone = (string) ( get_user_meta( (int) $patient->ID, 'mobile', true ) ?: self::$specs['patient']['phone'] );
+
+		$prev_mode = MNS_Settings::get( 'assignment_mode' );
+		MNS_Settings::set( 'assignment_mode', 'manual' );
+
+		$specs = array(
+			array(
+				'nurse_uid' => (int) $nurse_f->ID,
+				'nurse_key' => 'nurse_f',
+				'district'  => 10,
+				'gender'    => 'female',
+				'slot'      => '8-12',
+				'address'   => 'تهران منطقه ۱۰ — سفارش نمونه E2E زن',
+			),
+			array(
+				'nurse_uid' => (int) $nurse_m->ID,
+				'nurse_key' => 'nurse_m',
+				'district'  => 1,
+				'gender'    => 'male',
+				'slot'      => '12-16',
+				'address'   => 'تهران منطقه ۱ — سفارش نمونه E2E مرد',
+			),
+		);
+
+		$created = array();
+		try {
+			foreach ( $specs as $spec ) {
+				$result = MNS_Orders::create_from_request(
+					(int) $patient->ID,
+					array(
+						'patient_id'    => (int) $pat['id'],
+						'service_id'    => (int) $serum['id'],
+						'prov'          => 'THR',
+						'city_id'       => (int) $thr,
+						'district'      => (int) $spec['district'],
+						'address'       => (string) $spec['address'],
+						'contact_phone' => $phone,
+						'date'          => $day,
+						'slot'          => (string) $spec['slot'],
+						'gender'        => (string) $spec['gender'],
+						'essentials'    => array(
+							'serum_type' => $serum_type,
+							'allergy'    => 'no',
+						),
+						'notes'         => 'mns_e2e_assigned',
+					)
+				);
+				$order = isset( $result['order'] ) && is_array( $result['order'] ) ? $result['order'] : $result;
+				$code  = (string) ( $order['code'] ?? '' );
+				// The public summary has no numeric id; look the order up by its code.
+				global $wpdb;
+				$oid = (int) ( $order['id'] ?? 0 );
+				if ( $oid <= 0 && '' !== $code ) {
+					$oid = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s LIMIT 1', $code ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				}
+				if ( $oid <= 0 ) {
+					throw MNS_Error::server( 'سفارش ساخته نشد.' );
+				}
+				$fresh = MNS_Assignment::admin_set_nurse( $oid, (int) $spec['nurse_uid'], max( 1, get_current_user_id() ), true );
+				$created[] = array(
+					'code'     => (string) ( $fresh['code'] ?? $code ),
+					'nurse'    => (string) $spec['nurse_key'],
+					'district' => (int) $spec['district'],
+					'status'   => (string) ( $fresh['status'] ?? 'assigned' ),
+				);
+			}
+		} finally {
+			MNS_Settings::set( 'assignment_mode', $prev_mode );
+		}
+
+		return array( 'orders' => $created );
+	}
+
 	public static function purge_all(): void {
 		$users = get_users(
 			array(

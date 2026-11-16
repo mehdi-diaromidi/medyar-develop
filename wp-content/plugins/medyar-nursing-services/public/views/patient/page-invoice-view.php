@@ -12,6 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+if ( MNS_UI::soon_for_real( 'patient' ) ) {
+	return;
+}
+
 $pack     = MNS_Static_Fixtures::get( 'patient/invoices' );
 $items    = isset( $pack['items'] ) && is_array( $pack['items'] ) ? $pack['items'] : array();
 $patients = isset( $pack['patients'] ) && is_array( $pack['patients'] ) ? $pack['patients'] : array();

@@ -37,13 +37,7 @@ class MNS_Nurse_Orders_Api {
 		$items = array();
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
-				$svc = MNS_Services::get( (int) $row['service_id'] );
-				$items[] = array(
-					'code'    => (string) $row['code'],
-					'service' => $svc ? $svc['name'] : '',
-					'when'    => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
-					'status'  => (string) $row['status'],
-				);
+				$items[] = self::list_item( $row );
 			}
 		}
 		return array(
@@ -55,6 +49,56 @@ class MNS_Nurse_Orders_Api {
 				'p'     => $p,
 			),
 		);
+	}
+
+	/**
+	 * @param array<string,mixed> $row Order row.
+	 * @return array<string,mixed>
+	 */
+	private static function list_item( array $row ): array {
+		$svc    = MNS_Services::get( (int) $row['service_id'] );
+		$status = (string) $row['status'];
+		$tab    = 'upcoming';
+		if ( in_array( $status, array( 'service_ended', 'needs_review' ), true ) ) {
+			$tab = 'pending';
+		} elseif ( in_array( $status, array( 'completed', 'cancelled' ), true ) ) {
+			$tab = 'done';
+		} elseif ( in_array( $status, array( 'assigned', 'in_progress' ), true ) ) {
+			$tab = 'upcoming';
+		} else {
+			$tab = 'done';
+		}
+		$pat_name = '';
+		if ( ! empty( $row['patient_id'] ) ) {
+			global $wpdb;
+			$pt = MNS_DB::table( 'patients' );
+			$pat_name = (string) $wpdb->get_var(
+				$wpdb->prepare( "SELECT name FROM {$pt} WHERE id = %d LIMIT 1", (int) $row['patient_id'] ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			);
+		}
+		$area = 'منطقهٔ ' . MNS_Format::digits( (string) (int) $row['district_no'] );
+		$url  = add_query_arg(
+			'mns_order',
+			rawurlencode( (string) $row['code'] ),
+			MNS_Pages::panel_url( 'nurse', 'order-view' )
+		);
+		$item = array(
+			'code'     => (string) $row['code'],
+			'tracking' => (string) $row['code'],
+			'service'  => $svc ? (string) $svc['name'] : '',
+			'when'     => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
+			'status'   => $status,
+			'tab'      => $tab,
+			'patient'  => $pat_name,
+			'area'     => $area,
+			'url'      => $url,
+			'share'    => 0,
+			'share_state' => '',
+		);
+		if ( in_array( $status, array( 'assigned', 'in_progress' ), true ) ) {
+			$item['phone'] = (string) ( $row['contact_phone'] ?? '' );
+		}
+		return $item;
 	}
 
 	/**
@@ -100,12 +144,78 @@ class MNS_Nurse_Orders_Api {
 			'province' => (string) $row['province_code'],
 			'city_id'  => (int) $row['city_id'],
 			'district' => (int) $row['district_no'],
+			'date'    => (string) $row['service_date'],
+			'slot_id' => (string) $row['slot_id'],
 		);
 		if ( $show_contact ) {
 			$out['address']       = (string) $row['address'];
 			$out['contact_phone'] = (string) $row['contact_phone'];
+			$out['phone']         = (string) $row['contact_phone'];
 		}
 		// Never expose amounts (R-PRV-2).
 		return $out;
+	}
+
+	/**
+	 * View-model for nurse order-view template (T-E.3).
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function view_model_for( int $nurse_user_id, string $code ): array {
+		$api  = self::get_for( $nurse_user_id, $code );
+		$slot = (string) ( $api['slot_id'] ?? '' );
+		$from = 0;
+		$to   = 0;
+		if ( preg_match( '/^(\d+)-(\d+)$/', $slot, $m ) ) {
+			$from = (int) $m[1];
+			$to   = (int) $m[2];
+		}
+		$start_ts = class_exists( 'MNS_Time', true )
+			? MNS_Time::slot_start_ts( (string) ( $api['date'] ?? '' ), $slot )
+			: 0;
+		$can_start = $start_ts > 0 && ( time() >= ( $start_ts - HOUR_IN_SECONDS ) );
+		$ess_lines = array();
+		foreach ( (array) ( $api['essentials'] ?? array() ) as $k => $v ) {
+			if ( 'rx_file_id' === $k || ! is_scalar( $v ) || '' === (string) $v ) {
+				continue;
+			}
+			$ess_lines[ (string) $k ] = $v;
+		}
+		$status = (string) $api['status'];
+		$steps  = array(
+			'checklist' => array( 'state' => 'locked' ),
+			'drug'      => array( 'state' => 'locked' ),
+			'report'    => array( 'state' => 'locked' ),
+		);
+		if ( in_array( $status, array( 'in_progress', 'medication' ), true ) ) {
+			$steps['checklist']['state'] = 'todo';
+			$steps['drug']['state']      = 'todo';
+		} elseif ( in_array( $status, array( 'service_ended', 'needs_review', 'completed', 'cancelled' ), true ) ) {
+			$steps['checklist']['state'] = 'todo';
+			$steps['drug']['state']      = 'todo';
+			$steps['report']['state']    = 'todo';
+		}
+		return array(
+			'status'       => $status,
+			'service'      => (string) $api['service'],
+			'tracking'     => (string) $api['code'],
+			'date'         => (string) ( $api['date'] ?? '' ),
+			'from'         => $from,
+			'to'           => $to,
+			'phone'        => (string) ( $api['phone'] ?? '' ),
+			'address'      => (string) ( $api['address'] ?? '' ),
+			'essentials'   => $ess_lines,
+			'needs_drug'   => ! empty( $ess_lines ) && ( isset( $ess_lines['allergy'] ) || isset( $api['essentials']['rx_file_id'] ) ),
+			'restricted'   => false,
+			'finance'      => array(),
+			'session'      => array(),
+			'timeline'     => array(),
+			'steps'        => $steps,
+			'can_start'    => $can_start && 'assigned' === $status,
+			'start_ts'     => $start_ts,
+			'urgent'       => false,
+			'changed'      => false,
+			'cancelled_by' => '',
+		);
 	}
 }
