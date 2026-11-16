@@ -11,6 +11,18 @@
 		return Array.prototype.slice.call((root || document).querySelectorAll(sel));
 	}
 
+	/**
+	 * WordPress core `?_envelope=1` wraps as {body,status,headers}.
+	 * MNS also uses `_envelope=1` to force HTTP 200 with {ok,data|error}.
+	 * Unwrap WP shell when present so callers can read body.ok.
+	 */
+	function unwrapMns(body) {
+		if (body && typeof body === 'object' && body.body && typeof body.body === 'object' && ('ok' in body.body || 'error' in body.body || 'data' in body.body)) {
+			return body.body;
+		}
+		return body;
+	}
+
 	function toFaDigits(value) {
 		return String(value).replace(/\d/g, function (d) {
 			return '۰۱۲۳۴۵۶۷۸۹'[d];
@@ -1519,7 +1531,8 @@
 				.then(function (r) {
 					return r.json();
 				})
-				.then(function (body) {
+				.then(function (raw) {
+					var body = unwrapMns(raw);
 					if (seq !== availReqSeq) return;
 					if (!body || !body.ok || !body.data) {
 						availState = 'soft';
@@ -1627,7 +1640,13 @@ function selectPatientCard(card) {
 			var mode = card.getAttribute('data-mns-patient-card');
 			if (modeInput) modeInput.value = mode === 'saved' ? 'saved' : mode;
 			if (patientIdInput) {
-				patientIdInput.value = mode === 'saved' ? card.getAttribute('data-value') || '' : '';
+				if (mode === 'saved') {
+					patientIdInput.value = card.getAttribute('data-value') || '';
+				} else if (mode === 'self') {
+					patientIdInput.value = form.getAttribute('data-mns-self-patient-id') || '';
+				} else {
+					patientIdInput.value = '';
+				}
 			}
 			qsa('[data-mns-patient-card]', form).forEach(function (c) {
 				var on = c === card;
@@ -1782,7 +1801,8 @@ qsa('[data-mns-nurse-gender-cards] [data-value]', form).forEach(function (card) 
 					.then(function (r) {
 						return r.json();
 					})
-					.then(function (body) {
+					.then(function (raw) {
+						var body = unwrapMns(raw);
 						rxUploadBusy = false;
 						if (body && body.ok && body.data && body.data.file_id) {
 							rxFileId = parseInt(body.data.file_id, 10) || 0;
@@ -2001,8 +2021,12 @@ function genTrackCode() {
 			}
 			var cityId = citySelect && citySelect.value ? parseInt(citySelect.value, 10) : 0;
 			if (isNaN(cityId)) cityId = 0;
+			var resolvedPatientId = patientIdInput ? parseInt(patientIdInput.value || '0', 10) : 0;
+			if ((!resolvedPatientId || (modeInput && modeInput.value === 'self')) && form.getAttribute('data-mns-self-patient-id')) {
+				resolvedPatientId = parseInt(form.getAttribute('data-mns-self-patient-id') || '0', 10) || resolvedPatientId;
+			}
 			var payload = {
-				patient_id: patientIdInput ? parseInt(patientIdInput.value || '0', 10) : 0,
+				patient_id: resolvedPatientId,
 				service_id: parseInt((qs('[data-mns-service-id]', form) || {}).value || '0', 10),
 				prov: provSelect ? provSelect.value : '',
 				city_id: cityId,
@@ -2035,7 +2059,8 @@ function genTrackCode() {
 				.then(function (r) {
 					return r.json();
 				})
-				.then(function (body) {
+				.then(function (raw) {
+					var body = unwrapMns(raw);
 					if (body && body.ok && body.data && body.data.order) {
 						showConfirmation(body.data.order.code || genTrackCode());
 						var track = qs('[data-mns-confirm-track]');
@@ -2484,8 +2509,7 @@ function genTrackCode() {
 					.then(function (r) {
 						return r.json();
 					})
-					.then(function (body) {
-						if (body && body.ok) {
+					.then(function (raw) {						var body = unwrapMns(raw);						if (body && body.ok) {
 							finishOk();
 							return;
 						}
@@ -3022,8 +3046,7 @@ function genTrackCode() {
 					.then(function (r) {
 						return r.json();
 					})
-					.then(function (body) {
-						if (body && body.ok && body.data) {
+					.then(function (raw) {						var body = unwrapMns(raw);						if (body && body.ok && body.data) {
 							finishOk(body.data.status || null);
 							return;
 						}
@@ -5430,8 +5453,7 @@ function genTrackCode() {
 				.then(function (r) {
 					return r.json();
 				})
-				.then(function (body) {
-					unlock();
+				.then(function (raw) {					var body = unwrapMns(raw);					unlock();
 					if (body && body.ok && body.data) {
 						if (body.data.status) {
 							var s = body.data.status;
@@ -5811,8 +5833,7 @@ function genTrackCode() {
 					.then(function (r) {
 						return r.json();
 					})
-					.then(function (body) {
-						if (body && body.ok && body.data) {
+					.then(function (raw) {						var body = unwrapMns(raw);						if (body && body.ok && body.data) {
 							finishRgOk(body.data);
 							return;
 						}

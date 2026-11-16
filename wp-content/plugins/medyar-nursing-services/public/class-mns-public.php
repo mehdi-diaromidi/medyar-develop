@@ -21,9 +21,44 @@ class MNS_Public {
 
 	public function init(): void {
 		MNS_Page_Templates::instance()->init();
+		add_action( 'template_redirect', array( $this, 'mark_panels_uncacheable' ), 0 );
+		add_action( 'template_redirect', array( 'MNS_Nurse_Access', 'gate_panels' ) );
 		add_filter( 'document_title_parts', array( $this, 'filter_document_title' ) );
 		add_action( 'wp_footer', array( $this, 'render_dev_tools' ), 40 );
 		add_filter( 'mns_dev_states', array( $this, 'filter_dev_states' ), 10, 3 );
+	}
+
+	/**
+	 * Supervisor fix: personal panel pages (patient/nurse/signup) must never be stored by a page cache or CDN,
+	 * or one user's page (name, orders, REST nonce) could be served to another.
+	 */
+	public function mark_panels_uncacheable(): void {
+		if ( ! is_page() ) {
+			return;
+		}
+		$tpl  = (string) get_page_template_slug();
+		$slug = '';
+		global $post;
+		if ( $post ) {
+			$slug = (string) $post->post_name;
+		}
+		$is_panel = ( false !== strpos( $tpl, 'mns-patient' ) )
+			|| ( false !== strpos( $tpl, 'mns-nurse' ) )
+			|| in_array( $slug, array( 'nursing-patient-panel', 'nursing-nurse-panel', 'nursing-nurse-signup' ), true );
+		if ( ! $is_panel ) {
+			return;
+		}
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		if ( ! headers_sent() ) {
+			nocache_headers();
+			header( 'Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0' );
+			header( 'CDN-Cache-Control: no-store' );
+			header( 'Cloudflare-CDN-Cache-Control: no-store' );
+			header( 'Surrogate-Control: no-store' );
+			header( 'Vary: Cookie', false );
+		}
 	}
 
 	/**

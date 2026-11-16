@@ -58,6 +58,32 @@ class MNS_Nurse_Access {
 		exit;
 	}
 
+	/**
+	 * Login gate for patient/nurse panel pages (T-D.2): guests must not see fixture content.
+	 */
+	public static function gate_panels(): void {
+		if ( ! is_page() || is_user_logged_in() ) {
+			return;
+		}
+		$tpl = (string) get_page_template_slug();
+		$is_panel = false;
+		if ( 'mns-patient.php' === $tpl || false !== strpos( $tpl, 'mns-patient' ) ) {
+			$is_panel = true;
+		} elseif ( ( 'mns-nurse.php' === $tpl || false !== strpos( $tpl, 'mns-nurse' ) ) && false === strpos( $tpl, 'signup' ) ) {
+			$is_panel = true;
+		} else {
+			global $post;
+			if ( $post && in_array( (string) $post->post_name, array( 'nursing-patient-panel', 'nursing-nurse-panel' ), true ) ) {
+				$is_panel = true;
+			}
+		}
+		if ( ! $is_panel ) {
+			return;
+		}
+		wp_safe_redirect( self::login_url( self::current_url() ) );
+		exit;
+	}
+
 	public static function login_url( string $redirect_to = '' ): string {
 		$base = home_url( '/?login=1' );
 		if ( '' !== $redirect_to ) {

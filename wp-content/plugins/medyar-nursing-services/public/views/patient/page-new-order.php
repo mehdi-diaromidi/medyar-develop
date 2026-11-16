@@ -287,12 +287,14 @@ $rx_json      = $enc( array_values( $rx_types ), '[]' );
 $self_p  = null;
 $saved_p = array();
 foreach ( $patients as $p ) {
-	if ( 'self' === ( $p['id'] ?? '' ) ) {
+	// Live rows use kind=self + numeric id; fixtures may use id="self".
+	if ( 'self' === ( $p['kind'] ?? '' ) || 'self' === (string) ( $p['id'] ?? '' ) ) {
 		$self_p = $p;
 	} else {
 		$saved_p[] = $p;
 	}
 }
+$self_patient_id = ( $self_p && isset( $self_p['id'] ) && 'self' !== (string) $self_p['id'] ) ? (string) (int) $self_p['id'] : '';
 // Nobody on file yet: skip the "who is it for?" confirmation and open the add-patient form directly.
 $has_known = null !== $self_p || ! empty( $saved_p );
 $pick_name = '';
@@ -346,13 +348,14 @@ $new_on  = 'new' === $default_mode;
 				data-mns-svc-label="<?php echo esc_attr( $svc_name ); ?>"
 				data-mns-support-tel="<?php echo esc_attr( MNS_UI::support_tel_href() ); ?>"
 				data-mns-live="<?php echo ! empty( $data['live'] ) ? '1' : '0'; ?>"
+				data-mns-self-patient-id="<?php echo esc_attr( $self_patient_id ); ?>"
 				data-mns-rest-url="<?php echo esc_url( rest_url( 'mns/v1' ) ); ?>"
 				data-mns-rest-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 			>
 				<div class="mns-form-notice mns-notice" data-mns-notice hidden tabindex="-1"></div>
 				<input type="hidden" name="service_id" value="<?php echo esc_attr( $svc_id ); ?>" data-mns-service-id>
 				<input type="hidden" name="patient_mode" value="<?php echo esc_attr( $default_mode ); ?>" data-mns-patient-mode>
-				<input type="hidden" name="patient_id" value="<?php echo esc_attr( 'saved' === $default_mode ? $default_patient : '' ); ?>" data-mns-patient-id>
+				<input type="hidden" name="patient_id" value="<?php echo esc_attr( 'saved' === $default_mode ? $default_patient : $self_patient_id ); ?>" data-mns-patient-id>
 				<input type="hidden" name="new_age_group" value="" data-mns-age-group>
 				<input type="hidden" name="new_patient_gender" value="" data-mns-patient-gender>
 				<input type="hidden" name="preferred_date" value="" data-mns-date-value>

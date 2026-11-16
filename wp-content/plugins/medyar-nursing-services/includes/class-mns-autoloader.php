@@ -34,6 +34,8 @@ class MNS_Autoloader {
 		'MNS_Selftest_Scenarios' => 'includes/class-mns-selftest-scenarios.php',
 		'MNS_Selftest_Orders'    => 'includes/class-mns-selftest-orders.php',
 		'MNS_Admin_Selftest'   => 'admin/class-mns-admin-selftest.php',
+		'MNS_Admin_E2E'        => 'admin/class-mns-admin-e2e.php',
+		'MNS_E2E'              => 'includes/services/class-mns-e2e.php',
 		'MNS_Admin_Reset'      => 'admin/class-mns-admin-reset.php',
 		'MNS_Admin_Nurses'     => 'admin/class-mns-admin-nurses.php',
 		'MNS_Admin_Services'   => 'admin/class-mns-admin-services.php',

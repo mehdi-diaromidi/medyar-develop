@@ -27,6 +27,9 @@ class MNS_Activator {
 		if ( class_exists( 'MNS_Files', false ) || class_exists( 'MNS_Files', true ) ) {
 			MNS_Files::unschedule_orphan_cron();
 		}
+		if ( class_exists( 'MNS_E2E', false ) || class_exists( 'MNS_E2E', true ) ) {
+			MNS_E2E::unschedule_cron();
+		}
 	}
 
 	public static function maybe_upgrade(): void {
