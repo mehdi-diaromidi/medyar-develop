@@ -127,6 +127,16 @@ class MNS_Backend {
 				'file'  => 'includes/backend/class-mns-backend-db.php',
 				'class' => 'MNS_Backend_Db',
 			),
+			array(
+				'slug'  => 'settings',
+				'file'  => 'includes/backend/class-mns-backend-settings.php',
+				'class' => 'MNS_Backend_Settings',
+			),
+			array(
+				'slug'  => 'rest',
+				'file'  => 'includes/backend/class-mns-backend-rest.php',
+				'class' => 'MNS_Backend_Rest',
+			),
 		);
 
 		if ( self::should_load_selftest_broken() ) {
