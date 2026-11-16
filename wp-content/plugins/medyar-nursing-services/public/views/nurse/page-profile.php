@@ -12,7 +12,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$p  = MNS_Static_Fixtures::get( 'nurse/profile_full' );
+// Real data for approved nurses; fixtures for admin/dev preview (T-1.4).
+$p = MNS_Static_Fixtures::get( 'nurse/profile_full' );
+if ( is_user_logged_in() && MNS_Roles::user_is_nurse() && MNS_Nurse_Access::can_use_panel() && ! current_user_can( 'manage_options' ) ) {
+	$uid  = get_current_user_id();
+	$row  = MNS_Nurse_Access::nurse_row( $uid );
+	$user = wp_get_current_user();
+	$mobile = '';
+	if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
+		$mobile = (string) \DrPlus\Utils\User::get_phone( $uid );
+	}
+	$p = array_merge(
+		is_array( $p ) ? $p : array(),
+		array(
+			'first_name'    => $user->first_name,
+			'last_name'     => $user->last_name,
+			'display_name'  => $user->display_name,
+			'email'         => $user->user_email,
+			'mobile'        => $mobile,
+			'about'         => $row ? (string) $row['about'] : '',
+			'experience'    => $row ? (string) $row['experience'] : '',
+			'qualification' => $row ? (string) $row['qualification'] : '',
+			'national_id'   => $row ? (string) $row['national_id'] : '',
+			'license_no'    => $row ? (string) $row['license_no'] : '',
+			'workplace'     => $row ? (string) $row['workplace'] : '',
+			'gender'        => $row ? (string) $row['gender'] : '',
+		)
+	);
+}
 $fa = static function ( $v ): string {
 	return MNS_Format::digits( (string) $v );
 };

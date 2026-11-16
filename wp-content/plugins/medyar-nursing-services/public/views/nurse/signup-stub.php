@@ -1,6 +1,6 @@
 <?php
 /**
- * Nurse signup — form + pending/rejected/suspended/approved (UX Phase D).
+ * Nurse signup — real apply form + status states (T-1.2).
  *
  * @package medyar-nursing-services
  */
@@ -11,220 +11,195 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$allowed = array( 'form', 'pending', 'rejected', 'suspended', 'approved' );
+$user_id = get_current_user_id();
+$status  = MNS_Nurse_Access::status( $user_id );
 $state   = 'form';
-if ( class_exists( 'MNS_Dev' ) && MNS_Dev::enabled() ) {
-	$raw = MNS_Dev::state();
-	if ( in_array( $raw, $allowed, true ) ) {
+if ( in_array( $status, array( 'pending', 'rejected', 'suspended', 'approved' ), true ) ) {
+	$state = $status;
+}
+// Dev preview override for admins.
+if ( class_exists( 'MNS_Dev' ) && MNS_Dev::enabled() && current_user_can( 'manage_options' ) ) {
+	$raw = isset( $_GET['mns_state'] ) ? sanitize_key( wp_unslash( $_GET['mns_state'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( in_array( $raw, array( 'form', 'pending', 'rejected', 'suspended', 'approved' ), true ) ) {
 		$state = $raw;
-	} elseif ( isset( $_GET['mns_state'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$cand = sanitize_key( wp_unslash( $_GET['mns_state'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( in_array( $cand, $allowed, true ) ) {
-			$state = $cand;
-		}
 	}
 }
+if ( isset( $_GET['mns_state'] ) && 'pending' === sanitize_key( wp_unslash( $_GET['mns_state'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$state = 'pending';
+}
 
-$tz    = wp_timezone();
-$now   = new DateTimeImmutable( 'now', $tz );
-$jy    = MNS_Format::g2j( (int) $now->format( 'Y' ), (int) $now->format( 'n' ), (int) $now->format( 'j' ) );
-$track = 'MNS-APP-' . $jy[0] . '-2201';
-$note  = __( 'مدارک ناقص یا ناخوانا. می‌توانید دوباره ارسال کنید؛ فرم از قبل پر شده است.', 'medyar-nursing-services' );
-$panel = MNS_Pages::panel_url( 'nurse', 'dashboard' );
+$err   = isset( $_GET['mns_err'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_err'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$field = isset( $_GET['mns_field'] ) ? sanitize_key( wp_unslash( $_GET['mns_field'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$saved = get_transient( 'mns_nurse_apply_form_' . $user_id );
+if ( is_array( $saved ) ) {
+	delete_transient( 'mns_nurse_apply_form_' . $user_id );
+} else {
+	$saved = array();
+}
+
+$user  = wp_get_current_user();
+$first = isset( $saved['first_name'] ) ? (string) $saved['first_name'] : (string) $user->first_name;
+$last  = isset( $saved['last_name'] ) ? (string) $saved['last_name'] : (string) $user->last_name;
+$mobile = '';
+if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
+	$mobile = (string) \DrPlus\Utils\User::get_phone( $user_id );
+}
+$contract = class_exists( 'MNS_Contract' ) ? MNS_Contract::active() : null;
+$row      = MNS_Nurse_Access::nurse_row( $user_id );
+$panel    = MNS_Pages::panel_url( 'nurse', 'dashboard' );
 ?>
-<div class="mns-signup" dir="rtl">
-	<?php if ( class_exists( 'MNS_Dev' ) && MNS_Dev::enabled() ) : ?>
-		<p class="mns-preview-banner"><?php echo esc_html__( 'نمایشی استاتیک — وضعیت فقط برای پیش‌نمایش سوئیچ می‌شود.', 'medyar-nursing-services' ); ?></p>
-	<?php endif; ?>
+<section class="mns-nsu" dir="rtl">
+	<header class="mns-nsu__hero">
+		<span class="mns-nsu__hero-icon" aria-hidden="true"></span>
+		<h1 class="mns-nsu__title"><?php echo esc_html__( 'عضویت پرستار مدیار', 'medyar-nursing-services' ); ?></h1>
+		<p class="mns-nsu__lead"><?php echo esc_html__( 'اطلاعات و مدارک خود را ارسال کنید؛ پس از بررسی، پنل پرستار فعال می‌شود.', 'medyar-nursing-services' ); ?></p>
+	</header>
 
 	<?php if ( 'pending' === $state ) : ?>
-		<?php
-		MNS_UI::page_header(
-			array(
-				'title' => __( 'درخواست در صف بررسی', 'medyar-nursing-services' ),
-				'lead'  => __( 'نتیجه با پیامک اعلام می‌شود. معمولاً تا ۴۸ ساعت کاری.', 'medyar-nursing-services' ),
-			)
-		);
-		MNS_UI::alert(
-			array(
-				'tone'  => 'info',
-				'title' => __( 'نیازی به ارسال مجدد نیست', 'medyar-nursing-services' ),
-				'text'  => __( 'تا اعلام نتیجه صبر کنید. در صورت نقص مدارک، پیامک جداگانه می‌آید.', 'medyar-nursing-services' ),
-			)
-		);
-		?>
-		<section class="mns-card mns-result-card">
-			<span class="mns-result-card__icon" aria-hidden="true"><?php echo mns_icon( 'clock' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-			<p class="mns-result-card__code">
-				<?php echo esc_html( MNS_Copy::t( 'label.tracking_code' ) ); ?>
-				<strong dir="ltr"><?php echo esc_html( MNS_Format::digits( $track ) ); ?></strong>
-				<button type="button" class="mns-link-btn" data-mns-copy="<?php echo esc_attr( $track ); ?>"><?php echo esc_html( MNS_Copy::t( 'action.copy' ) ); ?></button>
-			</p>
-			<p class="mns-field-hint"><?php echo esc_html__( 'کد نمونهٔ نمایشی برای پیش‌نمایش استاتیک.', 'medyar-nursing-services' ); ?></p>
-			<?php MNS_UI::support_call( array( 'variant' => 'outline' ) ); ?>
-		</section>
-	<?php elseif ( 'approved' === $state ) : ?>
-		<?php
-		MNS_UI::page_header(
-			array(
-				'title' => __( 'عضویت تأیید شد', 'medyar-nursing-services' ),
-				'lead'  => __( 'نقش پرستار فعال است. برنامه و پذیرش را تنظیم کنید.', 'medyar-nursing-services' ),
-			)
-		);
-		?>
-		<section class="mns-card mns-result-card">
-			<span class="mns-result-card__icon" aria-hidden="true"><?php echo mns_icon( 'check-circle' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-			<div class="mns-actions-row">
-				<a class="mns-submit-btn mns-submit-btn--auto" href="<?php echo esc_url( $panel ); ?>"><?php echo esc_html__( 'ورود به پنل پرستار', 'medyar-nursing-services' ); ?></a>
-			</div>
-		</section>
-	<?php elseif ( 'suspended' === $state ) : ?>
-		<?php
-		MNS_UI::page_header(
-			array(
-				'title' => __( 'حساب تعلیق شده', 'medyar-nursing-services' ),
-				'lead'  => __( 'دسترسی پنل پرستار فعلاً غیرفعال است.', 'medyar-nursing-services' ),
-			)
-		);
-		MNS_UI::alert(
-			array(
-				'tone'  => 'danger',
-				'title' => __( 'تعلیق دسترسی', 'medyar-nursing-services' ),
-				'text'  => __( 'با پشتیبانی مدیار تماس بگیرید تا وضعیت بررسی شود.', 'medyar-nursing-services' ),
-			)
-		);
-		?>
-		<section class="mns-card">
-			<?php MNS_UI::support_call( array( 'variant' => 'solid' ) ); ?>
-		</section>
+		<div class="mns-nsu-card mns-nsu-card--status">
+			<h2><?php echo esc_html__( 'در حال بررسی', 'medyar-nursing-services' ); ?></h2>
+			<p><?php echo esc_html__( 'درخواست شما ثبت شد و توسط همکاران ما بررسی می‌شود.', 'medyar-nursing-services' ); ?></p>
+		</div>
 	<?php elseif ( 'rejected' === $state ) : ?>
-		<?php
-		MNS_UI::page_header(
-			array(
-				'title' => __( 'درخواست رد شد', 'medyar-nursing-services' ),
-				'lead'  => __( 'می‌توانید پس از رفع نقص دوباره ارسال کنید.', 'medyar-nursing-services' ),
-			)
-		);
-		MNS_UI::alert(
-			array(
-				'tone'  => 'warning',
-				'title' => __( 'یادداشت بررسی', 'medyar-nursing-services' ),
-				'text'  => $note,
-			)
-		);
-		?>
-	<?php endif; ?>
-
-	<?php if ( in_array( $state, array( 'form', 'rejected' ), true ) ) : ?>
-		<?php if ( 'form' === $state ) : ?>
-			<?php
-			MNS_UI::page_header(
-				array(
-					'title' => __( 'عضویت پرستار', 'medyar-nursing-services' ),
-					'lead'  => __( 'همه اطلاعات را یکجا وارد کنید. مدارک فقط برای ادمین قابل مشاهده است.', 'medyar-nursing-services' ),
-				)
-			);
-			?>
-		<?php endif; ?>
-
-		<div class="mns-form-notice mns-notice" data-mns-notice hidden tabindex="-1"></div>
-
-		<div class="mns-form-grid">
-			<form
-				class="mns-card mns-form"
-				method="post"
-				enctype="multipart/form-data"
-				data-mns-mock="ok"
-				data-mns-success="<?php echo esc_attr__( 'درخواست عضویت ثبت شد و در حال بررسی است.', 'medyar-nursing-services' ); ?>"
-			>
-				<h2 class="mns-card__title"><?php echo esc_html__( 'اطلاعات فردی', 'medyar-nursing-services' ); ?></h2>
-				<label class="mns-field-block">
-					<span class="mns-field-block__label"><?php echo esc_html__( 'نام و نام خانوادگی', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input name="full_name" required maxlength="191" value="<?php echo 'rejected' === $state ? esc_attr( 'علی رضایی' ) : ''; ?>"></span>
-				</label>
-				<div class="mns-form-row--2">
-					<label class="mns-field-block">
-						<span class="mns-field-block__label"><?php echo esc_html__( 'کد ملی', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-						<span class="mns-field-block__control"><input name="national_id" required maxlength="10" inputmode="numeric" dir="ltr" pattern="[0-9]{10}" value="<?php echo 'rejected' === $state ? esc_attr( '0012345678' ) : ''; ?>"></span>
-					</label>
-					<label class="mns-field-block">
-						<span class="mns-field-block__label"><?php echo esc_html__( 'جنسیت', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-						<span class="mns-field-block__control mns-field-block__control--select">
-							<select class="mns-select-native" data-mns-select name="gender" required data-mns-signup-gender>
-								<option value=""><?php echo esc_html__( 'انتخاب کنید', 'medyar-nursing-services' ); ?></option>
-								<option value="female"><?php echo esc_html__( 'خانم', 'medyar-nursing-services' ); ?></option>
-								<option value="male" <?php selected( 'rejected' === $state ); ?>><?php echo esc_html__( 'آقا', 'medyar-nursing-services' ); ?></option>
-							</select>
-							<span class="mns-field-block__chevron">▾</span>
-						</span>
-					</label>
-				</div>
-				<label class="mns-field-block">
-					<span class="mns-field-block__label"><?php echo esc_html__( 'موبایل', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input name="mobile" required data-mns-iran-mobile dir="ltr" inputmode="tel" value="<?php echo 'rejected' === $state ? esc_attr( '09129876543' ) : ''; ?>"></span>
-				</label>
-
-				<h2 class="mns-card__title"><?php echo esc_html__( 'مدارک', 'medyar-nursing-services' ); ?></h2>
-				<label class="mns-field-block">
-					<span class="mns-field-block__label"><?php echo esc_html__( 'کارت ملی', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input type="file" name="nid" accept=".jpg,.jpeg,.png,.pdf" required></span>
-				</label>
-				<label class="mns-field-block">
-					<span class="mns-field-block__label"><?php echo esc_html__( 'کارت نظام پرستاری', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input type="file" name="nurse_card" accept=".jpg,.jpeg,.png,.pdf" required></span>
-				</label>
-				<label class="mns-field-block" data-mns-military-field <?php echo 'rejected' === $state ? '' : 'hidden'; ?>>
-					<span class="mns-field-block__label"><?php echo esc_html__( 'پایان خدمت / معافیت (آقایان)', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input type="file" name="military" accept=".jpg,.jpeg,.png,.pdf"></span>
-				</label>
-				<label class="mns-field-block">
-					<span class="mns-field-block__label"><?php echo esc_html__( 'بیمارستان محل کار', 'medyar-nursing-services' ); ?><span class="mns-req" aria-hidden="true">*</span></span>
-					<span class="mns-field-block__control"><input name="hospital" required maxlength="191" value="<?php echo 'rejected' === $state ? esc_attr( 'بیمارستان میلاد' ) : ''; ?>"></span>
-				</label>
-
-				<h2 class="mns-card__title"><?php echo esc_html__( 'قرارداد همکاری', 'medyar-nursing-services' ); ?></h2>
-				<div class="mns-contract" tabindex="0">
-					<p><?php echo esc_html__( 'پرستار متعهد می‌شود خدمات را طبق پروتکل مدیار، تعرفه سیستم و زمان‌بندی توافق‌شده انجام دهد. مبلغ دستی خارج از تعرفه ممنوع است. اطلاعات بیمار محرمانه است و فقط برای انجام خدمت استفاده می‌شود.', 'medyar-nursing-services' ); ?></p>
-					<p><?php echo esc_html__( 'مدیار حق تعلیق یا لغو عضویت در صورت تخلف حرفه‌ای یا شکایت موجه را دارد. سهم پرستار پس از پرداخت بیمار به کیف پول واریز می‌شود.', 'medyar-nursing-services' ); ?></p>
-					<p><?php echo esc_html__( 'نسخهٔ قرارداد در پروندهٔ پرستار ذخیره می‌شود و قابل ارجاع بعدی است.', 'medyar-nursing-services' ); ?></p>
-				</div>
-				<label class="mns-check">
-					<input type="checkbox" name="contract" required>
-					<span><?php echo esc_html__( 'متن قرارداد را خواندم و می‌پذیرم.', 'medyar-nursing-services' ); ?></span>
-				</label>
-
-				<button type="submit" class="mns-submit-btn" style="margin-top:var(--mns-space-5)">
-					<?php echo esc_html__( 'ارسال درخواست عضویت', 'medyar-nursing-services' ); ?>
-				</button>
-			</form>
-
-			<aside class="mns-how">
-				<h2 class="mns-how__title"><?php echo esc_html__( 'مراحل تأیید', 'medyar-nursing-services' ); ?></h2>
-				<ol class="mns-how__steps">
-					<li><span class="mns-how__num">۱</span><span><?php echo esc_html__( 'ارسال مدارک', 'medyar-nursing-services' ); ?></span></li>
-					<li><span class="mns-how__num">۲</span><span><?php echo esc_html__( 'بررسی ادمین', 'medyar-nursing-services' ); ?></span></li>
-					<li><span class="mns-how__num">۳</span><span><?php echo esc_html__( 'فعال‌سازی نقش پرستار', 'medyar-nursing-services' ); ?></span></li>
-					<li><span class="mns-how__num">۴</span><span><?php echo esc_html__( 'تنظیم برنامه و پذیرش', 'medyar-nursing-services' ); ?></span></li>
+		<div class="mns-nsu-card mns-nsu-card--status">
+			<h2><?php echo esc_html__( 'درخواست رد شد', 'medyar-nursing-services' ); ?></h2>
+			<p><?php echo esc_html( $row && ! empty( $row['reject_note'] ) ? (string) $row['reject_note'] : __( 'می‌توانید دوباره ارسال کنید.', 'medyar-nursing-services' ) ); ?></p>
+			<p><a class="mns-nsu-btn" href="<?php echo esc_url( remove_query_arg( array( 'mns_state', 'mns_err' ) ) ); ?>"><?php echo esc_html__( 'ارسال مجدد', 'medyar-nursing-services' ); ?></a></p>
+		</div>
+	<?php elseif ( 'suspended' === $state ) : ?>
+		<div class="mns-nsu-card mns-nsu-card--status">
+			<h2><?php echo esc_html__( 'حساب موقتاً غیرفعال است', 'medyar-nursing-services' ); ?></h2>
+			<p><?php echo esc_html__( 'برای پیگیری با پشتیبانی تماس بگیرید.', 'medyar-nursing-services' ); ?></p>
+		</div>
+	<?php elseif ( 'approved' === $state ) : ?>
+		<div class="mns-nsu-card mns-nsu-card--status">
+			<h2><?php echo esc_html__( 'عضویت تأیید شد', 'medyar-nursing-services' ); ?></h2>
+			<p><a class="mns-nsu-btn" href="<?php echo esc_url( $panel ); ?>"><?php echo esc_html__( 'ورود به پنل پرستار', 'medyar-nursing-services' ); ?></a></p>
+		</div>
+	<?php else : ?>
+		<div class="mns-nsu__grid">
+			<div class="mns-nsu-card mns-nsu-card--form">
+				<h2 class="mns-nsu-card__title"><?php echo esc_html__( 'اطلاعات عضویت', 'medyar-nursing-services' ); ?></h2>
+				<?php if ( $err ) : ?>
+					<p class="mns-nsu-error" data-field="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $err ); ?></p>
+				<?php endif; ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="mns-nsu-form" novalidate>
+					<?php wp_nonce_field( 'mns_nurse_apply' ); ?>
+					<input type="hidden" name="action" value="mns_nurse_apply" />
+					<div class="mns-field-block mns-nsu-row">
+						<label><?php echo esc_html__( 'نام', 'medyar-nursing-services' ); ?></label>
+						<input type="text" name="first_name" required value="<?php echo esc_attr( $first ); ?>" />
+					</div>
+					<div class="mns-field-block mns-nsu-row">
+						<label><?php echo esc_html__( 'نام خانوادگی', 'medyar-nursing-services' ); ?></label>
+						<input type="text" name="last_name" required value="<?php echo esc_attr( $last ); ?>" />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'موبایل', 'medyar-nursing-services' ); ?></label>
+						<input type="text" value="<?php echo esc_attr( $mobile ); ?>" disabled />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'جنسیت', 'medyar-nursing-services' ); ?></label>
+						<select name="gender" required id="mns-nsu-gender">
+							<option value=""><?php echo esc_html__( 'انتخاب کنید', 'medyar-nursing-services' ); ?></option>
+							<option value="female" <?php selected( isset( $saved['gender'] ) ? $saved['gender'] : '', 'female' ); ?>><?php echo esc_html__( 'زن', 'medyar-nursing-services' ); ?></option>
+							<option value="male" <?php selected( isset( $saved['gender'] ) ? $saved['gender'] : '', 'male' ); ?>><?php echo esc_html__( 'مرد', 'medyar-nursing-services' ); ?></option>
+						</select>
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'کد ملی', 'medyar-nursing-services' ); ?></label>
+						<input type="text" name="national_id" required maxlength="10" value="<?php echo esc_attr( isset( $saved['national_id'] ) ? (string) $saved['national_id'] : '' ); ?>" />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'شماره نظام پرستاری', 'medyar-nursing-services' ); ?></label>
+						<input type="text" name="license_no" required value="<?php echo esc_attr( isset( $saved['license_no'] ) ? (string) $saved['license_no'] : '' ); ?>" />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'مدرک', 'medyar-nursing-services' ); ?></label>
+						<select name="qualification" required>
+							<?php foreach ( array( 'diploma' => 'دیپلم', 'assoc' => 'کاردانی', 'bsc' => 'کارشناسی', 'msc' => 'کارشناسی ارشد', 'phd' => 'دکتری' ) as $k => $lab ) : ?>
+								<option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $lab ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'سابقه', 'medyar-nursing-services' ); ?></label>
+						<select name="experience" required>
+							<?php foreach ( array( '0-1', '1-3', '3-5', '5-10', '10+' ) as $k ) : ?>
+								<option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $k ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'محل کار', 'medyar-nursing-services' ); ?></label>
+						<input type="text" name="workplace" required value="<?php echo esc_attr( isset( $saved['workplace'] ) ? (string) $saved['workplace'] : '' ); ?>" />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'کارت ملی', 'medyar-nursing-services' ); ?></label>
+						<input type="file" name="national_card" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+					</div>
+					<div class="mns-field-block" id="mns-nsu-military" hidden>
+						<label><?php echo esc_html__( 'کارت پایان خدمت / معافیت', 'medyar-nursing-services' ); ?></label>
+						<input type="file" name="military_card" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'کارت نظام پرستاری', 'medyar-nursing-services' ); ?></label>
+						<input type="file" name="license_card" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'عکس پروفایل', 'medyar-nursing-services' ); ?></label>
+						<input type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp" required />
+					</div>
+					<div class="mns-field-block">
+						<label><?php echo esc_html__( 'درباره من', 'medyar-nursing-services' ); ?></label>
+						<textarea name="about" maxlength="200" rows="3"><?php echo esc_textarea( isset( $saved['about'] ) ? (string) $saved['about'] : '' ); ?></textarea>
+					</div>
+					<?php if ( $contract ) : ?>
+						<details class="mns-nsu-contract">
+							<summary><?php echo esc_html( (string) $contract['title'] ); ?></summary>
+							<div class="mns-nsu-contract__body"><?php echo wp_kses_post( nl2br( esc_html( (string) $contract['body'] ) ) ); ?></div>
+						</details>
+						<label class="mns-nsu-check"><input type="checkbox" name="accept_contract" value="1" required /> <?php echo esc_html__( 'متن قرارداد را می‌پذیرم', 'medyar-nursing-services' ); ?></label>
+					<?php endif; ?>
+					<button type="submit" class="mns-nsu-btn"><?php echo esc_html__( 'ارسال درخواست', 'medyar-nursing-services' ); ?></button>
+				</form>
+			</div>
+			<aside class="mns-nsu-card mns-nsu-card--how">
+				<h2 class="mns-nsu-card__title"><?php echo esc_html__( 'چطور کار می‌کند؟', 'medyar-nursing-services' ); ?></h2>
+				<ol class="mns-nsu-steps">
+					<li><?php echo esc_html__( 'تکمیل اطلاعات و مدارک', 'medyar-nursing-services' ); ?></li>
+					<li><?php echo esc_html__( 'بررسی توسط ادمین', 'medyar-nursing-services' ); ?></li>
+					<li><?php echo esc_html__( 'تنظیم برنامه و مناطق', 'medyar-nursing-services' ); ?></li>
+					<li><?php echo esc_html__( 'دریافت سفارش', 'medyar-nursing-services' ); ?></li>
 				</ol>
 			</aside>
 		</div>
+		<script>
+		(function(){
+			var g=document.getElementById('mns-nsu-gender');
+			var m=document.getElementById('mns-nsu-military');
+			if(!g||!m) return;
+			function sync(){ m.hidden = g.value !== 'male'; }
+			g.addEventListener('change', sync); sync();
+		})();
+		</script>
 	<?php endif; ?>
-</div>
-<?php if ( in_array( $state, array( 'form', 'rejected' ), true ) ) : ?>
-<script>
-(function () {
-	var sel = document.querySelector('[data-mns-signup-gender]');
-	var mil = document.querySelector('[data-mns-military-field]');
-	if (!sel || !mil) return;
-	function sync() {
-		var show = sel.value === 'male';
-		mil.hidden = !show;
-		mil.classList.toggle('is-hidden', !show);
-		var input = mil.querySelector('input');
-		if (input) input.required = show;
-	}
-	sel.addEventListener('change', sync);
-	sync();
-})();
-</script>
-<?php endif; ?>
+</section>
+<?php
+/* Minimal CSS injected once if public.css not yet patched — also appended to public.css */ ?>
+<style id="mns-nsu-inline">
+.mns-nsu{max-width:980px;margin:0 auto;padding:24px 16px}
+.mns-nsu__hero{text-align:center;margin-bottom:24px}
+.mns-nsu__title{font-size:1.5rem;font-weight:800;margin:8px 0}
+.mns-nsu__lead{color:#567;margin:0}
+.mns-nsu__grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media(max-width:800px){.mns-nsu__grid{grid-template-columns:1fr}}
+.mns-nsu-card{background:#fff;border:1px solid #e3e8ee;border-radius:14px;padding:20px}
+.mns-nsu-card__title{font-size:1.1rem;font-weight:700;margin:0 0 12px}
+.mns-nsu-form .mns-field-block{margin-bottom:12px}
+.mns-nsu-form input,.mns-nsu-form select,.mns-nsu-form textarea{width:100%;min-height:50px;border:1px solid #cfd8e3;border-radius:12px;padding:10px 12px;font-size:16px}
+.mns-nsu-btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 20px;border:0;border-radius:12px;background:var(--mns-primary,#0272b1);color:#fff;font-weight:600;cursor:pointer;text-decoration:none}
+.mns-nsu-error{color:#b42318;background:#fef3f2;border-radius:10px;padding:10px 12px}
+.mns-nsu-steps{margin:0;padding-inline-start:18px;line-height:1.9}
+.mns-nsu-contract{margin:12px 0;border:1px solid #e3e8ee;border-radius:10px;padding:10px}
+</style>

@@ -147,6 +147,16 @@ class MNS_Backend {
 				'file'  => 'includes/backend/class-mns-backend-selftest.php',
 				'class' => 'MNS_Backend_Selftest',
 			),
+			array(
+				'slug'  => 'files',
+				'file'  => 'includes/backend/class-mns-backend-files.php',
+				'class' => 'MNS_Backend_Files',
+			),
+			array(
+				'slug'  => 'nurses',
+				'file'  => 'includes/backend/class-mns-backend-nurses.php',
+				'class' => 'MNS_Backend_Nurses',
+			),
 		);
 
 		if ( self::should_load_selftest_broken() ) {

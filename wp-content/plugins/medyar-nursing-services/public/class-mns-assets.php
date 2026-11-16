@@ -49,6 +49,7 @@ class MNS_Assets {
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'restUrl'   => esc_url_raw( rest_url( 'mns/v1' ) ),
 				'nonce'     => wp_create_nonce( 'mns_public' ),
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
 				'uiStatic'  => MNS_Plugin::is_ui_static(),
 				'devTools'  => class_exists( 'MNS_Dev' ) && MNS_Dev::enabled(),
 				'i18n'      => MNS_Copy::for_js(),

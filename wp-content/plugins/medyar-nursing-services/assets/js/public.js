@@ -2165,8 +2165,23 @@ function genTrackCode() {
 					btn.classList.add('is-loading');
 					btn.disabled = true;
 				}
-				/* TODO(backend): save the profile (display name, email, experience, workplace, about, photo). */
-				window.setTimeout(function () {
+				var cfg = window.mnsPublic || {};
+				var restBase = (cfg.restUrl || '').replace(/\/$/, '');
+				var payload = {};
+				qsa('[data-mns-pf-field]', form).forEach(function (el) {
+					if (!el.name) return;
+					if (el.name === 'mobile' || el.name === 'gender') return;
+					payload[el.name] = el.value;
+				});
+				var aboutEl = qs('#mns-pf-about', form) || qs('[name="about"]', form);
+				if (aboutEl) payload.about = aboutEl.value;
+				var nidEl = qs('[data-mns-pf-nid]', form);
+				if (nidEl) {
+					payload.national_id = nidEl.value.replace(/[\u06F0-\u06F9]/g, function (d) {
+						return String(d.charCodeAt(0) - 0x06F0);
+					}).trim();
+				}
+				function finishOk() {
 					busy = false;
 					if (btn) {
 						btn.classList.remove('is-loading');
@@ -2184,7 +2199,42 @@ function genTrackCode() {
 					var qualBind = qs('[data-mns-pf-bind="qualification"]', root);
 					if (qual && qualBind && qual.selectedIndex > -1) qualBind.textContent = qual.options[qual.selectedIndex].textContent.trim();
 					showNotice('ok', 'اطلاعات شما ذخیره شد.');
-				}, 700);
+				}
+				function finishErr(msg) {
+					busy = false;
+					if (btn) {
+						btn.classList.remove('is-loading');
+						btn.disabled = false;
+					}
+					showNotice('error', msg || 'ثبت نشد، دوباره تلاش کنید.');
+				}
+				if (!restBase || !cfg.restNonce) {
+					window.setTimeout(finishOk, 700);
+					return;
+				}
+				fetch(restBase + '/nurse/me?_envelope=1', {
+					method: 'PATCH',
+					credentials: 'same-origin',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': cfg.restNonce
+					},
+					body: JSON.stringify(payload)
+				})
+					.then(function (r) {
+						return r.json();
+					})
+					.then(function (body) {
+						if (body && body.ok) {
+							finishOk();
+							return;
+						}
+						var msg = body && body.error && body.error.message ? body.error.message : '';
+						finishErr(msg);
+					})
+					.catch(function () {
+						finishErr('ثبت نشد، دوباره تلاش کنید.');
+					});
 			});
 		}
 
