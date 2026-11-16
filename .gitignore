@@ -42,3 +42,5 @@ Thumbs.db
 
 # Cursor deploy backups (per task)
 .deploy-backup/
+
+.e2e/
