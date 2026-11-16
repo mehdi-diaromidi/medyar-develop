@@ -70,13 +70,33 @@ class MNS_Nurse_Orders_Api {
 		$status = (string) $row['status'];
 		$show_contact = in_array( $status, array( 'assigned', 'in_progress' ), true );
 		$svc = MNS_Services::get( (int) $row['service_id'] );
+		$raw_ess = json_decode( (string) ( $row['essentials'] ?? '{}' ), true );
+		if ( ! is_array( $raw_ess ) ) {
+			$raw_ess = array();
+		}
+		$allowed = array( 'serum_type' => true, 'allergy' => true, 'allergy_name' => true, 'rx_file_id' => true, 'vein_access' => true );
+		if ( $svc && isset( $svc['config']['order_fields'] ) && is_array( $svc['config']['order_fields'] ) ) {
+			foreach ( array_keys( $svc['config']['order_fields'] ) as $fk ) {
+				$key = sanitize_key( (string) $fk );
+				if ( '' !== $key && ! in_array( $key, array( 'serum_types', 'rx_types' ), true ) ) {
+					$allowed[ $key ] = true;
+				}
+			}
+		}
+		$essentials = array();
+		foreach ( $raw_ess as $ek => $ev ) {
+			$ek = sanitize_key( (string) $ek );
+			if ( isset( $allowed[ $ek ] ) && is_scalar( $ev ) ) {
+				$essentials[ $ek ] = $ev;
+			}
+		}
 		$out = array(
 			'code'    => (string) $row['code'],
 			'status'  => $status,
 			'service' => $svc ? $svc['name'] : '',
 			'when'    => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
 			'notes'   => (string) ( $row['notes'] ?? '' ),
-			'essentials' => json_decode( (string) ( $row['essentials'] ?? '{}' ), true ),
+			'essentials' => $essentials,
 			'province' => (string) $row['province_code'],
 			'city_id'  => (int) $row['city_id'],
 			'district' => (int) $row['district_no'],

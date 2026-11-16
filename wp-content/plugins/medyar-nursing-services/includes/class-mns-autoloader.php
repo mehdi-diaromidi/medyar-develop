@@ -32,6 +32,7 @@ class MNS_Autoloader {
 		'MNS_Backend_Orders'   => 'includes/backend/class-mns-backend-orders.php',
 		'MNS_Selftest'         => 'includes/class-mns-selftest.php',
 		'MNS_Selftest_Scenarios' => 'includes/class-mns-selftest-scenarios.php',
+		'MNS_Selftest_Orders'    => 'includes/class-mns-selftest-orders.php',
 		'MNS_Admin_Selftest'   => 'admin/class-mns-admin-selftest.php',
 		'MNS_Admin_Reset'      => 'admin/class-mns-admin-reset.php',
 		'MNS_Admin_Nurses'     => 'admin/class-mns-admin-nurses.php',

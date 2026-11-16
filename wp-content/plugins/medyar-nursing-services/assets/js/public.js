@@ -878,8 +878,10 @@
 			return !!(serumTypeInput && rxTypes.indexOf(serumTypeInput.value) !== -1);
 		}
 
+		var rxFileId = 0;
+		var rxUploadBusy = false;
 		function hasRx() {
-			return !!(rxInput && rxInput.files && rxInput.files.length);
+			return !!rxFileId || !!(rxInput && rxInput.files && rxInput.files.length);
 		}
 
 		/* Service details are their own step now; kept as a no-op for the validators below. */
@@ -1400,6 +1402,53 @@
 				'</div></div>';
 		}
 
+		function renderLiveAvail(state, message, alts) {
+			if (!availGenderBox) return;
+			var supportTel = form.getAttribute('data-mns-support-tel') || 'tel:02188607015';
+			if (state === 'green') {
+				availGenderBox.hidden = false;
+				availGenderBox.className = 'mns-avail mns-avail--yellow';
+				availGenderBox.innerHTML =
+					'<span class="mns-avail__ico" aria-hidden="true">' + AV_ICON.check + '</span>' +
+					'<div class="mns-avail__body"><strong>' + escHtml(message || 'پرستار برای این زمان موجود است.') + '</strong></div>';
+				return;
+			}
+			if (state === 'yellow') {
+				var chips = '';
+				(alts || []).forEach(function (a) {
+					if (!a) return;
+					chips +=
+						'<button type="button" class="mns-avail__alt" data-mns-avail-alt data-date="' +
+						escHtml(a.date || '') +
+						'" data-slot="' +
+						escHtml(a.slot || '') +
+						'">' +
+						escHtml(a.label || (a.date || '') + ' · ' + (a.slot || '')) +
+						'</button>';
+				});
+				availGenderBox.hidden = false;
+				availGenderBox.className = 'mns-avail mns-avail--yellow';
+				availGenderBox.innerHTML =
+					'<span class="mns-avail__ico" aria-hidden="true">' + AV_ICON.clock + '</span>' +
+					'<div class="mns-avail__body"><strong>' + escHtml(message || 'در این بازه پرستار نیست؛ زمان‌های نزدیک را ببینید.') + '</strong>' +
+					(chips ? '<div class="mns-avail__alts">' + chips + '</div>' : '') +
+					'</div>';
+				return;
+			}
+			if (state === 'red') {
+				availGenderBox.hidden = false;
+				availGenderBox.className = 'mns-avail mns-avail--red';
+				availGenderBox.innerHTML =
+					'<span class="mns-avail__ico" aria-hidden="true">' + AV_ICON.alert + '</span>' +
+					'<div class="mns-avail__body"><strong>' + escHtml(message || 'برای این منطقه یا جنسیت پرستار نداریم.') + '</strong>' +
+					'<div class="mns-avail__alts">' +
+					'<a class="mns-avail__call" href="' + escHtml(supportTel) + '">' + AV_ICON.phone + '<span>تماس با پشتیبانی</span></a>' +
+					'</div></div>';
+				return;
+			}
+			availGenderBox.hidden = true;
+		}
+
 		/* Tell the user which gender has no nurse in the chosen area before they commit to it. */
 		function markGenderAvailability(area) {
 			var redMap = availability.red_area_gender || {};
@@ -1411,20 +1460,111 @@
 			});
 		}
 
+		var availReqSeq = 0;
 		function runAvailability() {
+			var live = form.getAttribute('data-mns-live') === '1';
+			var restBase = form.getAttribute('data-mns-rest-url') || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+			var restNonce = form.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
 			var area = areaKey();
 			var gender = genderInput ? genderInput.value : '';
-			var redMap = availability.red_area_gender || {};
-			var red = !!(area && gender && redMap[area] && redMap[area] === gender);
-			markGenderAvailability(area);
-			renderGenderBlock(red ? area : '', red ? gender : '');
-			availState = red ? 'red' : 'idle';
-			if (step1Next) step1Next.disabled = red;
+			if (!live || !restBase || !restNonce) {
+				var redMap = availability.red_area_gender || {};
+				var red = !!(area && gender && redMap[area] && redMap[area] === gender);
+				markGenderAvailability(area);
+				renderGenderBlock(red ? area : '', red ? gender : '');
+				availState = red ? 'red' : 'idle';
+				if (step1Next) step1Next.disabled = red;
+				return;
+			}
+			var cityId = citySelect && citySelect.value ? parseInt(citySelect.value, 10) : 0;
+			var areaVal = areaSelect && areaSelect.value ? areaSelect.value : '';
+			var districtNo = 0;
+			if (areaVal) {
+				var dm = String(areaVal).match(/(\d+)/);
+				districtNo = dm ? parseInt(dm[1], 10) : 0;
+			}
+			var date = dateValue ? dateValue.value : '';
+			var slot = timeValue ? timeValue.value : '';
+			var prov = provSelect ? provSelect.value : '';
+			var svcId = (qs('[data-mns-service-id]', form) || {}).value || '';
+			var svcSlug = form.getAttribute('data-mns-service-slug') || '';
+			if (!prov || !cityId || !date || !slot || !gender) {
+				availState = 'idle';
+				if (availGenderBox) availGenderBox.hidden = true;
+				if (step1Next) step1Next.disabled = false;
+				return;
+			}
+			var seq = ++availReqSeq;
+			var url =
+				restBase.replace(/\/$/, '') +
+				'/availability/check?_envelope=1&service=' +
+				encodeURIComponent(svcSlug || svcId) +
+				'&prov=' +
+				encodeURIComponent(prov) +
+				'&city_id=' +
+				encodeURIComponent(String(cityId)) +
+				'&district=' +
+				encodeURIComponent(String(districtNo)) +
+				'&date=' +
+				encodeURIComponent(date) +
+				'&slot=' +
+				encodeURIComponent(slot) +
+				'&gender=' +
+				encodeURIComponent(gender);
+			fetch(url, {
+				method: 'GET',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': restNonce }
+			})
+				.then(function (r) {
+					return r.json();
+				})
+				.then(function (body) {
+					if (seq !== availReqSeq) return;
+					if (!body || !body.ok || !body.data) {
+						availState = 'soft';
+						renderLiveAvail('yellow', (body && body.error && body.error.message) || 'بررسی موجودی موقتاً ممکن نیست؛ می‌توانید ادامه دهید.');
+						if (step1Next) step1Next.disabled = false;
+						return;
+					}
+					var st = body.data.state || 'idle';
+					availState = st;
+					renderLiveAvail(st, body.data.message || '', body.data.alt || []);
+					if (step1Next) step1Next.disabled = st === 'red';
+				})
+				.catch(function () {
+					if (seq !== availReqSeq) return;
+					availState = 'soft';
+					renderLiveAvail('yellow', 'بررسی موجودی موقتاً ممکن نیست؛ می‌توانید ادامه دهید.');
+					if (step1Next) step1Next.disabled = false;
+				});
 		}
 
-function scheduleAvailability() {
+		function scheduleAvailability() {
 			if (availTimer) window.clearTimeout(availTimer);
-			availTimer = window.setTimeout(runAvailability, 400);
+			availTimer = window.setTimeout(runAvailability, 300);
+		}
+
+		if (availGenderBox) {
+			availGenderBox.addEventListener('click', function (e) {
+				var btn = e.target.closest && e.target.closest('[data-mns-avail-alt]');
+				if (!btn) return;
+				e.preventDefault();
+				var d = btn.getAttribute('data-date') || '';
+				var s = btn.getAttribute('data-slot') || '';
+				if (d && dateValue) {
+					dateValue.value = d;
+					if (dateInput) {
+						dateInput.value = d;
+						dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+					}
+				}
+				if (s && timeValue) {
+					timeValue.value = s;
+					timeValue.dispatchEvent(new Event('change', { bubbles: true }));
+				}
+				scheduleAvailability();
+			});
 		}
 
 		/* Smooth expand/collapse: .mns-collapse animates grid rows 0fr <-> 1fr (see CSS); inert keeps hidden content out of tab order. */
@@ -1532,6 +1672,7 @@ function selectPatientCard(card) {
 		if (timeValue) {
 			timeValue.addEventListener('change', function () {
 				updateSideSummary();
+				scheduleAvailability();
 			});
 		}
 
@@ -1614,6 +1755,7 @@ qsa('[data-mns-nurse-gender-cards] [data-value]', form).forEach(function (card) 
 		if (rxInput) {
 			rxInput.addEventListener('change', function () {
 				var f = rxInput.files && rxInput.files[0];
+				rxFileId = 0;
 				if (f && (f.type.indexOf('image/') !== 0 || f.size > 8 * 1048576)) {
 					rxInput.value = '';
 					showRx();
@@ -1623,12 +1765,48 @@ qsa('[data-mns-nurse-gender-cards] [data-value]', form).forEach(function (card) 
 				clearFlags();
 				showRx();
 				onFormEdit();
+				var liveRx = form.getAttribute('data-mns-live') === '1';
+				var restBaseRx = form.getAttribute('data-mns-rest-url') || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+				var restNonceRx = form.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
+				if (!liveRx || !restBaseRx || !restNonceRx || !f) return;
+				rxUploadBusy = true;
+				var fd = new FormData();
+				fd.append('file', f);
+				fd.append('kind', 'prescription');
+				fetch(restBaseRx.replace(/\/$/, '') + '/patient/files?_envelope=1', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'X-WP-Nonce': restNonceRx },
+					body: fd
+				})
+					.then(function (r) {
+						return r.json();
+					})
+					.then(function (body) {
+						rxUploadBusy = false;
+						if (body && body.ok && body.data && body.data.file_id) {
+							rxFileId = parseInt(body.data.file_id, 10) || 0;
+							return;
+						}
+						rxFileId = 0;
+						rxInput.value = '';
+						showRx();
+						fail((body && body.error && body.error.message) || 'آپلود نسخه ناموفق بود.', qs('[data-mns-upload]', form));
+					})
+					.catch(function () {
+						rxUploadBusy = false;
+						rxFileId = 0;
+						rxInput.value = '';
+						showRx();
+						fail('آپلود نسخه ناموفق بود.', qs('[data-mns-upload]', form));
+					});
 			});
 		}
 		var rxRemove = qs('[data-mns-upload-remove]', form);
 		if (rxRemove) {
 			rxRemove.addEventListener('click', function () {
 				rxInput.value = '';
+				rxFileId = 0;
 				showRx();
 				onFormEdit();
 			});
@@ -1805,6 +1983,16 @@ function genTrackCode() {
 				}, 1100);
 				return;
 			}
+			if (rxUploadBusy) {
+				unlockBtns();
+				showNoticeNear(form, 'لطفاً تا پایان آپلود نسخه صبر کنید.', true);
+				return;
+			}
+			if (isRxRequired() && !rxFileId) {
+				unlockBtns();
+				fail('تصویر نسخه الزامی است.', qs('[data-mns-upload]', form));
+				return;
+			}
 			var areaVal = areaSelect && areaSelect.value ? areaSelect.value : '';
 			var districtNo = 0;
 			if (areaVal) {
@@ -1832,6 +2020,7 @@ function genTrackCode() {
 				},
 				notes: (qs('textarea[name="notes"]', form) || {}).value || ''
 			};
+			if (rxFileId) payload.essentials.rx_file_id = String(rxFileId);
 			var idem = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'mns-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 			fetch(restBase.replace(/\/$/, '') + '/orders?_envelope=1', {
 				method: 'POST',

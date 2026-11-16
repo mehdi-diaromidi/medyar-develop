@@ -134,6 +134,7 @@ class MNS_Patient_Orders_Api {
 		$edits   = array();
 		if ( array_key_exists( 'notes', $params ) ) {
 			$new = sanitize_textarea_field( (string) $params['notes'] );
+			$new = function_exists( 'mb_substr' ) ? mb_substr( $new, 0, 500 ) : substr( $new, 0, 500 );
 			$old = (string) ( $row['notes'] ?? '' );
 			if ( $new !== $old ) {
 				$fields['notes'] = $new;
@@ -191,7 +192,8 @@ class MNS_Patient_Orders_Api {
 		$fresh = MNS_Order_Machine::transition(
 			'cancel',
 			array(
-				'order_id'      => (int) $row['id'],
+				'order_id'        => (int) $row['id'],
+				'account_user_id' => $account_user_id,
 				'reason'        => $reason,
 				'actor_user_id' => $account_user_id,
 				'actor_role'    => 'patient',

@@ -27,30 +27,52 @@ class MNS_Patients {
 		if ( is_array( $row ) ) {
 			return self::normalize( $row );
 		}
-		$user = get_userdata( $owner_user_id );
-		$name = $user ? trim( $user->first_name . ' ' . $user->last_name ) : '';
-		if ( '' === $name && $user ) {
-			$name = $user->display_name;
+
+		$lock_name = 'mns_self_' . $owner_user_id;
+		$lock_ok   = false;
+		try {
+			$got     = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
+			$lock_ok = ( '1' === (string) $got || 1 === (int) $got );
+			$row     = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$table} WHERE owner_user_id = %d AND kind = 'self' AND deleted_at IS NULL LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$owner_user_id
+				),
+				ARRAY_A
+			);
+			if ( is_array( $row ) ) {
+				return self::normalize( $row );
+			}
+			$user = get_userdata( $owner_user_id );
+			$name = $user ? trim( $user->first_name . ' ' . $user->last_name ) : '';
+			if ( '' === $name && $user ) {
+				$name = $user->display_name;
+			}
+			if ( '' === $name ) {
+				$name = 'خودم';
+			}
+			$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 100 ) : substr( $name, 0, 100 );
+			$ins  = $wpdb->insert(
+				$table,
+				array(
+					'owner_user_id' => $owner_user_id,
+					'kind'          => 'self',
+					'name'          => $name,
+					'age_group'     => 'adult',
+					'gender'        => '',
+					'created_at'    => MNS_Time::now_utc(),
+				),
+				array( '%d', '%s', '%s', '%s', '%s', '%s' )
+			);
+			if ( false === $ins ) {
+				throw MNS_Error::server( 'ساخت پروفایل خودم ناموفق بود.' );
+			}
+			return self::get_owned( (int) $wpdb->insert_id, $owner_user_id );
+		} finally {
+			if ( $lock_ok ) {
+				$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+			}
 		}
-		if ( '' === $name ) {
-			$name = 'خودم';
-		}
-		$ins = $wpdb->insert(
-			$table,
-			array(
-				'owner_user_id' => $owner_user_id,
-				'kind'          => 'self',
-				'name'          => $name,
-				'age_group'     => 'adult',
-				'gender'        => '',
-				'created_at'    => MNS_Time::now_utc(),
-			),
-			array( '%d', '%s', '%s', '%s', '%s', '%s' )
-		);
-		if ( false === $ins ) {
-			throw MNS_Error::server( 'ساخت پروفایل خودم ناموفق بود.' );
-		}
-		return self::get_owned( (int) $wpdb->insert_id, $owner_user_id );
 	}
 
 	/**
@@ -105,6 +127,7 @@ class MNS_Patients {
 		if ( '' === $name ) {
 			throw MNS_Error::validation( 'نام بیمار الزامی است.', 'name' );
 		}
+		$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 100 ) : substr( $name, 0, 100 );
 		$age = isset( $data['age_group'] ) ? sanitize_key( (string) $data['age_group'] ) : 'adult';
 		if ( ! in_array( $age, array( 'adult', 'child', 'infant' ), true ) ) {
 			throw MNS_Error::validation( 'گروه سنی نامعتبر است.', 'age_group' );
@@ -114,6 +137,16 @@ class MNS_Patients {
 			throw MNS_Error::validation( 'جنسیت نامعتبر است.', 'gender' );
 		}
 		global $wpdb;
+		$table = MNS_DB::table( 'patients' );
+		$cnt   = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE owner_user_id = %d AND deleted_at IS NULL", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$owner_user_id
+			)
+		);
+		if ( $cnt >= 20 ) {
+			throw MNS_Error::validation( 'سقف تعداد بیماران این حساب پر شده است.', 'name' );
+		}
 		$ins = $wpdb->insert(
 			MNS_DB::table( 'patients' ),
 			array(
@@ -145,7 +178,7 @@ class MNS_Patients {
 			if ( '' === $name ) {
 				throw MNS_Error::validation( 'نام بیمار الزامی است.', 'name' );
 			}
-			$fields['name'] = $name;
+			$fields['name'] = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 100 ) : substr( $name, 0, 100 );
 			$formats[]      = '%s';
 		}
 		if ( isset( $data['age_group'] ) ) {

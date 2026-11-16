@@ -150,7 +150,147 @@ class MNS_Files {
 		if ( user_can( $user_id, 'manage_options' ) || user_can( $user_id, MNS_Roles::CAP_MANAGE_NURSES ) ) {
 			return true;
 		}
-		return (int) $row['owner_user_id'] === $user_id;
+		if ( (int) $row['owner_user_id'] === $user_id ) {
+			return true;
+		}
+		// T-C.3 / R-PRV-1: assigned nurse may read prescription only while assigned/in_progress.
+		$kind = isset( $row['kind'] ) ? (string) $row['kind'] : '';
+		if ( 'prescription' === $kind && ! empty( $row['order_id'] ) ) {
+			return self::nurse_may_read_prescription( (int) $row['order_id'], $user_id );
+		}
+		return false;
+	}
+
+	/**
+	 * Assigned nurse + order still active (T-C.3).
+	 */
+	private static function nurse_may_read_prescription( int $order_id, int $nurse_user_id ): bool {
+		$order = MNS_Order_Machine::get_order( $order_id );
+		if ( ! $order ) {
+			return false;
+		}
+		if ( (int) ( $order['nurse_user_id'] ?? 0 ) !== $nurse_user_id ) {
+			return false;
+		}
+		$status = (string) ( $order['status'] ?? '' );
+		return in_array( $status, array( 'assigned', 'in_progress' ), true );
+	}
+
+	/**
+	 * Link a previously uploaded file to an order (after create).
+	 */
+	public static function attach_order( int $file_id, int $order_id, int $owner_user_id ): void {
+		if ( $file_id <= 0 || $order_id <= 0 ) {
+			return;
+		}
+		$row = self::get( $file_id );
+		if ( ! $row || (int) $row['owner_user_id'] !== $owner_user_id ) {
+			return;
+		}
+		global $wpdb;
+		$wpdb->update(
+			MNS_DB::table( 'files' ),
+			array( 'order_id' => $order_id ),
+			array( 'id' => $file_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * Insert a private file from raw bytes (self-test / internal only).
+	 *
+	 * @return int File id.
+	 */
+	public static function store_bytes( string $bytes, string $ext, int $owner_id, string $kind, ?int $order_id = null ): int {
+		$ext = strtolower( sanitize_key( $ext ) );
+		if ( ! in_array( $ext, array( 'jpg', 'jpeg', 'png', 'webp' ), true ) || '' === $bytes ) {
+			throw MNS_Error::validation( 'فایل معتبر نیست.', 'file' );
+		}
+		$base = self::ensure_dir();
+		$ym   = gmdate( 'Y' ) . '/' . gmdate( 'm' );
+		$dir  = $base . '/' . $ym;
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		$rand = bin2hex( random_bytes( 16 ) );
+		$rel  = $ym . '/' . $rand . '.' . $ext;
+		$dest = $base . '/' . $rel;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		if ( false === file_put_contents( $dest, $bytes ) ) {
+			throw MNS_Error::server( 'ذخیرهٔ فایل ممکن نشد.' );
+		}
+		$sha = hash_file( 'sha256', $dest );
+		global $wpdb;
+		$row = array(
+			'owner_user_id' => $owner_id,
+			'kind'          => $kind,
+			'rel_path'      => $rel,
+			'mime'          => 'image/' . ( 'jpg' === $ext ? 'jpeg' : $ext ),
+			'size'          => (int) strlen( $bytes ),
+			'sha256'        => is_string( $sha ) ? $sha : '',
+			'created_at'    => MNS_Time::now_utc(),
+		);
+		$fmt = array( '%d', '%s', '%s', '%s', '%d', '%s', '%s' );
+		if ( null !== $order_id ) {
+			$row['order_id'] = $order_id;
+			$fmt[]           = '%d';
+		}
+		$ok = $wpdb->insert( MNS_DB::table( 'files' ), $row, $fmt );
+		if ( false === $ok ) {
+			wp_delete_file( $dest );
+			throw MNS_Error::server( 'ثبت فایل در پایگاه داده ممکن نشد.' );
+		}
+		return (int) $wpdb->insert_id;
+	}
+
+	public const CRON_ORPHANS = 'mns_files_purge_orphans';
+
+	public static function schedule_orphan_cron(): void {
+		if ( ! wp_next_scheduled( self::CRON_ORPHANS ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_ORPHANS );
+		}
+		add_action( self::CRON_ORPHANS, array( __CLASS__, 'purge_orphan_prescriptions' ) );
+	}
+
+	public static function unschedule_orphan_cron(): void {
+		$ts = wp_next_scheduled( self::CRON_ORPHANS );
+		if ( $ts ) {
+			wp_unschedule_event( $ts, self::CRON_ORPHANS );
+		}
+	}
+
+	/**
+	 * Delete prescription files older than 24h with no order_id (T-C.2).
+	 */
+	public static function purge_orphan_prescriptions(): void {
+		global $wpdb;
+		$table = MNS_DB::table( 'files' );
+		$cut   = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+		$rows  = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, rel_path FROM {$table} WHERE kind = %s AND (order_id IS NULL OR order_id = 0) AND created_at < %s AND deleted_at IS NULL LIMIT 200", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'prescription',
+				$cut
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return;
+		}
+		foreach ( $rows as $row ) {
+			$path = self::abs_path( $row );
+			if ( $path ) {
+				wp_delete_file( $path );
+			}
+			$wpdb->update(
+				$table,
+				array( 'deleted_at' => MNS_Time::now_utc() ),
+				array( 'id' => (int) $row['id'] ),
+				array( '%s' ),
+				array( '%d' )
+			);
+		}
 	}
 
 	/**

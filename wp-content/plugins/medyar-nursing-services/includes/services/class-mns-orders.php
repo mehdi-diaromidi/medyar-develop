@@ -26,12 +26,14 @@ class MNS_Orders {
 		$city_id  = isset( $params['city_id'] ) ? (int) $params['city_id'] : 0;
 		$district = isset( $params['district'] ) ? (int) $params['district'] : ( isset( $params['district_no'] ) ? (int) $params['district_no'] : 0 );
 		$address  = isset( $params['address'] ) ? sanitize_textarea_field( (string) $params['address'] ) : '';
+		$address  = function_exists( 'mb_substr' ) ? mb_substr( $address, 0, 500 ) : substr( $address, 0, 500 );
 		$phone    = isset( $params['contact_phone'] ) ? sanitize_text_field( (string) $params['contact_phone'] ) : '';
 		$date     = isset( $params['date'] ) ? sanitize_text_field( (string) $params['date'] ) : ( isset( $params['service_date'] ) ? sanitize_text_field( (string) $params['service_date'] ) : '' );
 		$slot     = isset( $params['slot'] ) ? sanitize_text_field( (string) $params['slot'] ) : ( isset( $params['slot_id'] ) ? sanitize_text_field( (string) $params['slot_id'] ) : '' );
 		$gender   = isset( $params['gender'] ) ? sanitize_key( (string) $params['gender'] ) : ( isset( $params['gender_pref'] ) ? sanitize_key( (string) $params['gender_pref'] ) : '' );
 		$essentials = isset( $params['essentials'] ) && is_array( $params['essentials'] ) ? $params['essentials'] : array();
 		$notes    = isset( $params['notes'] ) ? sanitize_textarea_field( (string) $params['notes'] ) : '';
+		$notes    = function_exists( 'mb_substr' ) ? mb_substr( $notes, 0, 500 ) : substr( $notes, 0, 500 );
 
 		MNS_Patients::get_owned( $patient_id, $account_user_id );
 		$svc = MNS_Services::get( $service_id );
@@ -78,8 +80,20 @@ class MNS_Orders {
 		}
 		$norm = static function ( string $p ): string {
 			$p = preg_replace( '/\D+/', '', $p );
-			return is_string( $p ) ? $p : '';
+			if ( ! is_string( $p ) ) {
+				return '';
+			}
+			if ( 0 === strpos( $p, '98' ) && strlen( $p ) >= 12 ) {
+				$p = '0' . substr( $p, 2 );
+			}
+			return $p;
 		};
+		if ( '' !== $phone ) {
+			$phone = $norm( $phone );
+			if ( ! preg_match( '/^09\d{9}$/', $phone ) ) {
+				throw MNS_Error::validation( 'شمارهٔ موبایل نامعتبر است.', 'contact_phone' );
+			}
+		}
 		if ( '' !== $phone && '' !== $account_phone && $norm( $phone ) !== $norm( $account_phone ) ) {
 			throw MNS_Error::conflict( 'ERR_OTP_REQUIRED', 'برای شمارهٔ تماس متفاوت تأیید پیامکی لازم است.' );
 		}
@@ -150,6 +164,11 @@ class MNS_Orders {
 						throw $e;
 					}
 				}
+			}
+
+			// T-C.2: link prescription file so orphan cron will not delete it.
+			if ( ! empty( $essentials['rx_file_id'] ) ) {
+				MNS_Files::attach_order( (int) $essentials['rx_file_id'], (int) $order['id'], $account_user_id );
 			}
 
 			return array(

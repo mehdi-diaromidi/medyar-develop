@@ -31,8 +31,34 @@ class MNS_Admin_Selftest {
 			wp_die( esc_html__( 'شما اجازهٔ این کار را ندارید.', 'medyar-nursing-services' ), '', array( 'response' => 403 ) );
 		}
 		check_admin_referer( 'mns_selftest_run' );
-		$result = MNS_Selftest::run();
-		set_transient( 'mns_selftest_flash_' . get_current_user_id(), $result, 120 );
+		// Supervisor fix: scenarios switch the current user; remember the admin so the report is stored under them.
+		$admin_id = get_current_user_id();
+		// Supervisor fix: a crashing scenario or invalid UTF-8 in a detail must never silently drop the whole report.
+		try {
+			$result = MNS_Selftest::run();
+		} catch ( \Throwable $e ) {
+			$result = array(
+				'pass' => 0,
+				'fail' => 1,
+				'rows' => array(
+					array(
+						'id'     => 'RUNNER',
+						'title'  => 'Self-test runner crashed',
+						'ok'     => false,
+						'detail' => get_class( $e ) . ': ' . $e->getMessage() . ' @ ' . basename( $e->getFile() ) . ':' . $e->getLine(),
+					),
+				),
+			);
+		}
+		if ( ! empty( $result['rows'] ) && is_array( $result['rows'] ) ) {
+			foreach ( $result['rows'] as $i => $row ) {
+				$detail = isset( $row['detail'] ) ? (string) $row['detail'] : '';
+				$detail = function_exists( 'mb_convert_encoding' ) ? mb_convert_encoding( $detail, 'UTF-8', 'UTF-8' ) : $detail;
+				$result['rows'][ $i ]['detail'] = mb_substr( (string) wp_check_invalid_utf8( $detail, true ), 0, 400 );
+			}
+		}
+		wp_set_current_user( $admin_id );
+		set_transient( 'mns_selftest_flash_' . $admin_id, $result, 300 );
 		wp_safe_redirect( admin_url( 'tools.php?page=' . self::PAGE ) );
 		exit;
 	}

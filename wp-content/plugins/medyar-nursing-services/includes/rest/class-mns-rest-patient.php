@@ -105,6 +105,43 @@ class MNS_REST_Patient {
 				'permission_callback' => array( 'MNS_REST', 'permission_patient' ),
 			)
 		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/patient/files',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'upload_file' ),
+				'permission_callback' => array( 'MNS_REST', 'permission_patient' ),
+			)
+		);
+	}
+
+	/**
+	 * POST /patient/files — prescription photo upload (T-C.2).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function upload_file( $request ) {
+		try {
+			$uid = get_current_user_id();
+			if ( ! MNS_REST::rate_limit( 'pat_files_' . $uid, 20, 60 ) ) {
+				return MNS_REST::fail( MNS_Error::rate_limit(), $request );
+			}
+			$kind = sanitize_key( (string) $request->get_param( 'kind' ) );
+			if ( 'prescription' !== $kind ) {
+				return MNS_REST::fail( MNS_Error::validation( 'نوع فایل نامعتبر است.', 'kind' ), $request );
+			}
+			$files = $request->get_file_params();
+			$file  = isset( $files['file'] ) && is_array( $files['file'] ) ? $files['file'] : null;
+			if ( ! $file ) {
+				return MNS_REST::fail( MNS_Error::validation( 'فایل ارسال نشده است.', 'file' ), $request );
+			}
+			$file_id = MNS_Files::store_upload( $file, $uid, 'prescription', null, true );
+			return MNS_REST::success( array( 'file_id' => $file_id ), $request, array(), 201 );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
 	}
 
 	/**

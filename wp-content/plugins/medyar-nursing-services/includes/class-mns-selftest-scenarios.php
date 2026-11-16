@@ -25,6 +25,7 @@ class MNS_Selftest_Scenarios {
 		MNS_Selftest::register( 'AC-M3-1', 'Services seed serum/injection', array( __CLASS__, 'ac_m3_1' ) );
 		MNS_Selftest::register( 'AC-M3-2', 'Patients self + ownership 404', array( __CLASS__, 'ac_m3_2' ) );
 		MNS_Selftest::register( 'AC-A13-4', 'A-13 rejects closed/past slot', array( __CLASS__, 'ac_a13_4' ) );
+		MNS_Selftest_Orders::register_all();
 	}
 
 	/**
@@ -887,17 +888,12 @@ class MNS_Selftest_Scenarios {
 	 * @param array<int,int> $user_ids Users.
 	 */
 	private static function cleanup_users( array $user_ids ): void {
-		global $wpdb;
 		foreach ( $user_ids as $uid ) {
 			$uid = (int) $uid;
 			if ( $uid <= 0 ) {
 				continue;
 			}
-			$wpdb->delete( MNS_DB::table( 'nurse_week' ), array( 'nurse_id' => $uid ), array( '%d' ) );
-			$wpdb->delete( MNS_DB::table( 'nurse_day_slots' ), array( 'nurse_id' => $uid ), array( '%d' ) );
-			$wpdb->delete( MNS_DB::table( 'nurse_regions' ), array( 'nurse_id' => $uid ), array( '%d' ) );
-			$wpdb->delete( MNS_DB::table( 'nurse_services' ), array( 'nurse_id' => $uid ), array( '%d' ) );
-			$wpdb->delete( MNS_DB::table( 'nurses' ), array( 'user_id' => $uid ), array( '%d' ) );
+			MNS_Selftest::purge_user_rows( $uid );
 			wp_delete_user( $uid );
 		}
 	}
