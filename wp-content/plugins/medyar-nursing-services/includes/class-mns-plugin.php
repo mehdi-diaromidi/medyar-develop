@@ -32,6 +32,9 @@ class MNS_Plugin {
 		MNS_Public::instance()->init();
 		MNS_Assets::init();
 		MNS_Rewrite::instance()->init();
+
+		// T-0.1: safe boot for backend modules (after existing UI bootstrap).
+		MNS_Backend::boot();
 	}
 
 	public function load_textdomain(): void {

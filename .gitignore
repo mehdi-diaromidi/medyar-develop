@@ -39,3 +39,6 @@ Thumbs.db
 *.swp
 *~
 .idea/
+
+# Cursor deploy backups (per task)
+.deploy-backup/

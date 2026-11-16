@@ -1,0 +1,32 @@
+---
+description: Backend rules for the medyar-nursing-services plugin (read the docs, one task card at a time, strict WordPress security, never touch other plugins or the theme)
+globs: wp-content/plugins/medyar-nursing-services/**
+alwaysApply: false
+---
+
+# MNS backend: hard rules
+
+You build the backend of `wp-content/plugins/medyar-nursing-services` (PHP 8.0+, WordPress 5.8+). A supervisor reviews every delivery.
+
+## Read first (in order)
+1. `wp-content/plugins/medyar-nursing-services/docs/knowledge/PROJECT-LOGIC.md`
+2. `wp-content/plugins/medyar-nursing-services/docs/knowledge/09-development/` files `README`, `01`, `02`, `03`, `04`, `05`, `06`
+3. Then only the task card you were given (`08-task-cards.md`) and its acceptance scenarios (`10-acceptance-scenarios.md`).
+
+## Scope
+- Do exactly one task card. Touch only the "allowed files" listed on it.
+- Never edit anything outside `wp-content/plugins/medyar-nursing-services/` (theme `dr-plus`, `affiliate-referral`, `medyar-toman-wallet`, `medyar-sms-queue`, Persian WooCommerce are read-only references). If you need something from them, use their public API or hooks; if there is none, stop and ask.
+- Never read, print, create or commit secrets (FTP, merchant ID, API keys, tokens); never open `.ftp.env`. Do not commit or push unless told.
+- Deploying: only when your brief says so, and only with `powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy.ps1 <repo-relative paths>` run from the repo root, uploading only files inside `wp-content/plugins/medyar-nursing-services/`. No other FTP/upload tool. Always run the live checks from the brief afterwards and roll back (re-upload backups) if they fail.
+
+## Code rules
+- No PHP feature newer than 8.0 (no enums, readonly, never, first-class callable syntax). There is no local PHP, so write syntax with extra care: balanced braces, commas in arrays, `<?php` header, `if ( ! defined( 'ABSPATH' ) ) { exit; }` in every file, no closing `?>` in class files.
+- Prefix everything `MNS_` / `mns_` / `mns-`; text domain `medyar-nursing-services`; WordPress coding style (tabs, spaces inside parentheses).
+- Security: `wp_unslash` then sanitize every input, escape every output, nonce plus capability or ownership check on every handler, explicit `permission_callback` on every REST route, `$wpdb->prepare` for every query with values, table names only from `MNS_DB::table()`.
+- Order status changes only through `MNS_Order_Machine::transition()`; multi-table writes inside one transaction; no network or SMS calls inside a transaction; SMS only via `MSQ_Client::enqueue` after commit.
+- Anything configurable lives in `MNS_Settings` (see `06-settings-registry.md`), never hard-coded. Anything still open with the client is unstructured JSON or a setting.
+- Reference the rule id (`R-xxx`) in comments and commit messages. If a rule is missing or unclear, ask; do not guess or "improve" it.
+- Persian UI text, English identifiers; Persian digits only in views and `MNS_Format`.
+
+## Delivery format (always end your turn with this)
+Files added/changed · migrations (version, tables/columns) · assumptions you made · open questions · behaviour that differs from the docs · what you did NOT do · acceptance scenarios you ran and their result.

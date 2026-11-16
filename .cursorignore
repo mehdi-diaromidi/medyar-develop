@@ -1,0 +1,9 @@
+# Secrets and local tooling: Cursor must never read these
+.ftp.env
+.env*
+.vscode/
+wp-config.php
+deploy.ps1
+deploy.sh
+*.sql
+*.zip
