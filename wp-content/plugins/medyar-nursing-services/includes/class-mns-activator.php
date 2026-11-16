@@ -21,6 +21,9 @@ class MNS_Activator {
 
 	public static function deactivate(): void {
 		MNS_Roles::remove_caps_on_deactivate();
+		if ( class_exists( 'MNS_Notifications', false ) || class_exists( 'MNS_Notifications', true ) ) {
+			MNS_Notifications::unschedule();
+		}
 	}
 
 	public static function maybe_upgrade(): void {

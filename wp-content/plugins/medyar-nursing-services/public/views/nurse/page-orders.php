@@ -16,6 +16,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 MNS_UI::boot_icons();
 
 $data  = MNS_Static_Fixtures::get( 'nurse/orders' );
+$use_real = is_user_logged_in()
+	&& MNS_Roles::user_is_nurse()
+	&& class_exists( 'MNS_Nurse_Access', true )
+	&& MNS_Nurse_Access::can_use_panel()
+	&& ! current_user_can( 'manage_options' );
+if ( $use_real && class_exists( 'MNS_Nurse_Orders_Api', true ) ) {
+	try {
+		$pack = MNS_Nurse_Orders_Api::list_for( get_current_user_id(), array( 'tab' => 'upcoming', 'p' => 1, 'per' => 50 ) );
+		$data['items'] = isset( $pack['data']['items'] ) ? $pack['data']['items'] : array();
+		if ( empty( $data['items'] ) ) {
+			$data['empty'] = true;
+		}
+	} catch ( \Throwable $e ) {
+		$data['items'] = array();
+	}
+}
 $items = isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array();
 $rate  = (float) ( $data['summary']['rating'] ?? 0 );
 

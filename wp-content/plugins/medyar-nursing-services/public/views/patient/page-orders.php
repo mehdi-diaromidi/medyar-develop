@@ -16,10 +16,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
+$use_real = is_user_logged_in()
+	&& ! current_user_can( 'manage_options' )
+	&& current_user_can( MNS_Roles::CAP_PATIENT_PANEL );
+
 $data     = MNS_Static_Fixtures::get( 'patient/orders' );
 $items    = isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array();
 $patients = isset( $data['patients'] ) && is_array( $data['patients'] ) ? $data['patients'] : array();
 $services = isset( $data['services'] ) && is_array( $data['services'] ) ? $data['services'] : array();
+
+if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
+	try {
+		$tab = isset( $_GET['mns_tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['mns_tab'] ) ) : 'all'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$pack = MNS_Patient_Orders_Api::list_for( get_current_user_id(), array( 'tab' => $tab, 'p' => 1, 'per' => 50 ) );
+		$items = isset( $pack['data']['items'] ) ? $pack['data']['items'] : array();
+		$patients = MNS_Patients::list_for( get_current_user_id() );
+		$services = array();
+		foreach ( MNS_Services::list_active() as $s ) {
+			$services[ $s['slug'] ] = $s['name'];
+		}
+		$data['tabs'] = isset( $pack['data']['tabs'] ) ? $pack['data']['tabs'] : array();
+	} catch ( \Throwable $e ) {
+		$items = array();
+	}
+}
 
 if ( MNS_Dev::is( 'empty' ) ) {
 	$items = array();

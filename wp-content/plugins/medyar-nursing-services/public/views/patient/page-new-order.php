@@ -14,7 +14,62 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$data         = MNS_Static_Fixtures::get( 'patient/new_order' );
+$use_real = is_user_logged_in()
+	&& ! current_user_can( 'manage_options' )
+	&& current_user_can( MNS_Roles::CAP_PATIENT_PANEL );
+
+$data = MNS_Static_Fixtures::get( 'patient/new_order' );
+if ( $use_real && class_exists( 'MNS_Patients', true ) ) {
+	try {
+		MNS_Services_Seed::ensure_slice1();
+		$slug = isset( $_GET['service'] ) ? sanitize_title( wp_unslash( (string) $_GET['service'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$services = MNS_Services::list_active();
+		$svc_row  = $slug ? MNS_Services::get( $slug ) : ( $services[0] ?? null );
+		if ( $svc_row && empty( $svc_row['active'] ) ) {
+			$svc_row = $services[0] ?? null;
+		}
+		$phone = '';
+		if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
+			$phone = (string) \DrPlus\Utils\User::get_phone( get_current_user_id() );
+		}
+		$slots_cfg = MNS_Settings::get( 'slots' );
+		if ( ! is_array( $slots_cfg ) ) {
+			$slots_cfg = MNS_Settings::default_slots();
+		}
+		$time_slots_live = array();
+		foreach ( $slots_cfg as $s ) {
+			if ( ! is_array( $s ) || empty( $s['id'] ) ) {
+				continue;
+			}
+			$sh = (int) ( $s['start_hour'] ?? 0 );
+			$eh = (int) ( $s['end_hour'] ?? ( $sh + 4 ) );
+			$time_slots_live[] = array(
+				'id'       => (string) $s['id'],
+				'label'    => $sh . ' تا ' . $eh,
+				'name'     => (string) ( $s['name'] ?? '' ),
+				'disabled' => ! empty( $s['closed'] ),
+			);
+		}
+		$data = array(
+			'default_phone'  => $phone,
+			'service'        => $svc_row ? array(
+				'id'        => (string) $svc_row['id'],
+				'slug'      => $svc_row['slug'],
+				'name'      => $svc_row['name'],
+				'price_min' => $svc_row['price_from'],
+				'price_max' => $svc_row['price_to'],
+			) : array(),
+			'patients'       => MNS_Patients::list_for( get_current_user_id() ),
+			'districts'      => MNS_Locations::districts_map(),
+			'time_slots'     => $time_slots_live,
+			'service_fields' => ( $svc_row && isset( $svc_row['config']['order_fields'] ) ) ? $svc_row['config']['order_fields'] : array(),
+			'availability'   => array(),
+			'live'           => true,
+		);
+	} catch ( \Throwable $e ) {
+		MNS_Log::error( 'new_order_boot: ' . $e->getMessage() );
+	}
+}
 $service      = isset( $data['service'] ) && is_array( $data['service'] ) ? $data['service'] : array();
 $patients     = isset( $data['patients'] ) && is_array( $data['patients'] ) ? $data['patients'] : array();
 $districts    = isset( $data['districts'] ) && is_array( $data['districts'] ) ? $data['districts'] : array();
@@ -290,6 +345,9 @@ $new_on  = 'new' === $default_mode;
 				data-mns-price-max="<?php echo esc_attr( (string) $price_max ); ?>"
 				data-mns-svc-label="<?php echo esc_attr( $svc_name ); ?>"
 				data-mns-support-tel="<?php echo esc_attr( MNS_UI::support_tel_href() ); ?>"
+				data-mns-live="<?php echo ! empty( $data['live'] ) ? '1' : '0'; ?>"
+				data-mns-rest-url="<?php echo esc_url( rest_url( 'mns/v1' ) ); ?>"
+				data-mns-rest-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 			>
 				<div class="mns-form-notice mns-notice" data-mns-notice hidden tabindex="-1"></div>
 				<input type="hidden" name="service_id" value="<?php echo esc_attr( $svc_id ); ?>" data-mns-service-id>

@@ -224,7 +224,12 @@ class MNS_REST {
 		if ( ! is_string( $key ) || '' === $key ) {
 			$key = $request->get_header( 'idempotency-key' );
 		}
-		return is_string( $key ) ? sanitize_text_field( $key ) : '';
+		$key = is_string( $key ) ? sanitize_text_field( $key ) : '';
+		if ( '' === $key ) {
+			return '';
+		}
+		// Supervisor fix: scope the key per user so a replayed key never returns another account's cached result.
+		return 'u' . get_current_user_id() . ':' . $key;
 	}
 
 	/**

@@ -70,6 +70,22 @@ class MNS_Time {
 	/**
 	 * Whether slot is closed per settings.
 	 */
+	public static function slot_known( string $slot_id ): bool {
+		$slots = MNS_Settings::get( 'slots' );
+		if ( ! is_array( $slots ) ) {
+			$slots = MNS_Settings::default_slots();
+		}
+		foreach ( $slots as $slot ) {
+			if ( is_array( $slot ) && isset( $slot['id'] ) && (string) $slot['id'] === $slot_id ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether slot is closed per settings.
+	 */
 	public static function slot_closed( string $slot_id ): bool {
 		$slots = MNS_Settings::get( 'slots' );
 		if ( ! is_array( $slots ) ) {

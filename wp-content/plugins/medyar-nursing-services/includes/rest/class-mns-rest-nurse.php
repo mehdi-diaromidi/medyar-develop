@@ -1,6 +1,6 @@
 <?php
 /**
- * Nurse profile REST (T-1.4 / API-NRS-2/3).
+ * Nurse profile + availability REST (T-1.4 / T-2.2 / API-NRS-2..7).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,6 +44,60 @@ class MNS_REST_Nurse {
 					'callback'            => array( __CLASS__, 'delete_photo' ),
 					'permission_callback' => array( __CLASS__, 'perm_approved' ),
 				),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/me/accepting',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'post_accepting' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/availability',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'get_availability' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/schedule/days',
+			array(
+				'methods'             => 'PUT',
+				'callback'            => array( __CLASS__, 'put_schedule_days' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/regions',
+			array(
+				'methods'             => 'PUT',
+				'callback'            => array( __CLASS__, 'put_regions' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/orders',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'list_orders' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/orders/(?P<code>[0-9]{5,6})',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'get_order' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
 			)
 		);
 	}
@@ -148,17 +202,17 @@ class MNS_REST_Nurse {
 			if ( isset( $params[ $f ] ) ) {
 				$val = sanitize_text_field( (string) $params[ $f ] );
 				if ( 'national_id' === $f ) {
-						$val = (string) preg_replace( '/\D+/', '', $val );
-						if ( ! MNS_Nurse_Applications::valid_national_id( $val ) ) {
-							return MNS_REST::fail( MNS_Error::validation( 'کد ملی نامعتبر است.', 'national_id' ), $request );
-						}
-						global $wpdb;
-						$dup = $wpdb->get_var( $wpdb->prepare( 'SELECT user_id FROM ' . MNS_DB::table( 'nurses' ) . ' WHERE national_id = %s AND user_id <> %d LIMIT 1', $val, $uid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-						if ( null !== $dup ) {
-							return MNS_REST::fail( MNS_Error::conflict( 'ERR_CONFLICT', 'این کد ملی قبلاً ثبت شده است.', array( 'field' => 'national_id' ) ), $request );
-						}
+					$val = (string) preg_replace( '/\D+/', '', $val );
+					if ( ! MNS_Nurse_Applications::valid_national_id( $val ) ) {
+						return MNS_REST::fail( MNS_Error::validation( 'کد ملی نامعتبر است.', 'national_id' ), $request );
 					}
-					if ( 'about' === $f && mb_strlen( $val ) > 200 ) {
+					global $wpdb;
+					$dup = $wpdb->get_var( $wpdb->prepare( 'SELECT user_id FROM ' . MNS_DB::table( 'nurses' ) . ' WHERE national_id = %s AND user_id <> %d LIMIT 1', $val, $uid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					if ( null !== $dup ) {
+						return MNS_REST::fail( MNS_Error::conflict( 'ERR_CONFLICT', 'این کد ملی قبلاً ثبت شده است.', array( 'field' => 'national_id' ) ), $request );
+					}
+				}
+				if ( 'about' === $f && mb_strlen( $val ) > 200 ) {
 					return MNS_REST::fail( MNS_Error::validation( 'حداکثر ۲۰۰ نویسه.', 'about' ), $request );
 				}
 				$nurse_fields[ $f ] = $val;
@@ -219,5 +273,145 @@ class MNS_REST_Nurse {
 			array( 'user_id' => $uid )
 		);
 		return self::get_me( $request );
+	}
+
+	/**
+	 * API-NRS-4.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function post_accepting( $request ) {
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = $request->get_params();
+		}
+		if ( ! array_key_exists( 'on', $params ) ) {
+			return MNS_REST::fail( MNS_Error::validation( 'مقدار پذیرش الزامی است.', 'on' ), $request );
+		}
+		$on  = (bool) $params['on'];
+		$uid = get_current_user_id();
+		global $wpdb;
+		$r = $wpdb->update(
+			MNS_DB::table( 'nurses' ),
+			array( 'accepting' => $on ? 1 : 0 ),
+			array( 'user_id' => $uid ),
+			array( '%d' ),
+			array( '%d' )
+		);
+		if ( false === $r ) {
+			return MNS_REST::fail( MNS_Error::server( 'ذخیره ممکن نشد.' ), $request );
+		}
+		return MNS_REST::success(
+			array(
+				'accepting' => $on,
+				'status'    => MNS_Nurse_Status::compute( $uid ),
+			),
+			$request
+		);
+	}
+
+	/**
+	 * API-NRS-5.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function get_availability( $request ) {
+		$uid = get_current_user_id();
+		return MNS_REST::success( MNS_Nurse_Schedule::availability_bundle( $uid ), $request );
+	}
+
+	/**
+	 * API-NRS-6.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function put_schedule_days( $request ) {
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = $request->get_params();
+		}
+		$days = isset( $params['days'] ) && is_array( $params['days'] ) ? $params['days'] : null;
+		if ( null === $days ) {
+			return MNS_REST::fail( MNS_Error::validation( 'روزها الزامی است.', 'days' ), $request );
+		}
+		$uid = get_current_user_id();
+		try {
+			MNS_Nurse_Schedule::save_days( $uid, $days );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+		$bundle = MNS_Nurse_Schedule::availability_bundle( $uid );
+		return MNS_REST::success(
+			array(
+				'status' => $bundle['status'],
+				'days'   => $bundle['days'],
+			),
+			$request
+		);
+	}
+
+	/**
+	 * API-NRS-7.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function put_regions( $request ) {
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = $request->get_params();
+		}
+		$regions = isset( $params['regions'] ) && is_array( $params['regions'] ) ? $params['regions'] : null;
+		if ( null === $regions ) {
+			return MNS_REST::fail( MNS_Error::validation( 'مناطق الزامی است.', 'regions' ), $request );
+		}
+		$uid = get_current_user_id();
+		try {
+			$result = MNS_Nurse_Regions::save_regions( $uid, $regions );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+		$data = array(
+			'regions'       => $result['regions'],
+			'status'        => MNS_Nurse_Status::compute( $uid ),
+			'region_orders' => MNS_Nurse_Regions::region_orders_map( $uid ),
+		);
+		if ( ! empty( $result['warning'] ) ) {
+			$data['warning'] = $result['warning'];
+		}
+		return MNS_REST::success( $data, $request );
+	}
+
+	/**
+	 * API-NOR-1.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function list_orders( $request ) {
+		try {
+			$res = MNS_Nurse_Orders_Api::list_for( get_current_user_id(), $request->get_params() );
+			return MNS_REST::success( $res['data'], $request, $res['meta'] );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+	}
+
+	/**
+	 * API-NOR-2.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function get_order( $request ) {
+		try {
+			$data = MNS_Nurse_Orders_Api::get_for( get_current_user_id(), sanitize_text_field( (string) $request['code'] ) );
+			return MNS_REST::success( $data, $request );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
 	}
 }

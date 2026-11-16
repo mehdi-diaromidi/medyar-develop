@@ -168,8 +168,10 @@ class MNS_Order_Machine {
 
 		$pending_hooks = array();
 
+		$skip_elg = ! empty( $args['skip_eligibility'] );
+
 		$row = MNS_DB::tx(
-			static function () use ( $order_id, $nurse_id, $mode, $actor, $role, &$pending_hooks ) {
+			static function () use ( $order_id, $nurse_id, $mode, $actor, $role, $skip_elg, &$pending_hooks ) {
 				global $wpdb;
 
 				MNS_DB::lock_row( MNS_DB::table( 'nurses' ), 'user_id', $nurse_id );
@@ -179,23 +181,25 @@ class MNS_Order_Machine {
 					throw MNS_Error::bad_state();
 				}
 
-				$scope = array(
-					'service_id'    => (int) $order['service_id'],
-					'province_code' => (string) $order['province_code'],
-					'city_id'       => (int) $order['city_id'],
-					'district_no'   => (int) $order['district_no'],
-					'service_date'  => (string) $order['service_date'],
-					'slot_id'       => (string) $order['slot_id'],
-					'gender_pref'   => (string) $order['gender_pref'],
-				);
-				$eligible_ids = array_map(
-					static function ( $r ) {
-						return (int) $r['user_id'];
-					},
-					MNS_Eligibility::nurses_for( $scope )
-				);
-				if ( ! in_array( $nurse_id, $eligible_ids, true ) ) {
-					throw MNS_Error::conflict( 'ERR_NO_NURSE', 'پرستار برای این سفارش واجد شرایط نیست.' );
+				if ( ! $skip_elg ) {
+					$scope = array(
+						'service_id'    => (int) $order['service_id'],
+						'province_code' => (string) $order['province_code'],
+						'city_id'       => (int) $order['city_id'],
+						'district_no'   => (int) $order['district_no'],
+						'service_date'  => (string) $order['service_date'],
+						'slot_id'       => (string) $order['slot_id'],
+						'gender_pref'   => (string) $order['gender_pref'],
+					);
+					$eligible_ids = array_map(
+						static function ( $r ) {
+							return (int) $r['user_id'];
+						},
+						MNS_Eligibility::nurses_for( $scope )
+					);
+					if ( ! in_array( $nurse_id, $eligible_ids, true ) ) {
+						throw MNS_Error::conflict( 'ERR_NO_NURSE', 'پرستار برای این سفارش واجد شرایط نیست.' );
+					}
 				}
 
 				$now   = MNS_Time::now_utc();
@@ -526,7 +530,16 @@ class MNS_Order_Machine {
 				return $code;
 			}
 		}
-		// Fallback 6-digit.
-		return (string) random_int( 100000, 999999 );
+		// Fallback 6-digit with uniqueness check (RUN-B / T-3.4).
+		for ( $j = 0; $j < 20; $j++ ) {
+			$code = (string) random_int( 100000, 999999 );
+			$exists = $wpdb->get_var(
+				$wpdb->prepare( "SELECT 1 FROM {$table} WHERE code = %s", $code ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			);
+			if ( null === $exists ) {
+				return $code;
+			}
+		}
+		throw MNS_Error::server( 'تولید کد سفارش ممکن نشد.' );
 	}
 }

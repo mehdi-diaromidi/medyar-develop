@@ -19,6 +19,8 @@ class MNS_Admin_Settings {
 	 */
 	public static function replace_menu(): void {
 		remove_submenu_page( MNS_Admin_Menu::SLUG_DASHBOARD, MNS_Admin_Menu::SLUG_SETTINGS );
+		// Supervisor fix: also drop the old skeleton page callback, or the page renders twice.
+		remove_all_actions( get_plugin_page_hookname( MNS_Admin_Menu::SLUG_SETTINGS, MNS_Admin_Menu::SLUG_DASHBOARD ) );
 		add_submenu_page(
 			MNS_Admin_Menu::SLUG_DASHBOARD,
 			__( 'تنظیمات', 'medyar-nursing-services' ),

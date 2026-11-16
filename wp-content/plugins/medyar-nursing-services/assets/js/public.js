@@ -1781,15 +1781,86 @@ function genTrackCode() {
 			clearFlags();
 			if (!verifyReady()) return;
 			/* Both the desktop submit and the phone bar button: label fades out, then a round spinner fades in. */
-			[qs('[data-mns-order-submit]', form), qs('[data-mns-mob-continue]')].forEach(function (btn) {
+			var btns = [qs('[data-mns-order-submit]', form), qs('[data-mns-mob-continue]')];
+			function unlockBtns() {
+				btns.forEach(function (btn) {
+					if (!btn) return;
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					btn.removeAttribute('aria-busy');
+				});
+			}
+			btns.forEach(function (btn) {
 				if (!btn) return;
 				btn.classList.add('is-loading');
 				btn.disabled = true;
 				btn.setAttribute('aria-busy', 'true');
 			});
-			window.setTimeout(function () {
-				showConfirmation(genTrackCode());
-			}, 1100);
+			var live = form.getAttribute('data-mns-live') === '1';
+			var restBase = form.getAttribute('data-mns-rest-url') || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+			var restNonce = form.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
+			if (!live || !restBase || !restNonce) {
+				window.setTimeout(function () {
+					showConfirmation(genTrackCode());
+				}, 1100);
+				return;
+			}
+			var areaVal = areaSelect && areaSelect.value ? areaSelect.value : '';
+			var districtNo = 0;
+			if (areaVal) {
+				var m = String(areaVal).match(/(\d+)/);
+				districtNo = m ? parseInt(m[1], 10) : 0;
+			}
+			var cityId = citySelect && citySelect.value ? parseInt(citySelect.value, 10) : 0;
+			if (isNaN(cityId)) cityId = 0;
+			var payload = {
+				patient_id: patientIdInput ? parseInt(patientIdInput.value || '0', 10) : 0,
+				service_id: parseInt((qs('[data-mns-service-id]', form) || {}).value || '0', 10),
+				prov: provSelect ? provSelect.value : '',
+				city_id: cityId,
+				district: districtNo,
+				address: (qs('textarea[name="address"]', form) || {}).value || '',
+				contact_phone: phoneInput ? phoneInput.value : '',
+				date: dateValue ? dateValue.value : '',
+				slot: timeValue ? timeValue.value : '',
+				gender: genderInput ? genderInput.value : '',
+				essentials: {
+					serum_type: serumTypeInput ? serumTypeInput.value : '',
+					vein_access: veinInput ? veinInput.value : '',
+					allergy: allergyInput ? allergyInput.value : '',
+					allergy_name: allergyDetail ? allergyDetail.value : ''
+				},
+				notes: (qs('textarea[name="notes"]', form) || {}).value || ''
+			};
+			var idem = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'mns-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+			fetch(restBase.replace(/\/$/, '') + '/orders?_envelope=1', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': restNonce,
+					'Idempotency-Key': idem
+				},
+				body: JSON.stringify(payload)
+			})
+				.then(function (r) {
+					return r.json();
+				})
+				.then(function (body) {
+					if (body && body.ok && body.data && body.data.order) {
+						showConfirmation(body.data.order.code || genTrackCode());
+						var track = qs('[data-mns-confirm-track]');
+						if (track && body.data.next && body.data.next.track_url) track.href = body.data.next.track_url;
+						return;
+					}
+					unlockBtns();
+					var msg = body && body.error && body.error.message ? body.error.message : 'ثبت نشد، دوباره تلاش کنید.';
+					showNoticeNear(form, msg, true);
+				})
+				.catch(function () {
+					unlockBtns();
+					showNoticeNear(form, 'ثبت نشد، دوباره تلاش کنید.', true);
+				});
 		});
 
 		if (provSelect) provSelect.addEventListener('change', fillCities);
@@ -2710,13 +2781,66 @@ function genTrackCode() {
 			accept.addEventListener('click', function () {
 				if (accept.classList.contains('is-busy')) return;
 				var before = accept.classList.contains('is-on');
-				paint(!before, false);
+				var next = !before;
+				paint(next, false);
 				accept.classList.add('is-busy');
-				/* TODO(backend): POST the new value + nonce; resolve with the stored value. */
-				window.setTimeout(function () {
+				var restBase = (window.mnsPublic && window.mnsPublic.restUrl) || '';
+				var restNonce = (window.mnsPublic && window.mnsPublic.restNonce) || '';
+				var nvlRoot = qs('[data-mns-nvl]');
+				var nvlCfg = {};
+				try {
+					nvlCfg = nvlRoot ? JSON.parse(nvlRoot.getAttribute('data-config') || '{}') || {} : {};
+				} catch (e) {
+					nvlCfg = {};
+				}
+				if (nvlCfg.restUrl) restBase = nvlCfg.restUrl;
+				if (nvlCfg.restNonce) restNonce = nvlCfg.restNonce;
+				function finishFail() {
 					accept.classList.remove('is-busy');
-					if (navigator.onLine === false) paint(before, true);
-				}, 500);
+					paint(before, true);
+				}
+				function finishOk(status) {
+					accept.classList.remove('is-busy');
+					paint(next, false);
+					if (status && nvlRoot) {
+						var statusEl = qs('[data-mns-nvl-status]', nvlRoot);
+						var statusText = qs('[data-mns-nvl-status-text]', nvlRoot);
+						var statusSub = qs('[data-mns-nvl-status-sub]', nvlRoot);
+						if (statusEl && status.tone) statusEl.className = 'mns-nvl__status is-' + status.tone;
+						if (statusText && status.text) statusText.textContent = status.text;
+						if (statusSub && status.sub != null) statusSub.textContent = status.sub;
+					}
+				}
+				if (navigator.onLine === false) {
+					finishFail();
+					return;
+				}
+				if (!restBase || !restNonce || !nvlCfg.live) {
+					window.setTimeout(function () {
+						accept.classList.remove('is-busy');
+					}, 400);
+					return;
+				}
+				fetch(restBase.replace(/\/$/, '') + '/nurse/me/accepting?_envelope=1', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': restNonce
+					},
+					body: JSON.stringify({ on: next })
+				})
+					.then(function (r) {
+						return r.json();
+					})
+					.then(function (body) {
+						if (body && body.ok && body.data) {
+							finishOk(body.data.status || null);
+							return;
+						}
+						finishFail();
+					})
+					.catch(finishFail);
 			});
 		}
 
@@ -5068,20 +5192,78 @@ function genTrackCode() {
 				scError.textContent = 'ثبت نشد، اتصال برقرار نیست.';
 				return;
 			}
+			var changed = changedDays().map(function (d) {
+				return { iso: d.iso, on: cur[d.iso].slice() };
+			});
 			scBusy = true;
 			btn.classList.add('is-loading');
 			btn.disabled = true;
-			/* TODO(backend): store the day overrides; the server re-checks that a slot holding an order stays on (row lock on the nurse). */
-			window.setTimeout(function () {
+			function unlock() {
 				scBusy = false;
 				btn.classList.remove('is-loading');
 				btn.disabled = false;
-				days.forEach(function (d) {
-					saved[d.iso] = cur[d.iso].slice();
-				});
+			}
+			function applySaved(serverDays) {
+				if (serverDays && serverDays.length) {
+					serverDays.forEach(function (sd) {
+						if (!sd || !sd.iso || !byIso[sd.iso]) return;
+						cur[sd.iso] = (sd.on || []).slice();
+						saved[sd.iso] = (sd.on || []).slice();
+						byIso[sd.iso].on = (sd.on || []).slice();
+						byIso[sd.iso].orders = (sd.orders || []).slice();
+					});
+				} else {
+					days.forEach(function (d) {
+						saved[d.iso] = cur[d.iso].slice();
+					});
+				}
 				renderAll();
 				scDone.hidden = false;
-			}, 800);
+			}
+			var restBase = cfg.restUrl || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+			var restNonce = cfg.restNonce || (window.mnsPublic && window.mnsPublic.restNonce) || '';
+			if (!cfg.live || !restBase || !restNonce) {
+				window.setTimeout(function () {
+					unlock();
+					applySaved(null);
+				}, 800);
+				return;
+			}
+			fetch(restBase.replace(/\/$/, '') + '/nurse/schedule/days?_envelope=1', {
+				method: 'PUT',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': restNonce
+				},
+				body: JSON.stringify({ days: changed })
+			})
+				.then(function (r) {
+					return r.json();
+				})
+				.then(function (body) {
+					unlock();
+					if (body && body.ok && body.data) {
+						if (body.data.status) {
+							var s = body.data.status;
+							if (statusEl && s.tone) statusEl.className = 'mns-nvl__status is-' + s.tone;
+							if (statusText && s.text) statusText.textContent = s.text;
+							if (statusSub && s.sub != null) statusSub.textContent = s.sub;
+						}
+						applySaved(body.data.days || null);
+						return;
+					}
+					var err = body && body.error ? body.error : null;
+					var msg = err && err.message ? err.message : 'ثبت نشد، دوباره تلاش کنید.';
+					if (err && err.code === 'ERR_SLOT_HAS_ORDER' && err.data) {
+						msg = 'بازهٔ ' + (err.data.slot || '') + ' در ' + (err.data.iso || '') + ' سفارش دارد و خاموش نمی‌شود.';
+					}
+					scError.textContent = msg;
+				})
+				.catch(function () {
+					unlock();
+					scError.textContent = 'ثبت نشد، دوباره تلاش کنید.';
+				});
 		});
 		renderAll();
 
@@ -5379,17 +5561,80 @@ function genTrackCode() {
 			}
 			saveBtn.classList.add('is-loading');
 			saveBtn.disabled = true;
-			/* TODO(backend): replace the nurse's regions; assigned orders keep their nurse; reject cities/districts the admin switched off. */
-			window.setTimeout(function () {
+			function unlockRg() {
 				saveBtn.classList.remove('is-loading');
 				saveBtn.disabled = false;
+			}
+			function finishRgOk(payload) {
+				unlockRg();
+				if (payload && payload.regions) {
+					sel = payload.regions.map(function (r) {
+						return { prov: r.prov, city: r.city === '*' || r.city_id === 0 ? '*' : r.city, d: (r.districts || []).slice() };
+					});
+				}
+				if (payload && payload.region_orders) orderMap = payload.region_orders;
 				baseline = JSON.stringify(canon(sel));
 				baselineSel = JSON.parse(baseline);
 				rgDirty = false;
+				update();
 				saveBtn.hidden = true;
-				warnEl.hidden = true;
 				doneEl.hidden = false;
-			}, 800);
+				if (payload && payload.warning && payload.warning.text) {
+					warnEl.hidden = false;
+					warnText.textContent = payload.warning.text;
+				}
+				if (payload && payload.status) {
+					var s = payload.status;
+					if (statusEl && s.tone) statusEl.className = 'mns-nvl__status is-' + s.tone;
+					if (statusText && s.text) statusText.textContent = s.text;
+					if (statusSub && s.sub != null) statusSub.textContent = s.sub;
+				}
+			}
+			var restBase = cfg.restUrl || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+			var restNonce = cfg.restNonce || (window.mnsPublic && window.mnsPublic.restNonce) || '';
+			if (!cfg.live || !restBase || !restNonce) {
+				window.setTimeout(function () {
+					finishRgOk(null);
+				}, 800);
+				return;
+			}
+			loadLocations(function () {
+				var payloadRegions = sel.map(function (s) {
+					var cityId = 0;
+					if (s.city !== '*') {
+						var p = provByCode[s.prov];
+						if (p && p.cities && p.ids) {
+							var ix = p.cities.indexOf(s.city);
+							if (ix > -1) cityId = parseInt(p.ids[ix], 10) || 0;
+						}
+					}
+					return { prov: s.prov, city_id: cityId, districts: (s.d || []).slice() };
+				});
+				fetch(restBase.replace(/\/$/, '') + '/nurse/regions?_envelope=1', {
+					method: 'PUT',
+					credentials: 'same-origin',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': restNonce
+					},
+					body: JSON.stringify({ regions: payloadRegions })
+				})
+					.then(function (r) {
+						return r.json();
+					})
+					.then(function (body) {
+						if (body && body.ok && body.data) {
+							finishRgOk(body.data);
+							return;
+						}
+						unlockRg();
+						reasonEl.textContent = body && body.error && body.error.message ? body.error.message : 'ثبت نشد، دوباره تلاش کنید.';
+					})
+					.catch(function () {
+						unlockRg();
+						reasonEl.textContent = 'ثبت نشد، دوباره تلاش کنید.';
+					});
+			});
 		});
 		update();
 		loadLocations(function () {});

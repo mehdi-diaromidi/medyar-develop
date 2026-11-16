@@ -13,6 +13,9 @@ class MNS_Backend_Domain {
 		// Eager-load domain classes so fatal typos surface in Safe boot, not mid-request.
 		class_exists( 'MNS_Time', true );
 		class_exists( 'MNS_Nurse_Schedule', true );
+		class_exists( 'MNS_Nurse_Status', true );
+		class_exists( 'MNS_Locations', true );
+		class_exists( 'MNS_Nurse_Regions', true );
 		class_exists( 'MNS_Eligibility', true );
 		class_exists( 'MNS_Availability', true );
 		class_exists( 'MNS_Order_Machine', true );

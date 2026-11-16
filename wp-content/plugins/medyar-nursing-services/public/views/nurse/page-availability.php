@@ -15,79 +15,117 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$data  = MNS_Static_Fixtures::get( 'nurse/availability' );
-$arr   = static function ( $value ): array {
+$arr = static function ( $value ): array {
 	return is_array( $value ) ? $value : array();
 };
-$fa    = static function ( $v ): string {
+$fa  = static function ( $v ): string {
 	return MNS_Format::digits( (string) $v );
 };
-$slots = $arr( $data['slots'] ?? array() );
 
 $preview = MNS_Dev::enabled() || ( class_exists( 'MNS_Plugin' ) && MNS_Plugin::is_ui_static() );
-$case    = 'ok';
-// phpcs:disable WordPress.Security.NonceVerification.Recommended
-if ( $preview && isset( $_GET['mns_case'] ) ) {
-	$c = sanitize_key( wp_unslash( $_GET['mns_case'] ) );
-	if ( in_array( $c, array( 'ok', 'off', 'away', 'none' ), true ) ) {
-		$case = $c;
-	}
-}
-// phpcs:enable WordPress.Security.NonceVerification.Recommended
+$use_real = is_user_logged_in()
+	&& MNS_Roles::user_is_nurse()
+	&& MNS_Nurse_Access::can_use_panel()
+	&& ! current_user_can( 'manage_options' );
 
-$tz    = wp_timezone();
-$today = new DateTimeImmutable( 'today', $tz );
+$bundle     = null;
+$data       = MNS_Static_Fixtures::get( 'nurse/availability' );
+$case       = 'ok';
+$slots      = array();
+$days       = array();
+$regions    = array();
+$accepting  = true;
+$status     = array( 'tone' => 'ok', 'text' => '', 'sub' => '' );
+$live_status = null;
 
-$base      = $arr( $data['base_week'] ?? array() );
-$overrides = $arr( $data['overrides'] ?? array() );
-$orders    = $arr( $data['order_slots'] ?? array() );
-$regions   = $arr( $data['regions'] ?? array() );
-if ( 'none' === $case ) {
-	$base      = array( array(), array(), array(), array(), array(), array(), array() );
-	$overrides = array();
-	$regions   = array();
-}
-if ( 'away' === $case ) {
-	foreach ( array( 0, 1, 2 ) as $off_days ) {
-		$overrides[ $today->modify( '+' . $off_days . ' days' )->format( 'Y-m-d' ) ] = array();
-	}
-}
-
-/* The days the calendar knows: from the first of this Jalali month to +max days (Saturday first). */
-$jt     = MNS_Format::g2j( (int) $today->format( 'Y' ), (int) $today->format( 'n' ), (int) $today->format( 'j' ) );
-$start  = $today->modify( '-' . ( (int) $jt[2] - 1 ) . ' days' );
-$end    = $today->modify( '+' . (int) ( $data['max_days'] ?? 90 ) . ' days' );
-$days   = array();
-$cursor = $start;
-while ( $cursor <= $end ) {
-	$iso    = $cursor->format( 'Y-m-d' );
-	$dow    = ( (int) $cursor->format( 'N' ) + 1 ) % 7;
-	$j      = MNS_Format::g2j( (int) $cursor->format( 'Y' ), (int) $cursor->format( 'n' ), (int) $cursor->format( 'j' ) );
-	$starts = $arr( $base[ $dow ] ?? array() );
-	$days[] = array(
-		'iso'    => $iso,
-		'y'      => (int) $j[0],
-		'm'      => (int) $j[1],
-		'd'      => (int) $j[2],
-		'dow'    => $dow,
-		'past'   => $cursor < $today,
-		'today'  => $iso === $today->format( 'Y-m-d' ),
-		'base'   => array_values( $starts ),
-		'on'     => array_values( array_key_exists( $iso, $overrides ) ? $arr( $overrides[ $iso ] ) : $starts ),
-		'orders' => array_values( $arr( $orders[ $iso ] ?? array() ) ),
+if ( $use_real ) {
+	$bundle      = MNS_Nurse_Schedule::availability_bundle( get_current_user_id() );
+	$slots       = $arr( $bundle['slots'] ?? array() );
+	$days        = $arr( $bundle['days'] ?? array() );
+	$regions     = $arr( $bundle['regions'] ?? array() );
+	$accepting   = ! empty( $bundle['accepting'] );
+	$live_status = isset( $bundle['status'] ) && is_array( $bundle['status'] ) ? $bundle['status'] : null;
+	$data        = array_merge(
+		is_array( $data ) ? $data : array(),
+		array(
+			'districts'     => $arr( $bundle['districts'] ?? array() ),
+			'region_orders' => $arr( $bundle['region_orders'] ?? array() ),
+			'support_tel'   => (string) ( $data['support_tel'] ?? 'tel:02188607015' ),
+		)
 	);
-	$cursor = $cursor->modify( '+1 day' );
+} else {
+	$slots = $arr( $data['slots'] ?? array() );
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	if ( $preview && isset( $_GET['mns_case'] ) ) {
+		$c = sanitize_key( wp_unslash( $_GET['mns_case'] ) );
+		if ( in_array( $c, array( 'ok', 'off', 'away', 'none' ), true ) ) {
+			$case = $c;
+		}
+	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+	$tz    = wp_timezone();
+	$today = new DateTimeImmutable( 'today', $tz );
+
+	$base      = $arr( $data['base_week'] ?? array() );
+	$overrides = $arr( $data['overrides'] ?? array() );
+	$orders    = $arr( $data['order_slots'] ?? array() );
+	$regions   = $arr( $data['regions'] ?? array() );
+	if ( 'none' === $case ) {
+		$base      = array( array(), array(), array(), array(), array(), array(), array() );
+		$overrides = array();
+		$regions   = array();
+	}
+	if ( 'away' === $case ) {
+		foreach ( array( 0, 1, 2 ) as $off_days ) {
+			$overrides[ $today->modify( '+' . $off_days . ' days' )->format( 'Y-m-d' ) ] = array();
+		}
+	}
+
+	$jt     = MNS_Format::g2j( (int) $today->format( 'Y' ), (int) $today->format( 'n' ), (int) $today->format( 'j' ) );
+	$start  = $today->modify( '-' . ( (int) $jt[2] - 1 ) . ' days' );
+	$end    = $today->modify( '+' . (int) ( $data['max_days'] ?? 90 ) . ' days' );
+	$cursor = $start;
+	while ( $cursor <= $end ) {
+		$iso    = $cursor->format( 'Y-m-d' );
+		$dow    = ( (int) $cursor->format( 'N' ) + 1 ) % 7;
+		$j      = MNS_Format::g2j( (int) $cursor->format( 'Y' ), (int) $cursor->format( 'n' ), (int) $cursor->format( 'j' ) );
+		$starts = $arr( $base[ $dow ] ?? array() );
+		$days[] = array(
+			'iso'    => $iso,
+			'y'      => (int) $j[0],
+			'm'      => (int) $j[1],
+			'd'      => (int) $j[2],
+			'dow'    => $dow,
+			'past'   => $cursor < $today,
+			'today'  => $iso === $today->format( 'Y-m-d' ),
+			'base'   => array_values( $starts ),
+			'on'     => array_values( array_key_exists( $iso, $overrides ) ? $arr( $overrides[ $iso ] ) : $starts ),
+			'orders' => array_values( $arr( $orders[ $iso ] ?? array() ) ),
+		);
+		$cursor = $cursor->modify( '+1 day' );
+	}
+	$accepting = ! empty( $data['accepting'] );
 }
 
 /* Status line for the case (the accept switch can still turn it into "paused"). */
-$statuses  = array(
+$statuses = array(
 	'ok'   => array( 'tone' => 'ok', 'text' => __( 'در دسترس', 'medyar-nursing-services' ), 'sub' => __( 'الان در بازهٔ کاری شما هستید.', 'medyar-nursing-services' ) ),
 	'off'  => array( 'tone' => 'warn', 'text' => __( 'خارج از بازهٔ کاری', 'medyar-nursing-services' ), 'sub' => __( 'نزدیک‌ترین بازهٔ بعدی: امروز، ۱۶ تا ۲۰.', 'medyar-nursing-services' ) ),
 	'away' => array( 'tone' => 'warn', 'text' => __( 'امروز در دسترس نیستید', 'medyar-nursing-services' ), 'sub' => __( 'بازه‌های این چند روز را خاموش کرده‌اید.', 'medyar-nursing-services' ) ),
 	'none' => array( 'tone' => 'warn', 'text' => __( 'برنامه یا منطقه ندارید', 'medyar-nursing-services' ), 'sub' => __( 'تا بازه و منطقه‌ای مشخص نکنید، سفارش جدید نمی‌گیرید.', 'medyar-nursing-services' ) ),
 );
-$status    = $statuses[ $case ];
-$accepting = ! empty( $data['accepting'] );
+if ( $live_status ) {
+	$status = array(
+		'tone' => (string) ( $live_status['tone'] ?? 'ok' ),
+		'text' => (string) ( $live_status['text'] ?? '' ),
+		'sub'  => (string) ( $live_status['sub'] ?? '' ),
+	);
+	$statuses['ok'] = $status;
+	$case           = 'ok';
+} else {
+	$status = $statuses[ $case ];
+}
 
 $loc_file  = MNS_PLUGIN_DIR . 'assets/data/iran-locations.json';
 $loc_data  = is_readable( $loc_file ) ? json_decode( (string) file_get_contents( $loc_file ), true ) : array(); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
@@ -121,6 +159,9 @@ $config = array(
 	'districts'    => $arr( $data['districts'] ?? array() ),
 	'regionOrders' => $arr( $data['region_orders'] ?? array() ),
 	'locationsUrl' => MNS_PLUGIN_URL . 'assets/data/iran-locations.json?v=' . (int) @filemtime( $loc_file ), // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+	'restUrl'      => esc_url_raw( rest_url( 'mns/v1' ) ),
+	'restNonce'    => wp_create_nonce( 'wp_rest' ),
+	'live'         => $use_real,
 );
 
 $self_url = MNS_Pages::panel_url( 'nurse', 'availability' );

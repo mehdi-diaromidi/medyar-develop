@@ -26,6 +26,49 @@ class MNS_Sms {
 		add_action( 'mns_nurse_applied', array( __CLASS__, 'on_applied' ), 10, 2 );
 		add_action( 'mns_nurse_approved', array( __CLASS__, 'on_approved' ), 10, 2 );
 		add_action( 'mns_nurse_rejected', array( __CLASS__, 'on_rejected' ), 10, 3 );
+		add_action( 'mns_order_transitioned', array( __CLASS__, 'on_order_transitioned' ), 10, 1 );
+	}
+
+	/**
+	 * SMS #4 create, #5 assign/reassign, #11 unassigned (cancel freeing nurse), #12 cancelled (T-3.8).
+	 *
+	 * @param array<string,mixed> $h Hook payload after commit.
+	 */
+	public static function on_order_transitioned( array $h ): void {
+		$action = isset( $h['action'] ) ? (string) $h['action'] : '';
+		$order  = isset( $h['order'] ) && is_array( $h['order'] ) ? $h['order'] : array();
+		$code   = isset( $order['code'] ) ? (string) $order['code'] : '';
+		$oid    = isset( $h['order_id'] ) ? (int) $h['order_id'] : 0;
+		$account = isset( $order['account_user_id'] ) ? (int) $order['account_user_id'] : 0;
+		$phone   = self::user_phone( $account );
+		if ( ! $phone && ! empty( $order['contact_phone'] ) ) {
+			$phone = (string) $order['contact_phone'];
+		}
+
+		if ( 'create' === $action && $phone ) {
+			self::send( self::EVT_ORDER_CREATED, $phone, array( 'code' => $code ), 'mns:order_created:' . $oid . ':' . $phone );
+		}
+		if ( ( 'assign' === $action || 'reassign' === $action ) && $phone ) {
+			self::send( self::EVT_ORDER_ASSIGNED, $phone, array( 'code' => $code ), 'mns:order_assigned:' . $oid . ':' . $action . ':' . $phone );
+			if ( ! empty( $order['nurse_user_id'] ) ) {
+				$nphone = self::user_phone( (int) $order['nurse_user_id'] );
+				if ( $nphone ) {
+					self::send( self::EVT_ORDER_ASSIGNED, $nphone, array( 'code' => $code ), 'mns:order_assigned_nurse:' . $oid . ':' . $action . ':' . $nphone );
+				}
+			}
+		}
+		if ( 'cancel' === $action || 'cancel_admin' === $action ) {
+			if ( $phone ) {
+				self::send( self::EVT_ORDER_CANCELLED, $phone, array( 'code' => $code ), 'mns:order_cancelled:' . $oid . ':' . $phone );
+			}
+			// #11: previous nurse notified of unassign via cancel.
+			if ( ! empty( $order['nurse_user_id'] ) ) {
+				$nphone = self::user_phone( (int) $order['nurse_user_id'] );
+				if ( $nphone ) {
+					self::send( self::EVT_ORDER_UNASSIGNED, $nphone, array( 'code' => $code ), 'mns:order_unassigned:' . $oid . ':' . $nphone );
+				}
+			}
+		}
 	}
 
 	/**
