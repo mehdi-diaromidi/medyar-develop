@@ -181,6 +181,7 @@ if ( 'assigned' === $status ) {
 		'q'       => __( 'با شروع خدمت، بیمار دیگر نمی‌تواند سفارش را لغو کند. خدمت شروع شود؟', 'medyar-nursing-services' ),
 		'yes'     => __( 'بله، شروع شود', 'medyar-nursing-services' ),
 		'go'      => $state_url( 'in_progress' ),
+		'api'     => 'start',
 	);
 } elseif ( in_array( $status, array( 'in_progress', 'medication' ), true ) ) {
 	$act = array(
@@ -191,6 +192,7 @@ if ( 'assigned' === $status ) {
 		'q'       => __( 'پایان خدمت ثبت شود؟ بعد از آن چک‌لیست و گزارش را تکمیل می‌کنید.', 'medyar-nursing-services' ),
 		'yes'     => __( 'بله، پایان خدمت', 'medyar-nursing-services' ),
 		'go'      => $state_url( 'service_ended' ),
+		'api'     => 'end',
 	);
 } elseif ( 'service_ended' === $status && '' !== $next_step ) {
 	$act = array(
@@ -203,9 +205,10 @@ if ( 'assigned' === $status ) {
 	$act = array( 'kind' => 'support' );
 }
 
-$render_action = static function ( string $suffix, string $part = 'all' ) use ( $act ): void {
+$render_action = static function ( string $suffix, string $part = 'all' ) use ( $act, $code, $use_real ): void {
 	if ( 'confirm' === $act['kind'] ) :
 		$cid = 'mns-nv-confirm-' . $suffix;
+		$api = (string) ( $act['api'] ?? '' );
 		?>
 		<?php if ( 'confirm' !== $part ) : ?>
 		<button
@@ -228,7 +231,16 @@ $render_action = static function ( string $suffix, string $part = 'all' ) use ( 
 					<p class="mns-nview__confirm-q"><?php echo esc_html( $act['q'] ); ?></p>
 					<p class="mns-nview__confirm-err" role="alert" data-mns-confirm-error></p>
 					<div class="mns-nview__confirm-actions">
-						<button type="button" class="mns-submit-btn" data-mns-confirm-ok data-mns-go="<?php echo esc_url( $act['go'] ); ?>"><span><?php echo esc_html( $act['yes'] ); ?></span></button>
+						<button
+							type="button"
+							class="mns-submit-btn"
+							data-mns-confirm-ok
+							data-mns-go="<?php echo esc_url( $act['go'] ); ?>"
+							<?php if ( $use_real && '' !== $api ) : ?>
+								data-mns-exec="<?php echo esc_attr( $api ); ?>"
+								data-mns-order="<?php echo esc_attr( $code ); ?>"
+							<?php endif; ?>
+						><span><?php echo esc_html( $act['yes'] ); ?></span></button>
 						<button type="button" class="mns-nview__btn" data-mns-confirm-cancel><?php echo esc_html__( 'انصراف', 'medyar-nursing-services' ); ?></button>
 					</div>
 				</div>

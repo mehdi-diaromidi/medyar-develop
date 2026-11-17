@@ -42,8 +42,7 @@ class MNS_Admin_Orders {
 			$nurse = isset( $_POST['nurse_id'] ) ? (int) $_POST['nurse_id'] : 0;
 			$force = ! empty( $_POST['force'] );
 			MNS_Assignment::admin_set_nurse( $oid, $nurse, get_current_user_id(), $force );
-			wp_safe_redirect( add_query_arg( array( 'page' => MNS_Admin_Menu::SLUG_ASSIGN, 'mns_ok' => '1' ), admin_url( 'admin.php' ) ) );
-			exit;
+			MNS_Admin_Ui::redirect( MNS_Admin_Menu::SLUG_ASSIGN, 'assigned' );
 		} catch ( MNS_Error $e ) {
 			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => $e->http() ) );
 		} catch ( \Throwable $e ) {
@@ -69,8 +68,7 @@ class MNS_Admin_Orders {
 					'actor_role'    => 'admin',
 				)
 			);
-			wp_safe_redirect( add_query_arg( array( 'page' => MNS_Admin_Menu::SLUG_ASSIGN, 'mns_ok' => '1' ), admin_url( 'admin.php' ) ) );
-			exit;
+			MNS_Admin_Ui::redirect( MNS_Admin_Menu::SLUG_ASSIGN, 'cancelled' );
 		} catch ( MNS_Error $e ) {
 			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => $e->http() ) );
 		} catch ( \Throwable $e ) {
@@ -79,6 +77,7 @@ class MNS_Admin_Orders {
 		}
 	}
 
+	/** @deprecated Phone UI moved to MNS_Admin_Manual; kept for legacy posts. */
 	public static function handle_phone_order(): void {
 		try {
 			if ( ! current_user_can( 'manage_options' ) ) {
@@ -141,47 +140,48 @@ class MNS_Admin_Orders {
 			wp_die( esc_html__( 'اجازه ندارید.', 'medyar-nursing-services' ) );
 		}
 		$unassigned = MNS_Assignment::unassigned( 30 );
-		echo '<div class="wrap"><h1>' . esc_html__( 'تخصیص و سفارش‌ها', 'medyar-nursing-services' ) . '</h1>';
-		if ( isset( $_GET['mns_ok'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			echo '<div class="notice notice-success"><p>' . esc_html__( 'انجام شد.', 'medyar-nursing-services' ) . '</p></div>';
-		}
-		echo '<h2>' . esc_html__( 'بدون پرستار', 'medyar-nursing-services' ) . '</h2>';
-		echo '<table class="widefat striped"><thead><tr><th>کد</th><th>تاریخ</th><th>بازه</th><th>پیشنهاد</th><th>تخصیص</th></tr></thead><tbody>';
+		$mode       = (string) MNS_Settings::get( 'assignment_mode' );
+		MNS_Admin_Ui::header(
+			'تخصیص سفارش‌ها',
+			array(
+				array( 'label' => 'سفارش تلفنی', 'url' => MNS_Admin_Ui::url( MNS_Admin_Menu::SLUG_MANUAL ) ),
+				array( 'label' => 'رصد مرکزی', 'url' => MNS_Admin_Ui::url( MNS_Admin_Menu::SLUG_MONITOR ) ),
+			)
+		);
+		echo '<p class="mns-lead">حالت تخصیص فعلی: <strong>' . esc_html( 'auto' === $mode ? 'خودکار' : 'دستی' ) . '</strong>. حداکثر ۵ پیشنهاد با دلیل نمایش داده می‌شود.</p>';
+		echo '<div class="postbox mns-box"><div class="postbox-header"><h2>صف بدون پرستار</h2></div><div class="inside">';
+		echo '<table class="widefat striped mns-compact"><thead><tr><th>کد</th><th>تاریخ</th><th>بازه</th><th>پیشنهادها</th><th>تخصیص</th></tr></thead><tbody>';
 		foreach ( $unassigned as $row ) {
-			$sugs = MNS_Assignment::suggestions( (int) $row['id'] );
-			$sug_txt = array();
+			$sugs = array_slice( MNS_Assignment::suggestions( (int) $row['id'] ), 0, 5 );
+			$detail = MNS_Admin_Ui::url( MNS_Admin_Menu::SLUG_MONITOR, array( 'action' => 'view', 'id' => (int) $row['id'] ) );
+			echo '<tr><td><a class="row-title" href="' . esc_url( $detail ) . '" dir="ltr"><strong>' . esc_html( (string) $row['code'] ) . '</strong></a></td>';
+			echo '<td>' . esc_html( (string) $row['service_date'] ) . '</td><td>' . esc_html( (string) $row['slot_id'] ) . '</td><td><ul class="mns-suggest">';
 			foreach ( $sugs as $s ) {
-				$sug_txt[] = esc_html( $s['name'] . ' (' . $s['reason'] . ')' );
+				echo '<li><strong>' . esc_html( (string) ( $s['name'] ?? '' ) ) . '</strong> <span class="mns-muted">' . esc_html( (string) ( $s['reason'] ?? '' ) ) . '</span></li>';
 			}
-			echo '<tr><td>' . esc_html( (string) $row['code'] ) . '</td><td>' . esc_html( (string) $row['service_date'] ) . '</td><td>' . esc_html( (string) $row['slot_id'] ) . '</td><td>' . implode( '<br>', $sug_txt ) . '</td><td>';
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:flex;gap:6px;align-items:center">';
+			if ( ! $sugs ) {
+				echo '<li class="mns-muted">پیشنهادی نیست</li>';
+			}
+			echo '</ul></td><td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="mns-inline-form">';
 			wp_nonce_field( 'mns_order_assign' );
 			echo '<input type="hidden" name="action" value="mns_order_assign" />';
 			echo '<input type="hidden" name="order_id" value="' . (int) $row['id'] . '" />';
 			$first = ! empty( $sugs[0]['user_id'] ) ? (int) $sugs[0]['user_id'] : 0;
-			echo '<input type="number" name="nurse_id" value="' . $first . '" placeholder="nurse user_id" />';
-			echo '<label><input type="checkbox" name="force" value="1" /> force</label>';
-			submit_button( __( 'تخصیص', 'medyar-nursing-services' ), 'secondary', 'submit', false );
+			echo '<input type="number" name="nurse_id" value="' . $first . '" class="small-text" placeholder="شناسه پرستار" required />';
+			echo '<label><input type="checkbox" name="force" value="1" /> اجبار</label>';
+			submit_button( __( 'تخصیص', 'medyar-nursing-services' ), 'primary', 'submit', false );
 			echo '</form></td></tr>';
 		}
 		if ( empty( $unassigned ) ) {
-			echo '<tr><td colspan="5">' . esc_html__( 'صف خالی است.', 'medyar-nursing-services' ) . '</td></tr>';
+			echo '<tr><td colspan="5"><p class="mns-empty"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> صف خالی است.</p></td></tr>';
 		}
-		echo '</tbody></table>';
+		echo '</tbody></table></div></div>';
+		MNS_Admin_Ui::footer();
+	}
 
-		echo '<h2>' . esc_html__( 'سفارش تلفنی', 'medyar-nursing-services' ) . '</h2>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		wp_nonce_field( 'mns_phone_order' );
-		echo '<input type="hidden" name="action" value="mns_phone_order" />';
-		echo '<p><label>موبایل <input name="mobile" required /></label></p>';
-		echo '<p><label>استان <input name="prov" value="THR" /></label></p>';
-		echo '<p><label>city_id <input name="city_id" type="number" value="0" /></label></p>';
-		echo '<p><label>تاریخ <input name="date" value="' . esc_attr( MNS_Time::today_tehran() ) . '" /></label></p>';
-		echo '<p><label>بازه <input name="slot" value="8-12" /></label></p>';
-		echo '<p><label>جنسیت <select name="gender"><option value="female">female</option><option value="male">male</option></select></label></p>';
-		echo '<p><label>آدرس <input name="address" class="regular-text" value="تلفنی" /></label></p>';
-		submit_button( __( 'ثبت سفارش تلفنی', 'medyar-nursing-services' ) );
-		echo '</form></div>';
+	public static function find_or_create_account_public( string $mobile ): int {
+		return self::find_or_create_account( $mobile );
 	}
 
 	private static function find_or_create_account( string $mobile ): int {

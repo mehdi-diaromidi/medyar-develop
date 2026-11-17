@@ -76,7 +76,7 @@ class MNS_Admin_Selftest {
 		$pass = is_array( $flash ) ? (int) $flash['pass'] : 0;
 		$fail = is_array( $flash ) ? (int) $flash['fail'] : 0;
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'MNS Self-test', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header( __( 'MNS Self-test', 'medyar-nursing-services' ) );
 
 		echo '<div id="mns-selftest-summary" data-pass="' . esc_attr( (string) $pass ) . '" data-fail="' . esc_attr( (string) $fail ) . '">';
 		if ( is_array( $flash ) ) {
@@ -104,6 +104,6 @@ class MNS_Admin_Selftest {
 			}
 			echo '</tbody></table>';
 		}
-		echo '</div>';
+		MNS_Admin_Ui::footer();
 	}
 }

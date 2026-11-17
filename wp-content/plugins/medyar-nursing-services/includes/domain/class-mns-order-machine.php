@@ -14,7 +14,7 @@ class MNS_Order_Machine {
 	/**
 	 * Dispatch a named transition.
 	 *
-	 * @param string              $action create|assign|reassign|cancel|cancel_admin.
+	 * @param string              $action create|assign|reassign|cancel|cancel_admin|start|end|needs_review|complete|invoice|pay.
 	 * @param array<string,mixed> $args   Action args.
 	 * @return array<string,mixed> Result (usually order row).
 	 * @throws MNS_Error On guard failure.
@@ -31,6 +31,18 @@ class MNS_Order_Machine {
 				return self::cancel( $args );
 			case 'cancel_admin':
 				return self::cancel_admin( $args );
+			case 'start':
+				return self::start( $args );
+			case 'end':
+				return self::end_service( $args );
+			case 'needs_review':
+				return self::mark_needs_review( $args );
+			case 'complete':
+				return self::complete( $args );
+			case 'invoice':
+				return self::invoice( $args );
+			case 'pay':
+				return self::pay( $args );
 			default:
 				throw MNS_Error::bad_state();
 		}
@@ -458,6 +470,205 @@ class MNS_Order_Machine {
 
 		self::fire_hooks( $pending_hooks );
 		return $row;
+	}
+
+	/**
+	 * assigned → in_progress.
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function start( array $args ): array {
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+		$actor    = isset( $args['actor_user_id'] ) ? (int) $args['actor_user_id'] : 0;
+		$role     = isset( $args['actor_role'] ) ? (string) $args['actor_role'] : 'nurse';
+		$row      = self::get_order( $order_id );
+		if ( ! $row || MNS_Order_Status::ASSIGNED !== (string) $row['status'] ) {
+			throw MNS_Error::bad_state();
+		}
+		if ( 'nurse' === $role && $actor !== (int) $row['nurse_user_id'] ) {
+			throw MNS_Error::forbidden();
+		}
+		return MNS_DB::transaction(
+			static function () use ( $order_id, $actor, $role, $row ) {
+				global $wpdb;
+				$table = MNS_DB::table( 'orders' );
+				$now   = MNS_Time::now_utc();
+				$ok    = $wpdb->query(
+					$wpdb->prepare(
+						"UPDATE {$table} SET status = %s, started_at = %s, updated_at = %s WHERE id = %d AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						MNS_Order_Status::IN_PROGRESS,
+						$now,
+						$now,
+						$order_id,
+						MNS_Order_Status::ASSIGNED
+					)
+				);
+				if ( ! $ok ) {
+					throw MNS_Error::bad_state();
+				}
+				self::write_log( $order_id, $actor, $role, 'start', MNS_Order_Status::ASSIGNED, MNS_Order_Status::IN_PROGRESS );
+				if ( class_exists( 'MNS_Execution', true ) ) {
+					try {
+						MNS_Execution::unlock( $order_id, 'checklist', $actor );
+						MNS_Execution::unlock( $order_id, 'drug', $actor );
+					} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+						// Steps unlock is best-effort inside start.
+					}
+				}
+				$fresh = self::get_order( $order_id );
+				return is_array( $fresh ) ? $fresh : $row;
+			}
+		);
+	}
+
+	/**
+	 * in_progress → service_ended.
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function end_service( array $args ): array {
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+		$actor    = isset( $args['actor_user_id'] ) ? (int) $args['actor_user_id'] : 0;
+		$role     = isset( $args['actor_role'] ) ? (string) $args['actor_role'] : 'nurse';
+		$row      = self::get_order( $order_id );
+		if ( ! $row || MNS_Order_Status::IN_PROGRESS !== (string) $row['status'] ) {
+			throw MNS_Error::bad_state();
+		}
+		if ( 'nurse' === $role && $actor !== (int) $row['nurse_user_id'] ) {
+			throw MNS_Error::forbidden();
+		}
+		return MNS_DB::transaction(
+			static function () use ( $order_id, $actor, $role, $row ) {
+				global $wpdb;
+				$table = MNS_DB::table( 'orders' );
+				$now   = MNS_Time::now_utc();
+				$mins  = null;
+				if ( ! empty( $row['started_at'] ) ) {
+					$mins = (int) max( 0, ( strtotime( $now . ' UTC' ) - strtotime( get_gmt_from_date( (string) $row['started_at'] ) . ' UTC' ) ) / 60 );
+				}
+				$ok = $wpdb->query(
+					$wpdb->prepare(
+						"UPDATE {$table} SET status = %s, ended_at = %s, duration_minutes = %d, updated_at = %s WHERE id = %d AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						MNS_Order_Status::SERVICE_ENDED,
+						$now,
+						$mins,
+						$now,
+						$order_id,
+						MNS_Order_Status::IN_PROGRESS
+					)
+				);
+				if ( ! $ok ) {
+					throw MNS_Error::bad_state();
+				}
+				self::write_log( $order_id, $actor, $role, 'end', MNS_Order_Status::IN_PROGRESS, MNS_Order_Status::SERVICE_ENDED );
+				if ( class_exists( 'MNS_Execution', true ) ) {
+					try {
+						MNS_Execution::unlock( $order_id, 'report', $actor );
+					} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					}
+				}
+				$fresh = self::get_order( $order_id );
+				if ( is_array( $fresh ) && class_exists( 'MNS_Surveys', true ) ) {
+					try {
+						MNS_Surveys::open_for_order(
+							$order_id,
+							(int) $fresh['account_user_id'],
+							(int) ( $fresh['nurse_user_id'] ?? 0 )
+						);
+					} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					}
+				}
+				return is_array( $fresh ) ? $fresh : $row;
+			}
+		);
+	}
+
+	/**
+	 * service_ended → needs_review (cron / incomplete steps).
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function mark_needs_review( array $args ): array {
+		return self::simple_status_change( $args, MNS_Order_Status::SERVICE_ENDED, MNS_Order_Status::NEEDS_REVIEW, 'needs_review' );
+	}
+
+	/**
+	 * service_ended|needs_review → completed.
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function complete( array $args ): array {
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+		$row      = self::get_order( $order_id );
+		if ( ! $row ) {
+			throw MNS_Error::not_found();
+		}
+		$from = (string) $row['status'];
+		if ( ! in_array( $from, array( MNS_Order_Status::SERVICE_ENDED, MNS_Order_Status::NEEDS_REVIEW ), true ) ) {
+			throw MNS_Error::bad_state();
+		}
+		$args['from_status'] = $from;
+		return self::simple_status_change( $args, $from, MNS_Order_Status::COMPLETED, 'complete' );
+	}
+
+	/**
+	 * completed → invoiced.
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function invoice( array $args ): array {
+		return self::simple_status_change( $args, MNS_Order_Status::COMPLETED, MNS_Order_Status::INVOICED, 'invoice' );
+	}
+
+	/**
+	 * invoiced → paid.
+	 *
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function pay( array $args ): array {
+		return self::simple_status_change( $args, MNS_Order_Status::INVOICED, MNS_Order_Status::PAID, 'pay' );
+	}
+
+	/**
+	 * @param array<string,mixed> $args Args.
+	 * @return array<string,mixed>
+	 */
+	private static function simple_status_change( array $args, string $from, string $to, string $action ): array {
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+		$actor    = isset( $args['actor_user_id'] ) ? (int) $args['actor_user_id'] : 0;
+		$role     = isset( $args['actor_role'] ) ? (string) $args['actor_role'] : 'system';
+		$row      = self::get_order( $order_id );
+		$expect   = isset( $args['from_status'] ) ? (string) $args['from_status'] : $from;
+		if ( ! $row || (string) $row['status'] !== $expect ) {
+			throw MNS_Error::bad_state();
+		}
+		return MNS_DB::transaction(
+			static function () use ( $order_id, $actor, $role, $expect, $to, $action, $row ) {
+				global $wpdb;
+				$table = MNS_DB::table( 'orders' );
+				$now   = MNS_Time::now_utc();
+				$extra = '';
+				$params = array( $to, $now, $order_id, $expect );
+				if ( MNS_Order_Status::COMPLETED === $to ) {
+					$extra = ', completed_at = %s';
+					array_splice( $params, 1, 0, array( $now ) );
+				}
+				$sql = "UPDATE {$table} SET status = %s{$extra}, updated_at = %s WHERE id = %d AND status = %s";
+				$ok  = $wpdb->query( $wpdb->prepare( $sql, ...$params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				if ( ! $ok ) {
+					throw MNS_Error::bad_state();
+				}
+				self::write_log( $order_id, $actor, $role, $action, $expect, $to );
+				$fresh = self::get_order( $order_id );
+				return is_array( $fresh ) ? $fresh : $row;
+			}
+		);
 	}
 
 	/**

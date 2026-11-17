@@ -30,6 +30,11 @@ class MNS_DB {
 		'order_log',
 		'order_edits',
 		'notifications',
+		'invoices',
+		'payments',
+		'surveys',
+		'loyalty_stamps',
+		'recurring_plans',
 	);
 
 	/** @var array<int,string> Allowed PK columns for lock_row(). */
@@ -106,6 +111,16 @@ class MNS_DB {
 		} finally {
 			self::$tx_depth--;
 		}
+	}
+
+	/**
+	 * Alias used by newer call sites (M4+).
+	 *
+	 * @param callable $fn Callback.
+	 * @return mixed
+	 */
+	public static function transaction( callable $fn ) {
+		return self::tx( $fn );
 	}
 
 	/**

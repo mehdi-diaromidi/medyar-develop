@@ -100,6 +100,33 @@ class MNS_REST_Nurse {
 				'permission_callback' => array( __CLASS__, 'perm_approved' ),
 			)
 		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/orders/(?P<code>[0-9]{5,6})/start',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'start_order' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/orders/(?P<code>[0-9]{5,6})/end',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'end_order' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
+			'/nurse/orders/(?P<code>[0-9]{5,6})/steps/(?P<step>checklist|drug|report)',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'save_step' ),
+				'permission_callback' => array( __CLASS__, 'perm_approved' ),
+			)
+		);
 	}
 
 	/**
@@ -413,5 +440,93 @@ class MNS_REST_Nurse {
 		} catch ( MNS_Error $e ) {
 			return MNS_REST::fail( $e, $request );
 		}
+	}
+
+	/**
+	 * Start service (assigned → in_progress).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function start_order( $request ) {
+		try {
+			$code = sanitize_text_field( (string) $request['code'] );
+			$row  = self::order_row_for_nurse( $code );
+			MNS_Order_Machine::transition(
+				'start',
+				array(
+					'order_id'      => (int) $row['id'],
+					'actor_user_id' => get_current_user_id(),
+					'actor_role'    => 'nurse',
+				)
+			);
+			$data = MNS_Nurse_Orders_Api::view_model_for( get_current_user_id(), $code );
+			return MNS_REST::success( $data, $request );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+	}
+
+	/**
+	 * End service (in_progress → service_ended).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function end_order( $request ) {
+		try {
+			$code = sanitize_text_field( (string) $request['code'] );
+			$row  = self::order_row_for_nurse( $code );
+			MNS_Order_Machine::transition(
+				'end',
+				array(
+					'order_id'      => (int) $row['id'],
+					'actor_user_id' => get_current_user_id(),
+					'actor_role'    => 'nurse',
+				)
+			);
+			$data = MNS_Nurse_Orders_Api::view_model_for( get_current_user_id(), $code );
+			return MNS_REST::success( $data, $request );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+	}
+
+	/**
+	 * Save checklist/drug/report step payload.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function save_step( $request ) {
+		try {
+			$code = sanitize_text_field( (string) $request['code'] );
+			$step = sanitize_key( (string) $request['step'] );
+			$row  = self::order_row_for_nurse( $code );
+			$params = $request->get_json_params();
+			if ( ! is_array( $params ) ) {
+				$params = $request->get_params();
+			}
+			$data = isset( $params['data'] ) && is_array( $params['data'] ) ? $params['data'] : $params;
+			$steps = MNS_Execution::save_step( (int) $row['id'], $step, $data, get_current_user_id(), 'nurse' );
+			return MNS_REST::success( array( 'steps' => $steps ), $request );
+		} catch ( MNS_Error $e ) {
+			return MNS_REST::fail( $e, $request );
+		}
+	}
+
+	/**
+	 * @return array<string,mixed>
+	 */
+	private static function order_row_for_nurse( string $code ): array {
+		global $wpdb;
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s LIMIT 1', $code ), // phpcs:ignore WordPress.DB.PreparedSQL
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) || (int) $row['nurse_user_id'] !== get_current_user_id() ) {
+			throw MNS_Error::not_found( 'سفارش یافت نشد.' );
+		}
+		return $row;
 	}
 }

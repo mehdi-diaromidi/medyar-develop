@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Backend_Settings {
 
 	public static function boot(): void {
-		MNS_Admin_Settings::boot();
+		if ( is_admin() ) {
+			MNS_Admin_Settings::boot();
+		}
 	}
 }

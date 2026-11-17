@@ -14,8 +14,10 @@ class MNS_Backend_Nurses {
 			MNS_Contract::ensure_seed();
 		}
 		MNS_Sms::boot();
-		MNS_Admin_Nurses::boot();
 		MNS_Nurse_Signup::boot();
 		MNS_REST_Nurse::boot();
+		if ( is_admin() ) {
+			MNS_Admin_Nurses::boot();
+		}
 	}
 }

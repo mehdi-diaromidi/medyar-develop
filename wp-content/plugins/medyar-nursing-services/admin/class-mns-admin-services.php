@@ -64,11 +64,11 @@ class MNS_Admin_Services {
 		$list = MNS_Services::list_all();
 		$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$edit = $edit_id ? MNS_Services::get( $edit_id ) : null;
-		echo '<div class="wrap"><h1>' . esc_html__( 'خدمات', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header( __( 'خدمات', 'medyar-nursing-services' ) );
 		if ( isset( $_GET['mns_saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			echo '<div class="notice notice-success"><p>' . esc_html__( 'ذخیره شد.', 'medyar-nursing-services' ) . '</p></div>';
+			echo '<div class="notice notice-success inline is-dismissible"><p>' . esc_html__( 'ذخیره شد.', 'medyar-nursing-services' ) . '</p></div>';
 		}
-		echo '<table class="widefat striped"><thead><tr><th>ID</th><th>' . esc_html__( 'نام', 'medyar-nursing-services' ) . '</th><th>slug</th><th>' . esc_html__( 'فعال', 'medyar-nursing-services' ) . '</th><th></th></tr></thead><tbody>';
+		echo '<table class="widefat striped mns-compact"><thead><tr><th>ID</th><th>' . esc_html__( 'نام', 'medyar-nursing-services' ) . '</th><th>slug</th><th>' . esc_html__( 'فعال', 'medyar-nursing-services' ) . '</th><th></th></tr></thead><tbody>';
 		foreach ( $list as $row ) {
 			$url = add_query_arg( array( 'page' => self::SLUG, 'edit' => $row['id'] ), admin_url( 'admin.php' ) );
 			echo '<tr><td>' . (int) $row['id'] . '</td><td>' . esc_html( $row['name'] ) . '</td><td>' . esc_html( $row['slug'] ) . '</td><td>' . ( $row['active'] ? '✓' : '—' ) . '</td><td><a href="' . esc_url( $url ) . '">' . esc_html__( 'ویرایش', 'medyar-nursing-services' ) . '</a></td></tr>';
@@ -90,6 +90,6 @@ class MNS_Admin_Services {
 			submit_button( __( 'ذخیره', 'medyar-nursing-services' ) );
 			echo '</form>';
 		}
-		echo '</div>';
+		MNS_Admin_Ui::footer();
 	}
 }

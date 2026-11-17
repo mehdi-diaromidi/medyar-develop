@@ -11,15 +11,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'patient' ) ) {
-	return;
-}
-
+if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) && class_exists( 'MNS_Recurring', true ) ) {
+	$programs = array();
+	foreach ( MNS_Recurring::for_account( get_current_user_id() ) as $p ) {
+		$programs[] = array(
+			'title'     => (string) ( $p['pattern'] ?? 'برنامه' ),
+			'remaining' => (int) ( $p['remaining'] ?? 0 ),
+			'status'    => (string) ( $p['status'] ?? '' ),
+			'next'      => (string) ( $p['next_date'] ?? '' ),
+		);
+	}
+} else {
 $data     = MNS_Static_Fixtures::get( 'patient/recurring' );
 $programs = isset( $data['programs'] ) && is_array( $data['programs'] ) ? $data['programs'] : array();
 
 if ( MNS_Dev::is( 'empty' ) ) {
 	$programs = array();
+}
 }
 
 $new_url = add_query_arg( 'mns_recurring', '1', MNS_Pages::panel_url( 'patient', 'new-order' ) );

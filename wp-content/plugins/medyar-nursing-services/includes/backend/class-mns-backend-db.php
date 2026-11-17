@@ -16,7 +16,9 @@ class MNS_Backend_Db {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_migrate' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'render_notices' ) );
 
-		MNS_Admin_Db_Status::boot();
+		if ( is_admin() ) {
+			MNS_Admin_Db_Status::boot();
+		}
 	}
 
 	/**

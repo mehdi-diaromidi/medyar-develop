@@ -1,0 +1,129 @@
+/* Develop-only role switcher — bottom-right of the viewport */
+.mns-rsw {
+	position: fixed;
+	right: 16px;
+	bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+	z-index: 99999;
+	font-family: Tahoma, "Segoe UI", sans-serif;
+	font-size: 13px;
+	line-height: 1.4;
+	direction: rtl;
+	text-align: right;
+}
+
+.mns-rsw__fab {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border: 0;
+	cursor: pointer;
+	padding: 10px 14px;
+	border-radius: 999px;
+	background: #0f172a;
+	color: #f8fafc;
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+	font: inherit;
+	font-weight: 700;
+}
+
+.mns-rsw__fab:hover,
+.mns-rsw__fab:focus-visible {
+	background: #1e293b;
+	outline: 2px solid #38bdf8;
+	outline-offset: 2px;
+}
+
+.mns-rsw__fab-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #38bdf8;
+	box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.mns-rsw[data-mode="nurse"] .mns-rsw__fab-dot { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25); }
+.mns-rsw[data-mode="patient"] .mns-rsw__fab-dot { background: #fbbf24; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.25); }
+
+.mns-rsw__fab-chev {
+	width: 0;
+	height: 0;
+	border-inline: 5px solid transparent;
+	border-bottom: 6px solid #94a3b8;
+	transition: transform 0.15s ease;
+}
+
+.mns-rsw[data-open="1"] .mns-rsw__fab-chev {
+	transform: rotate(180deg);
+}
+
+.mns-rsw__panel {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 10px);
+	width: min(260px, calc(100vw - 32px));
+	padding: 12px;
+	border-radius: 14px;
+	background: #fff;
+	color: #0f172a;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+}
+
+.mns-rsw__head {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 10px;
+}
+
+.mns-rsw__hint {
+	font-size: 11px;
+	color: #64748b;
+	font-weight: 500;
+}
+
+.mns-rsw__actions {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 6px;
+}
+
+.mns-rsw__btn {
+	display: block;
+	padding: 10px 12px;
+	border-radius: 10px;
+	text-decoration: none;
+	color: #0f172a;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	font-weight: 700;
+	text-align: center;
+}
+
+.mns-rsw__btn:hover,
+.mns-rsw__btn:focus-visible {
+	background: #eff6ff;
+	border-color: #93c5fd;
+	color: #1d4ed8;
+	outline: none;
+}
+
+.mns-rsw__btn.is-active {
+	background: #0f172a;
+	border-color: #0f172a;
+	color: #fff;
+	pointer-events: none;
+}
+
+@media (max-width: 480px) {
+	.mns-rsw {
+		right: 10px;
+		bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+	}
+	.mns-rsw__fab-label {
+		max-width: 7em;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}

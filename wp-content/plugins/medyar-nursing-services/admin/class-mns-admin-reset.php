@@ -108,12 +108,12 @@ class MNS_Admin_Reset {
 			delete_transient( 'mns_reset_flash_' . get_current_user_id() );
 		}
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'بازنشانی MNS', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header( __( 'بازنشانی MNS', 'medyar-nursing-services' ) );
 		echo '<p class="description">' . esc_html__( 'فقط جدول‌های mns_ و پوشهٔ فایل خصوصی پاک و دوباره ساخته می‌شوند. بکاپ گرفته نمی‌شود.', 'medyar-nursing-services' ) . '</p>';
 
 		if ( is_array( $flash ) ) {
 			$class = ! empty( $flash['ok'] ) ? 'notice-success' : 'notice-error';
-			echo '<div class="notice ' . esc_attr( $class ) . '"><p>' . esc_html( (string) $flash['detail'] ) . '</p></div>';
+			echo '<div class="notice ' . esc_attr( $class ) . ' inline"><p>' . esc_html( (string) $flash['detail'] ) . '</p></div>';
 		}
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -122,6 +122,7 @@ class MNS_Admin_Reset {
 		echo '<p><label>' . esc_html__( 'برای تأیید عبارت RESET MNS را تایپ کنید:', 'medyar-nursing-services' ) . '</label><br>';
 		echo '<input type="text" name="mns_reset_phrase" class="regular-text" autocomplete="off" /></p>';
 		submit_button( __( 'بازنشانی MNS', 'medyar-nursing-services' ), 'delete' );
-		echo '</form></div>';
+		echo '</form>';
+		MNS_Admin_Ui::footer();
 	}
 }

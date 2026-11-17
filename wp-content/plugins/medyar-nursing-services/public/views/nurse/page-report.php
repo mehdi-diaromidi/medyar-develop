@@ -15,7 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'nurse' ) ) {
+if ( MNS_Nurse_Access::is_real_panel_user( 'nurse' ) ) {
+	MNS_UI::empty_state(
+		array(
+			'title' => __( 'گزارش پایان خدمت', 'medyar-nursing-services' ),
+			'text'  => __( 'ثبت گزارش پس از پایان خدمت از جزئیات سفارش فعال می‌شود.', 'medyar-nursing-services' ),
+			'icon'  => 'file',
+		)
+	);
 	return;
 }
 

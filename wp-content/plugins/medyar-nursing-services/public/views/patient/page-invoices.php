@@ -13,36 +13,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'patient' ) ) {
-	return;
-}
-
-$data     = MNS_Static_Fixtures::get( 'patient/invoices' );
-$items    = isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array();
-$patients = isset( $data['patients'] ) && is_array( $data['patients'] ) ? $data['patients'] : array();
-$services = isset( $data['services'] ) && is_array( $data['services'] ) ? $data['services'] : array();
-
-if ( MNS_Dev::is( 'empty' ) ) {
-	$items = array();
-}
-foreach ( $items as $i => $row ) {
-	$items[ $i ]['patient_name'] = (string) ( $patients[ $row['patient_id'] ] ?? '' );
-}
-
-$state = MNS_Patient_Invoices::state( array_keys( $services ) );
-if ( MNS_Dev::is( 'filter-empty' ) ) {
-	$state['q'] = '00000';
-}
-if ( MNS_Dev::is( 'tab-empty' ) ) {
-	$state['tab'] = 'unpaid';
-	$items        = array_values(
-		array_filter(
-			$items,
-			static function ( $row ) {
-				return 'paid' === $row['status'];
-			}
-		)
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
+if ( $use_real && class_exists( 'MNS_Invoices', true ) ) {
+	$live = MNS_Invoices::list_for_account( get_current_user_id(), 50 );
+	$data = array(
+		'items'    => array(),
+		'patients' => array(),
+		'services' => array(),
 	);
+	foreach ( $live as $inv ) {
+		$data['items'][] = array(
+			'id'         => (string) $inv['id'],
+			'number'     => (string) $inv['number'],
+			'status'     => (string) $inv['status'],
+			'amount'     => (int) $inv['amount'],
+			'patient_id' => '',
+			'service'    => '',
+			'when'       => (string) ( $inv['issued_at'] ?? '' ),
+		);
+	}
+	$items    = $data['items'];
+	$patients = array();
+	$services = array();
+} else {
+	$data     = MNS_Static_Fixtures::get( 'patient/invoices' );
+	$items    = isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array();
+	$patients = isset( $data['patients'] ) && is_array( $data['patients'] ) ? $data['patients'] : array();
+	$services = isset( $data['services'] ) && is_array( $data['services'] ) ? $data['services'] : array();
+
+	if ( MNS_Dev::is( 'empty' ) ) {
+		$items = array();
+	}
+	foreach ( $items as $i => $row ) {
+		$items[ $i ]['patient_name'] = (string) ( $patients[ $row['patient_id'] ] ?? '' );
+	}
+}
+
+$state = class_exists( 'MNS_Patient_Invoices', true )
+	? MNS_Patient_Invoices::state( array_keys( is_array( $services ?? null ) ? $services : array() ) )
+	: array( 'tab' => 'unpaid', 'q' => '' );
+if ( ! $use_real ) {
+	if ( MNS_Dev::is( 'filter-empty' ) ) {
+		$state['q'] = '00000';
+	}
+	if ( MNS_Dev::is( 'tab-empty' ) ) {
+		$state['tab'] = 'unpaid';
+		$items        = array_values(
+			array_filter(
+				$items,
+				static function ( $row ) {
+					return 'paid' === $row['status'];
+				}
+			)
+		);
+	}
 }
 
 /* Unpaid summary is account-wide (not affected by filters). */

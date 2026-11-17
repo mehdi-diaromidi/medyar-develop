@@ -21,8 +21,6 @@ use DrPlus\Utils\Notifications;
 use DrPlus\Utils\Options;
 use DrPlus\Utils\User;
 use DrPlus\Utils\WC;
-use Sheyda\Wallet\Utils\Settings as WalletSettings;
-use SheydaWalletUtils as WalletUtils;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -38,6 +36,29 @@ if( Utils::to_bool( $options['show-notif-count'] ) ) {
 $nav_icons = WC::my_account_menu_link_icons();
 $user = wp_get_current_user();
 $user_phone = User::get_phone( $user->ID );
+
+// Wallet balance: prefer Medyar Toman Wallet; fall back to theme Sheyda wallet if loaded.
+$wallet_balance_html = '';
+if ( class_exists( 'Wallet_Manager' ) ) {
+	$balance = (int) \Wallet_Manager::get_instance()->get_balance( $user->ID );
+	$wallet_balance_html = sprintf(
+		'%s %s',
+		Formatters::price( absint( $balance ) ),
+		'تومان'
+	);
+} elseif ( class_exists( 'Sheyda\\Wallet\\Utils\\Settings' ) && class_exists( 'SheydaWalletUtils' ) ) {
+	$wallet_settings = \Sheyda\Wallet\Utils\Settings::get_settings();
+	if ( ! empty( $wallet_settings['enable'] ) ) {
+		$user_balance = \SheydaWalletUtils::get_user_balance();
+		if ( ! empty( $user_balance ) && isset( $user_balance->balance ) && isset( $user_balance->locked ) ) {
+			$wallet_balance_html = sprintf(
+				'%s %s',
+				Formatters::price( absint( intval( $user_balance->balance ) - intval( $user_balance->locked ) ) ),
+				get_woocommerce_currency_symbol()
+			);
+		}
+	}
+}
 
 do_action( 'woocommerce_before_account_navigation' );
 ?>
@@ -57,19 +78,12 @@ do_action( 'woocommerce_before_account_navigation' );
 				<?php echo esc_html( Utils::to_bool( $options['use-outside-iran'] ) ? $user_phone : Formatters::phone( $user_phone ) ) ?>
 			</div>
 		<?php } ?>
-		<?php if( WalletSettings::get_settings()['enable'] ) { ?>
-			<?php
-			$user_balance = WalletUtils::get_user_balance();
-			if( !empty( $user_balance ) && isset( $user_balance->balance ) && isset( $user_balance->locked ) ) {
-				?>
-				<div class="myaccount-user-wallet-balance">
-					<span class="myaccount-user-wallet-balance-label"><?php esc_html_e( 'Your balance:', 'drplus' ) ?></span>
-					<span class="myaccount-user-wallet-balance-value"><?php printf( '%s %s', Formatters::price( absint( intval( $user_balance->balance ) - intval( $user_balance->locked ) ) ), get_woocommerce_currency_symbol() ) ?></span>
-				</div>
-				<?php
-			}
-		}
-		?>
+		<?php if ( $wallet_balance_html !== '' ) { ?>
+			<div class="myaccount-user-wallet-balance">
+				<span class="myaccount-user-wallet-balance-label"><?php esc_html_e( 'Your balance:', 'drplus' ) ?></span>
+				<span class="myaccount-user-wallet-balance-value"><?php echo esc_html( $wallet_balance_html ); ?></span>
+			</div>
+		<?php } ?>
 		<div class="myaccount-sidebar-header-bottom">
 			<img src="<?php echo DRPLUS_URI . "/assets/images/science-group-icons.svg" ?>" alt="">
 		</div>

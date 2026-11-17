@@ -15,6 +15,8 @@
 | 7 | `inc/sms/Gateways/FarazsmsNew.php` | خطای HTTP/API الگو را به `wp_error` تبدیل کند |
 | 8 | `inc/AJAX/Search.php` | جلوگیری از fatal ۵۰۰ در AJAX جستجو وقتی `exclude_post_types` آرایه نیست |
 | 9 | `inc/sms/Gateways/SMS.php` | فیلتر `drplus/sms/pre_send` تا پیامک‌های رزرو در صف `medyar-sms-queue` ثبت شوند |
+| 10 | `templates/chats/template-chats-list.php` | ترتیب/زمان فهرست گفت‌وگوها |
+| 11 | `woocommerce/myaccount/navigation.php` | جلوگیری از fatal وقتی Sheyda Wallet لود نیست؛ موجودی از `Wallet_Manager` |
 | — | mu-plugin `medyar-reserve-book-sms.php` | مالک ثبت + بلاک تکراری (با آپدیت تم معمولاً نمی‌پرد؛ در MEDYAR-REAPPLY) |
 
 مسیر پایه قالب:
@@ -581,6 +583,45 @@ MEDYAR PATCH
 
 ---
 
+## پچ ۱۱ — `navigation.php` — موجودی کیف بدون fatal Sheyda
+
+### فایل
+
+```text
+wp-content/themes/dr-plus/woocommerce/myaccount/navigation.php
+```
+
+### چرا لازم است؟
+
+با فعال بودن `medyar-toman-wallet`، ماژول Sheyda داخل قالب لزوماً کلاس `Sheyda\Wallet\Utils\Settings` را لود نمی‌کند. قالب اصلی در سایدبار حساب این را صدا می‌زند:
+
+```php
+use Sheyda\Wallet\Utils\Settings as WalletSettings;
+…
+WalletSettings::get_settings()['enable']
+```
+
+نتیجه: `Uncaught Error: Class "Sheyda\Wallet\Utils\Settings" not found` → `/my-account/` و ریدایرکت بعد از `/medlogin` با Upstream 500 می‌میرد.
+
+### تغییر
+
+- حذف `use` سخت به کلاس‌های Sheyda
+- اگر `Wallet_Manager` هست → موجودی تومان از Medyar Toman Wallet
+- وگرنه اگر کلاس‌های Sheyda لود باشند → همان منطق قبلی با `class_exists`
+- اگر هیچ‌کدام نبود → بلوک موجودی نشان داده نشود (بدون fatal)
+
+### علامت جستجو / بازاعمال
+
+```text
+Wallet_Manager
+Sheyda\\Wallet\\Utils\\Settings
+myaccount-user-wallet-balance
+```
+
+اگر پچ پاک شود و Sheyda لود نباشد: دوباره ۵۰۰ روی my-account.
+
+---
+
 ## چک‌لیست بعد از آپدیت قالب (SMS / Auth)
 
 1. [ ] `utils-booking.php` — متدهای پچ ۳
@@ -591,15 +632,16 @@ MEDYAR PATCH
 6. [ ] `Search.php` — پچ ۸ (AJAX جستجو)
 6b. [ ] `SMS.php` — پچ ۹ (`drplus/sms/pre_send`)؛ تست: ثبت رزرو → ردیف `booking` در «صف پیامک»
 6c. [ ] `template-chats-list.php` — پچ ۱۰ (`drplus/chats/list_sessions`)؛ تست: فهرست گفت‌وگوهای متخصص جدید→قدیم با ساعت شروع مکالمه
+6d. [ ] `navigation.php` — پچ ۱۱ (`Wallet_Manager` / guard Sheyda)؛ تست: `/my-account/` بدون ۵۰۰ و موجودی تومان در سایدبار
 7. [ ] mu-pluginهای `medyar-reserve-book-sms.php` و `medyar-skip-pwsms-booking-orders.php` سر جایشان
-8. [ ] تست: ثبت → ۱ پیامک؛ لغو → پیامک لغو؛ یادآور طبق زمان‌بندی؛ فراموشی رمز → پیامک عددی؛ جستجوی هدر بدون ۵۰۰
+8. [ ] تست: ثبت → ۱ پیامک؛ لغو → پیامک لغو؛ یادآور طبق زمان‌بندی؛ فراموشی رمز → پیامک عددی؛ جستجوی هدر بدون ۵۰۰؛ لاگین `/medlogin` → my-account
 
 ---
 
 ## نسخه مرجع
 
 - قالب: `dr-plus`
-- آخرین به‌روزرسانی: ۱۴۰۵/۰۸/۱۱ (2026-11-02) — پچ ۱۰ ترتیب/زمان فهرست گفت‌وگوها
-- پچ‌های قالب: **۱ تا ۱۰**
+- آخرین به‌روزرسانی: ۱۴۰۴/۰۸/۲۷ (2026-11-18) — پچ ۱۱ navigation کیف پول / رفع ۵۰۰ my-account
+- پچ‌های قالب: **۱ تا ۱۱**
 - منبع: پچ‌های اعمال‌شده روی production / workspace محلی Medyar
 - سند مکمل پلاگین‌ها / mu-pluginها: `docs/MEDYAR-REAPPLY-PATCHES-AFTER-UPDATE.md`

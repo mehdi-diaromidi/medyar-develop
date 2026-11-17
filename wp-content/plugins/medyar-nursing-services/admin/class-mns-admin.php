@@ -22,6 +22,15 @@ class MNS_Admin {
 	public function init(): void {
 		MNS_Admin_Menu::instance()->init();
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_filter( 'removable_query_args', array( $this, 'removable_query_args' ) );
+	}
+
+	/**
+	 * @param string[] $args Removable query args.
+	 * @return string[]
+	 */
+	public function removable_query_args( array $args ): array {
+		return array_merge( $args, array( 'mns_notice', 'mns_count' ) );
 	}
 
 	/**

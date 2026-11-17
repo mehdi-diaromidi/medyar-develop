@@ -15,7 +15,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'nurse' ) ) {
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
+$code_q   = isset( $_GET['mns_order'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_order'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+if ( $use_real ) {
+	echo '<div class="mns-preview-banner" role="status">' . esc_html__( 'چک‌لیست سفارش از دادهٔ زنده بارگذاری می‌شود؛ فرم کامل در مسیر خدمت فعال است.', 'medyar-nursing-services' ) . '</div>';
+	if ( '' !== $code_q && class_exists( 'MNS_Nurse_Orders_Api', true ) && class_exists( 'MNS_Execution', true ) ) {
+		try {
+			$ord = MNS_Nurse_Orders_Api::get_for( get_current_user_id(), $code_q );
+			global $wpdb;
+			$oid = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s', $code_q ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+			$steps = $oid ? MNS_Execution::steps_for( $oid ) : MNS_Execution::empty_steps();
+			MNS_UI::empty_state(
+				array(
+					'title' => (string) ( $ord['service'] ?? __( 'چک‌لیست', 'medyar-nursing-services' ) ),
+					'text'  => sprintf(
+						/* translators: status */
+						__( 'وضعیت مرحله: %s', 'medyar-nursing-services' ),
+						(string) ( $steps['checklist']['state'] ?? 'locked' )
+					),
+					'icon'  => 'check',
+				)
+			);
+		} catch ( \Throwable $e ) {
+			MNS_UI::partial( 'not-found', array( 'panel' => 'nurse' ) );
+		}
+	} else {
+		MNS_UI::empty_state(
+			array(
+				'title' => __( 'چک‌لیست', 'medyar-nursing-services' ),
+				'text'  => __( 'سفارشی انتخاب نشده است.', 'medyar-nursing-services' ),
+				'icon'  => 'list',
+			)
+		);
+	}
 	return;
 }
 

@@ -161,18 +161,22 @@ class MNS_Admin_Nurses {
 
 		$table = new MNS_Nurses_Table();
 		$table->prepare_items();
-		echo '<div class="wrap"><h1>' . esc_html__( 'عضویت پرستاران', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header( __( 'عضویت پرستاران', 'medyar-nursing-services' ) );
 		echo '<form method="get">';
 		echo '<input type="hidden" name="page" value="mns-nurses" />';
+		echo '<div class="alignleft actions mns-filters">';
 		$status = isset( $_GET['mns_status'] ) ? sanitize_key( wp_unslash( $_GET['mns_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		echo '<select name="mns_status"><option value="">' . esc_html__( 'همه وضعیت‌ها', 'medyar-nursing-services' ) . '</option>';
+		echo '<select name="mns_status" class="mns-autosubmit"><option value="">' . esc_html__( 'همه وضعیت‌ها', 'medyar-nursing-services' ) . '</option>';
 		foreach ( array( 'pending', 'approved', 'rejected', 'suspended' ) as $st ) {
 			echo '<option value="' . esc_attr( $st ) . '" ' . selected( $status, $st, false ) . '>' . esc_html( $st ) . '</option>';
 		}
 		echo '</select> ';
+		submit_button( __( 'فیلتر', 'medyar-nursing-services' ), '', 'filter_action', false );
+		echo '</div>';
 		$table->search_box( __( 'جستجو', 'medyar-nursing-services' ), 'mns-nurse' );
 		$table->display();
-		echo '</form></div>';
+		echo '</form>';
+		MNS_Admin_Ui::footer();
 	}
 
 	private static function render_detail( int $user_id ): void {
@@ -194,7 +198,11 @@ class MNS_Admin_Nurses {
 		$mine = $wpdb->get_col( $wpdb->prepare( 'SELECT service_id FROM ' . MNS_DB::table( 'nurse_services' ) . ' WHERE nurse_id = %d', $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$mine = array_map( 'intval', is_array( $mine ) ? $mine : array() );
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'جزئیات درخواست پرستار', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header(
+			__( 'جزئیات درخواست پرستار', 'medyar-nursing-services' ),
+			array( array( 'label' => __( 'بازگشت', 'medyar-nursing-services' ), 'url' => MNS_Admin_Ui::url( MNS_Admin_Menu::SLUG_NURSES ) ) )
+		);
+		echo '<div class="mns-nurse-detail">';
 		echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=mns-nurses' ) ) . '">&larr; ' . esc_html__( 'بازگشت', 'medyar-nursing-services' ) . '</a></p>';
 		echo '<table class="widefat striped"><tbody>';
 		echo '<tr><th>' . esc_html__( 'نام', 'medyar-nursing-services' ) . '</th><td>' . esc_html( $user ? $user->display_name : '' ) . '</td></tr>';
@@ -243,6 +251,7 @@ class MNS_Admin_Nurses {
 			echo '</form>';
 		}
 		echo '</div>';
+		MNS_Admin_Ui::footer();
 	}
 
 	private static function action_form( string $action, int $user_id, string $label ): void {

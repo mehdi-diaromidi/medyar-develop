@@ -11,10 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'patient' ) ) {
-	return;
-}
-
+if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) && class_exists( 'MNS_Loyalty', true ) ) {
+	$d        = MNS_Loyalty::for_account( get_current_user_id() );
+	$filled   = max( 0, (int) $d['filled'] );
+	$required = max( 1, (int) $d['required'] );
+	$codes    = array();
+} else {
 $d        = MNS_Static_Fixtures::get( 'patient/loyalty' );
 $filled   = isset( $d['filled'] ) ? max( 0, (int) $d['filled'] ) : 0;
 $required = isset( $d['required'] ) ? max( 1, (int) $d['required'] ) : 5;
@@ -26,6 +28,7 @@ if ( MNS_Dev::is( 'empty' ) ) {
 }
 if ( MNS_Dev::is( 'full' ) ) {
 	$filled = $required;
+}
 }
 $filled    = min( $filled, $required );
 $left      = $required - $filled;

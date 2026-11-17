@@ -129,8 +129,8 @@ class MNS_Admin_E2E {
 			delete_transient( 'mns_e2e_flash_' . get_current_user_id() );
 		}
 
-		echo '<div class="wrap"><h1>MNS E2E sandbox</h1>';
-		echo '<p>' . esc_html__( 'فقط میزبان develop · پیش‌فرض خاموش · لینک ورود یکبارمصرف ۳۰ دقیقه‌ای.', 'medyar-nursing-services' ) . '</p>';
+		MNS_Admin_Ui::header( 'MNS E2E sandbox' );
+		echo '<p class="mns-lead">' . esc_html__( 'فقط میزبان develop · پیش‌فرض خاموش · لینک ورود یکبارمصرف ۳۰ دقیقه‌ای.', 'medyar-nursing-services' ) . '</p>';
 
 		if ( $enabled ) {
 			echo '<div class="notice notice-success"><p>فعال تا: <code>' . esc_html( gmdate( 'Y-m-d H:i:s', $until ) ) . ' UTC</code></p></div>';
@@ -202,7 +202,7 @@ class MNS_Admin_E2E {
 			}
 			echo '</tbody></table>';
 		}
-		echo '</div>';
+		MNS_Admin_Ui::footer();
 	}
 
 	private static function guard(): void {

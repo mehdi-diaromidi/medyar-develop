@@ -95,7 +95,12 @@ class MNS_Admin_Settings {
 			60
 		);
 
-		wp_safe_redirect( admin_url( 'admin.php?page=' . MNS_Admin_Menu::SLUG_SETTINGS ) );
+		$tab = isset( $_POST['tab'] ) ? sanitize_key( wp_unslash( (string) $_POST['tab'] ) ) : '';
+		$args = array( 'mns_notice' => 'saved' );
+		if ( '' !== $tab ) {
+			$args['tab'] = $tab;
+		}
+		wp_safe_redirect( MNS_Admin_Ui::url( MNS_Admin_Menu::SLUG_SETTINGS, $args ) );
 		exit;
 	}
 
@@ -120,11 +125,17 @@ class MNS_Admin_Settings {
 			$by_g[ $g ][ $key ] = $def;
 		}
 
-		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'تنظیمات MNS', 'medyar-nursing-services' ) . '</h1>';
+		$tabs = array();
+		foreach ( $groups as $gid => $glabel ) {
+			if ( ! empty( $by_g[ $gid ] ) ) {
+				$tabs[ $gid ] = $glabel;
+			}
+		}
+		$tab = MNS_Admin_Ui::current_tab( $tabs );
 
+		MNS_Admin_Ui::header( __( 'تنظیمات', 'medyar-nursing-services' ) );
 		if ( is_array( $flash ) ) {
-			echo '<div class="notice notice-success"><p>';
+			echo '<div class="notice notice-success inline is-dismissible"><p>';
 			echo esc_html(
 				sprintf(
 					/* translators: 1: saved count 2: skipped */
@@ -135,19 +146,16 @@ class MNS_Admin_Settings {
 			);
 			echo '</p></div>';
 		}
+		MNS_Admin_Ui::tabs( MNS_Admin_Menu::SLUG_SETTINGS, $tabs, $tab );
 
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="mns-tab-body">';
 		wp_nonce_field( 'mns_settings_save' );
 		echo '<input type="hidden" name="action" value="mns_settings_save" />';
+		echo '<input type="hidden" name="tab" value="' . esc_attr( $tab ) . '" />';
 
-		foreach ( $groups as $gid => $glabel ) {
-			if ( empty( $by_g[ $gid ] ) ) {
-				continue;
-			}
-			echo '<h2>' . esc_html( $glabel ) . '</h2>';
+		if ( ! empty( $by_g[ $tab ] ) ) {
 			echo '<table class="form-table" role="presentation"><tbody>';
-
-			foreach ( $by_g[ $gid ] as $key => $def ) {
+			foreach ( $by_g[ $tab ] as $key => $def ) {
 				$val   = MNS_Settings::get( $key );
 				$label = isset( $def['label'] ) ? (string) $def['label'] : $key;
 				$type  = $def['type'];
@@ -155,7 +163,7 @@ class MNS_Admin_Settings {
 
 				echo '<tr><th scope="row"><label for="' . esc_attr( 'mns-' . $key ) . '">';
 				echo esc_html( $label );
-				echo '</label><br><code>' . esc_html( $key ) . '</code></th><td>';
+				echo '</label><br><code class="mns-muted">' . esc_html( $key ) . '</code></th><td>';
 
 				if ( 'bool' === $type ) {
 					echo '<label><input type="checkbox" name="' . esc_attr( $name ) . '" id="' . esc_attr( 'mns-' . $key ) . '" value="1" ' . checked( (bool) $val, true, false ) . ' /> ';
@@ -182,11 +190,11 @@ class MNS_Admin_Settings {
 
 				echo '</td></tr>';
 			}
-
 			echo '</tbody></table>';
 		}
 
 		submit_button( __( 'ذخیره تنظیمات', 'medyar-nursing-services' ) );
-		echo '</form></div>';
+		echo '</form>';
+		MNS_Admin_Ui::footer();
 	}
 }

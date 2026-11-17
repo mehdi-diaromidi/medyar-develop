@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Schema {
 
 	/** Latest schema version shipped by this plugin build. */
-	public const LATEST = 1;
+	public const LATEST = 2;
 
 	/**
 	 * CREATE TABLE statements for a schema version.
@@ -24,17 +24,43 @@ class MNS_Schema {
 		if ( 1 === $version ) {
 			return self::sql_v1();
 		}
+		if ( 2 === $version ) {
+			return self::sql_v2();
+		}
 		return array();
 	}
 
 	/**
-	 * Short names for version 1 tables (same order as MNS_DB::TABLES).
+	 * Short names for a schema version.
 	 *
 	 * @return array<int,string>
 	 */
 	public static function tables_for( int $version ): array {
 		if ( 1 === $version ) {
-			return MNS_DB::TABLES;
+			return array(
+				'contract_versions',
+				'files',
+				'nurses',
+				'patients',
+				'nurse_services',
+				'nurse_regions',
+				'nurse_week',
+				'nurse_day_slots',
+				'services',
+				'orders',
+				'order_log',
+				'order_edits',
+				'notifications',
+			);
+		}
+		if ( 2 === $version ) {
+			return array(
+				'invoices',
+				'payments',
+				'surveys',
+				'loyalty_stamps',
+				'recurring_plans',
+			);
 		}
 		return array();
 	}
@@ -267,6 +293,97 @@ expires_at datetime DEFAULT NULL,
 PRIMARY KEY  (id),
 KEY user_seen (user_id,seen_at),
 KEY expires_at (expires_at)
+) {$cc};",
+		);
+	}
+
+	/**
+	 * M5–M7 tables.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function sql_v2(): array {
+		$cc        = MNS_DB::charset_collate();
+		$invoices  = MNS_DB::table( 'invoices' );
+		$payments  = MNS_DB::table( 'payments' );
+		$surveys   = MNS_DB::table( 'surveys' );
+		$loyalty   = MNS_DB::table( 'loyalty_stamps' );
+		$recurring = MNS_DB::table( 'recurring_plans' );
+
+		return array(
+			"CREATE TABLE {$invoices} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+order_id bigint(20) unsigned NOT NULL,
+account_user_id bigint(20) unsigned NOT NULL,
+nurse_user_id bigint(20) unsigned DEFAULT NULL,
+number varchar(32) NOT NULL DEFAULT '',
+status varchar(16) NOT NULL DEFAULT 'unpaid',
+amount bigint(20) NOT NULL DEFAULT 0,
+nurse_share bigint(20) NOT NULL DEFAULT 0,
+currency varchar(8) NOT NULL DEFAULT 'IRT',
+issued_at datetime NOT NULL,
+paid_at datetime DEFAULT NULL,
+meta longtext,
+created_at datetime NOT NULL,
+updated_at datetime NOT NULL,
+PRIMARY KEY  (id),
+UNIQUE KEY number (number),
+KEY order_id (order_id),
+KEY account_status (account_user_id,status),
+KEY status (status)
+) {$cc};",
+
+			"CREATE TABLE {$payments} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+invoice_id bigint(20) unsigned NOT NULL,
+method varchar(24) NOT NULL DEFAULT 'manual',
+amount bigint(20) NOT NULL DEFAULT 0,
+tracking varchar(64) NOT NULL DEFAULT '',
+actor_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+created_at datetime NOT NULL,
+PRIMARY KEY  (id),
+KEY invoice_id (invoice_id)
+) {$cc};",
+
+			"CREATE TABLE {$surveys} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+order_id bigint(20) unsigned NOT NULL,
+account_user_id bigint(20) unsigned NOT NULL,
+nurse_user_id bigint(20) unsigned DEFAULT NULL,
+scores longtext,
+comment text,
+status varchar(16) NOT NULL DEFAULT 'open',
+created_at datetime NOT NULL,
+submitted_at datetime DEFAULT NULL,
+PRIMARY KEY  (id),
+KEY account_status (account_user_id,status),
+KEY nurse_user_id (nurse_user_id)
+) {$cc};",
+
+			"CREATE TABLE {$loyalty} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+account_user_id bigint(20) unsigned NOT NULL,
+filled int(11) NOT NULL DEFAULT 0,
+required int(11) NOT NULL DEFAULT 5,
+updated_at datetime NOT NULL,
+PRIMARY KEY  (id),
+UNIQUE KEY account_user_id (account_user_id)
+) {$cc};",
+
+			"CREATE TABLE {$recurring} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+account_user_id bigint(20) unsigned NOT NULL,
+patient_id bigint(20) unsigned NOT NULL,
+service_id bigint(20) unsigned NOT NULL,
+status varchar(16) NOT NULL DEFAULT 'active',
+pattern varchar(64) NOT NULL DEFAULT '',
+remaining int(11) NOT NULL DEFAULT 0,
+next_date date DEFAULT NULL,
+meta longtext,
+created_at datetime NOT NULL,
+updated_at datetime NOT NULL,
+PRIMARY KEY  (id),
+KEY account_status (account_user_id,status)
 ) {$cc};",
 		);
 	}

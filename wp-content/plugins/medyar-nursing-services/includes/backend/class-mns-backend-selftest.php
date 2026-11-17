@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Backend_Selftest {
 
 	public static function boot(): void {
+		if ( ! is_admin() ) {
+			return;
+		}
 		MNS_Admin_Selftest::boot();
 		MNS_Admin_E2E::boot();
 		MNS_Admin_Reset::boot();

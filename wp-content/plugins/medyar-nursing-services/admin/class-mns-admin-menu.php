@@ -56,22 +56,21 @@ class MNS_Admin_Menu {
 	 * @return array{nurses_pending:int,needs_review:int,urgent_open:int,total:int}
 	 */
 	public function bubble_counts(): array {
-		$hub = array();
-		$file = MNS_PLUGIN_DIR . 'admin/static-fixtures/hub.php';
-		if ( is_readable( $file ) ) {
-			$loaded = require $file;
-			if ( is_array( $loaded ) && isset( $loaded['bubbles'] ) && is_array( $loaded['bubbles'] ) ) {
-				$hub = $loaded['bubbles'];
+		if ( class_exists( 'MNS_Admin_Stats', true ) && class_exists( 'MNS_DB', true ) && MNS_DB::table( 'orders' ) ) {
+			try {
+				return MNS_Admin_Stats::bubbles();
+			} catch ( \Throwable $e ) {
+				// fall through to empty.
 			}
 		}
-		$n = (int) ( $hub['nurses_pending'] ?? 0 );
-		$r = (int) ( $hub['needs_review'] ?? 0 );
-		$u = (int) ( $hub['urgent_open'] ?? 0 );
 		return array(
-			'nurses_pending' => $n,
-			'needs_review'   => $r,
-			'urgent_open'    => $u,
-			'total'          => $n + $r + $u,
+			'nurses_pending' => 0,
+			'needs_review'   => 0,
+			'urgent_open'    => 0,
+			'unassigned'     => 0,
+			'today'          => 0,
+			'in_progress'    => 0,
+			'total'          => 0,
 		);
 	}
 
@@ -143,7 +142,10 @@ class MNS_Admin_Menu {
 
 	public function render_dashboard(): void {
 		$this->guard();
-		$view = MNS_PLUGIN_DIR . 'admin/views/dashboard-stub.php';
+		$view = MNS_PLUGIN_DIR . 'admin/views/dashboard.php';
+		if ( ! is_readable( $view ) ) {
+			$view = MNS_PLUGIN_DIR . 'admin/views/dashboard-stub.php';
+		}
 		if ( is_readable( $view ) ) {
 			require $view;
 		}

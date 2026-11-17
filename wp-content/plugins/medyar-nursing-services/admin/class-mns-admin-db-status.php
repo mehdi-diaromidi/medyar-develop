@@ -243,8 +243,7 @@ class MNS_Admin_Db_Status {
 			delete_transient( 'mns_db_txtest_flash_' . $uid );
 		}
 
-		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'وضعیت دیتابیس MNS', 'medyar-nursing-services' ) . '</h1>';
+		MNS_Admin_Ui::header( __( 'وضعیت دیتابیس MNS', 'medyar-nursing-services' ) );
 
 		echo '<p>';
 		echo esc_html(
@@ -398,6 +397,6 @@ class MNS_Admin_Db_Status {
 			echo '</tbody></table>';
 		}
 
-		echo '</div>';
+		MNS_Admin_Ui::footer();
 	}
 }

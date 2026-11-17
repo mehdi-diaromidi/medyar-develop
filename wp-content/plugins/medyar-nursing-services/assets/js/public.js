@@ -3185,11 +3185,49 @@ function genTrackCode() {
 					}
 					ok.classList.add('is-loading');
 					ok.disabled = true;
-					/* TODO(backend): atomic UPDATE … WHERE status IN (…); on failure re-read the status from the server, then show the error line. */
-					window.setTimeout(function () {
+					var exec = ok.getAttribute('data-mns-exec');
+					var code = ok.getAttribute('data-mns-order');
+					var restBase = (window.mnsPublic && window.mnsPublic.restUrl) || '';
+					var restNonce = (window.mnsPublic && window.mnsPublic.restNonce) || '';
+					function failExec(msg) {
+						ok.classList.remove('is-loading');
+						ok.disabled = false;
+						if (err) err.textContent = msg || 'ثبت نشد، دوباره تلاش کنید.';
+					}
+					function goPreview() {
 						var go = ok.getAttribute('data-mns-go');
 						if (go) window.location.href = go;
-					}, 900);
+					}
+					if (exec && code && restBase && restNonce) {
+						fetch(restBase.replace(/\/$/, '') + '/nurse/orders/' + encodeURIComponent(code) + '/' + exec + '?_envelope=1', {
+							method: 'POST',
+							credentials: 'same-origin',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-WP-Nonce': restNonce
+							},
+							body: '{}'
+						})
+							.then(function (r) {
+								return r.json().then(function (raw) {
+									return { http: r.status, raw: raw };
+								});
+							})
+							.then(function (pack) {
+								var body = typeof unwrapMns === 'function' ? unwrapMns(pack.raw) : pack.raw;
+								if (body && body.ok) {
+									window.location.reload();
+									return;
+								}
+								var msg = (body && body.error && body.error.message) || (body && body.message) || '';
+								failExec(msg);
+							})
+							.catch(function () {
+								failExec('');
+							});
+						return;
+					}
+					window.setTimeout(goPreview, 900);
 				});
 			}
 		});

@@ -12,7 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'patient' ) ) {
+if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) ) {
+	MNS_UI::empty_state(
+		array(
+			'title' => __( 'فاکتور', 'medyar-nursing-services' ),
+			'text'  => __( 'جزئیات فاکتور از فهرست فاکتورها در دسترس است.', 'medyar-nursing-services' ),
+			'icon'  => 'list',
+		)
+	);
 	return;
 }
 

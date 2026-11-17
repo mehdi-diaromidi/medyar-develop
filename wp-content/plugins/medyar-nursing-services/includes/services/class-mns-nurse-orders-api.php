@@ -182,18 +182,26 @@ class MNS_Nurse_Orders_Api {
 			$ess_lines[ (string) $k ] = $v;
 		}
 		$status = (string) $api['status'];
-		$steps  = array(
-			'checklist' => array( 'state' => 'locked' ),
-			'drug'      => array( 'state' => 'locked' ),
-			'report'    => array( 'state' => 'locked' ),
-		);
+		$steps  = class_exists( 'MNS_Execution', true )
+			? MNS_Execution::steps_for( self::id_by_code( $code ) )
+			: array(
+				'checklist' => array( 'state' => 'locked' ),
+				'drug'      => array( 'state' => 'locked' ),
+				'report'    => array( 'state' => 'locked' ),
+			);
 		if ( in_array( $status, array( 'in_progress', 'medication' ), true ) ) {
-			$steps['checklist']['state'] = 'todo';
-			$steps['drug']['state']      = 'todo';
+			if ( ( $steps['checklist']['state'] ?? '' ) === 'locked' ) {
+				$steps['checklist']['state'] = 'todo';
+			}
+			if ( ( $steps['drug']['state'] ?? '' ) === 'locked' ) {
+				$steps['drug']['state'] = 'todo';
+			}
 		} elseif ( in_array( $status, array( 'service_ended', 'needs_review', 'completed', 'cancelled' ), true ) ) {
-			$steps['checklist']['state'] = 'todo';
-			$steps['drug']['state']      = 'todo';
-			$steps['report']['state']    = 'todo';
+			foreach ( array( 'checklist', 'drug', 'report' ) as $sk ) {
+				if ( ( $steps[ $sk ]['state'] ?? '' ) === 'locked' ) {
+					$steps[ $sk ]['state'] = 'todo';
+				}
+			}
 		}
 		return array(
 			'status'       => $status,
@@ -217,5 +225,11 @@ class MNS_Nurse_Orders_Api {
 			'changed'      => false,
 			'cancelled_by' => '',
 		);
+	}
+
+	private static function id_by_code( string $code ): int {
+		global $wpdb;
+		$id = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s LIMIT 1', $code ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+		return (int) $id;
 	}
 }

@@ -11,14 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_UI::soon_for_real( 'patient' ) ) {
-	return;
-}
-
+if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) && class_exists( 'MNS_Surveys', true ) ) {
+	$pack       = MNS_Surveys::for_account( get_current_user_id() );
+	$open       = $pack['open'];
+	$done       = $pack['done'];
+	$complaints = array();
+} else {
 $data       = MNS_Static_Fixtures::get( 'patient/surveys' );
 $open       = isset( $data['open'] ) && is_array( $data['open'] ) ? $data['open'] : array();
 $done       = isset( $data['done'] ) && is_array( $data['done'] ) ? $data['done'] : array();
 $complaints = isset( $data['complaints'] ) && is_array( $data['complaints'] ) ? $data['complaints'] : array();
+}
 
 $mode = isset( $_GET['mns_tab'] ) ? sanitize_key( wp_unslash( $_GET['mns_tab'] ) ) : 'open'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 if ( ! in_array( $mode, array( 'open', 'done', 'complaint' ), true ) ) {

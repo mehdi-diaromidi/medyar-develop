@@ -766,5 +766,5 @@ docs/CHAT.md
 | medyar-myaccount-dashboard | **1.1.0** (پیامک ادمین رزرو) |
 | lab-booking-system | پچ JS + **پیامک ادمین متن‌آزاد** (`lab-admin-sms`) |
 | pharmacy-pro-system | پچ JS تداخل نام |
-| پچ‌های قالب dr-plus | **۱ تا ۹** (→ THEME-PATCHES) |
+| پچ‌های قالب dr-plus | **۱ تا ۱۱** (→ THEME-PATCHES) |
 | محدوده | SMS ثبت/لغو/یادآور/ادمین/فراموشی‌رمز + فیزیکی + کیف پول + پچ تم + آزمایشگاه/داروخانه |
