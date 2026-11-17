@@ -63,21 +63,59 @@ class PSC_Torob {
 			return $out;
 		}
 
-		$json = json_decode( $res['body'], true );
-		if ( ! is_array( $json ) || ! isset( $json['results'] ) || ! is_array( $json['results'] ) ) {
+		$out = self::normalize( json_decode( $res['body'], true ), $out );
+		if ( ! $out['ok'] ) {
+			return $out;
+		}
+
+		set_transient( $cache_key, $out, self::CACHE_TTL );
+		return $out;
+	}
+
+	/**
+	 * Build a seller block from data the admin's own browser fetched on torob.com
+	 * (bookmarklet). The payload is untrusted and fully sanitized here.
+	 *
+	 * @param string $page_url Torob page the admin was on.
+	 * @param mixed  $api      Decoded sellers API answer, or null.
+	 * @param mixed  $next     Decoded __NEXT_DATA__ of the page, or null.
+	 * @param int    $status   HTTP status the browser got from the API.
+	 */
+	public static function from_browser( $page_url, $api, $next, $status ) {
+		$out = array(
+			'ok'      => false,
+			'error'   => '',
+			'diag'    => array( 'via' => 'browser', 'api_status' => (int) $status ),
+			'sellers' => array(),
+			'prk'     => self::prk_from_url( $page_url ),
+			'url'     => self::is_torob_url( $page_url ) ? esc_url_raw( $page_url ) : '',
+		);
+
+		$out = self::normalize( $api, $out );
+		if ( ! $out['ok'] && null !== $next ) {
+			// Fallback: the page itself embeds (part of) the seller list.
+			$out['error'] = '';
+			$out          = self::normalize( $next, $out );
+			$out['diag']['via'] = 'browser-page-data';
+		}
+		return $out;
+	}
+
+	/** Find the seller rows anywhere in a decoded Torob JSON document. */
+	private static function normalize( $json, array $out ) {
+		$rows = self::find_seller_rows( $json, 0 );
+		if ( ! $rows ) {
 			$out['error'] = __( 'Torob answered, but not with the expected seller list (see diagnostics).', 'product-scout' );
 			return $out;
 		}
 
-		$out['diag']['sample'] = isset( $json['results'][0] ) ? $json['results'][0] : null;
+		$out['diag']['sample'] = $rows[0];
+		$out['diag']['count']  = count( $rows );
 
 		$seen = array();
-		foreach ( $json['results'] as $row ) {
-			if ( ! is_array( $row ) ) {
-				continue;
-			}
+		foreach ( $rows as $row ) {
 			// Promoted rows repeat an organic offer with the same prk.
-			$offer = isset( $row['prk'] ) ? (string) $row['prk'] : '';
+			$offer = isset( $row['prk'] ) && is_scalar( $row['prk'] ) ? (string) $row['prk'] : '';
 			if ( '' !== $offer && isset( $seen[ $offer ] ) ) {
 				continue;
 			}
@@ -92,18 +130,41 @@ class PSC_Torob {
 			}
 
 			$out['sellers'][] = array(
-				'shop'      => sanitize_text_field( (string) ( $row['shop_name'] ?? '' ) ),
-				'city'      => sanitize_text_field( (string) ( $row['shop_name2'] ?? '' ) ),
-				'shop_id'   => (int) ( $row['shop_id'] ?? 0 ),
-				'price'     => sanitize_text_field( (string) ( $row['price_text'] ?? '' ) ),
+				'shop'      => sanitize_text_field( self::scalar( $row['shop_name'] ?? '' ) ),
+				'city'      => sanitize_text_field( self::scalar( $row['shop_name2'] ?? '' ) ),
+				'shop_id'   => (int) self::scalar( $row['shop_id'] ?? 0 ),
+				'price'     => sanitize_text_field( self::scalar( $row['price_text'] ?? '' ) ),
 				'available' => ! empty( $row['availability'] ),
 				'link'      => $link,
 			);
 		}
 
 		$out['ok'] = true;
-		set_transient( $cache_key, $out, self::CACHE_TTL );
 		return $out;
+	}
+
+	/** Largest list of objects that carry a shop_name, searched depth-first. */
+	private static function find_seller_rows( $node, $depth ) {
+		if ( ! is_array( $node ) || $depth > 12 ) {
+			return array();
+		}
+		$best = array();
+		if ( isset( $node[0] ) && is_array( $node[0] ) && isset( $node[0]['shop_name'] ) ) {
+			$best = array_values( array_filter( $node, function ( $r ) {
+				return is_array( $r ) && isset( $r['shop_name'] );
+			} ) );
+		}
+		foreach ( $node as $child ) {
+			$found = self::find_seller_rows( $child, $depth + 1 );
+			if ( count( $found ) > count( $best ) ) {
+				$best = $found;
+			}
+		}
+		return $best;
+	}
+
+	private static function scalar( $v ) {
+		return is_scalar( $v ) ? (string) $v : '';
 	}
 
 	/**
