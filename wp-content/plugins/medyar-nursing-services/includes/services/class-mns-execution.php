@@ -51,12 +51,43 @@ class MNS_Execution {
 		if ( ! isset( $steps[ $step ] ) ) {
 			throw MNS_Error::validation( 'مرحله نامعتبر است.' );
 		}
+
+		// Supervisor fix: a nurse may only fill an unlocked step while the visit is running or just ended
+		// (never after completion/invoice/payment/cancel), and only whitelisted, sanitized, size-capped data.
+		if ( 'nurse' === $role ) {
+			if ( ! in_array( (string) $order['status'], array( 'in_progress', 'service_ended', 'needs_review' ), true ) ) {
+				throw MNS_Error::bad_state();
+			}
+			$current_state = isset( $steps[ $step ]['state'] ) ? (string) $steps[ $step ]['state'] : 'locked';
+			if ( 'locked' === $current_state ) {
+				// Same opening rule the nurse view uses: checklist/drug open during the visit, everything after it ends.
+				$ostatus = (string) $order['status'];
+				$opened  = ( 'in_progress' === $ostatus && in_array( $step, array( 'checklist', 'drug' ), true ) )
+					|| in_array( $ostatus, array( 'service_ended', 'needs_review' ), true );
+				if ( ! $opened ) {
+					throw MNS_Error::forbidden( 'این مرحله هنوز باز نشده است.' );
+				}
+			}
+			$clean = array();
+			if ( isset( $data['state'] ) && in_array( (string) $data['state'], array( 'draft', 'done' ), true ) ) {
+				$clean['state'] = (string) $data['state'];
+			}
+			foreach ( array( 'items', 'sections' ) as $list_key ) {
+				if ( isset( $data[ $list_key ] ) && is_array( $data[ $list_key ] ) ) {
+					$clean[ $list_key ] = map_deep( $data[ $list_key ], 'sanitize_textarea_field' );
+				}
+			}
+			if ( strlen( (string) wp_json_encode( $clean ) ) > 20000 ) {
+				throw MNS_Error::validation( 'حجم اطلاعات مرحله بیش از حد مجاز است.' );
+			}
+			$data = $clean;
+		}
 		$steps[ $step ] = array_merge( is_array( $steps[ $step ] ) ? $steps[ $step ] : array(), $data );
 		if ( empty( $steps[ $step ]['state'] ) ) {
 			$steps[ $step ]['state'] = 'draft';
 		}
 		global $wpdb;
-		$wpdb->update(
+		$saved = $wpdb->update(
 			MNS_DB::table( 'orders' ),
 			array(
 				'steps'      => wp_json_encode( $steps ),
@@ -64,6 +95,9 @@ class MNS_Execution {
 			),
 			array( 'id' => $order_id )
 		);
+		if ( false === $saved ) {
+			throw MNS_Error::server( 'ذخیرهٔ مرحله ممکن نشد.' );
+		}
 		return $steps;
 	}
 

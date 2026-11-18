@@ -15,6 +15,7 @@ class MNS_Selftest_Money {
 		MNS_Selftest::register( 'AC-M5-1', 'Invoice needs an amount; issue is idempotent', array( __CLASS__, 'ac_m5_1' ) );
 		MNS_Selftest::register( 'AC-M5-2', 'Payment recorded once (double pay rejected)', array( __CLASS__, 'ac_m5_2' ) );
 		MNS_Selftest::register( 'AC-M5-3', 'Invoice visible only to its account', array( __CLASS__, 'ac_m5_3' ) );
+		MNS_Selftest::register( 'AC-M4-1', 'Nurse step saving: state, ownership, whitelist', array( __CLASS__, 'ac_m4_1' ) );
 	}
 
 	/**
@@ -199,6 +200,103 @@ class MNS_Selftest_Money {
 			return array( 'ok' => false, 'detail' => get_class( $e ) . ':' . $e->getMessage() );
 		} finally {
 			self::purge_money( $ctx );
+			MNS_Selftest_Orders::cleanup_ctx( $ctx );
+		}
+	}
+
+	/**
+	 * @return array{ok:bool,detail:string}
+	 */
+	public static function ac_m4_1(): array {
+		$ctx = null;
+		try {
+			$ctx   = MNS_Selftest_Orders::seed_green();
+			$order = self::ended_order( $ctx );
+			$oid   = (int) $order['id'];
+			$nurse = (int) $ctx['nurse_uid'];
+			global $wpdb;
+			$set_status = static function ( string $status ) use ( $wpdb, $oid ) {
+				$wpdb->update( MNS_DB::table( 'orders' ), array( 'status' => $status ), array( 'id' => $oid ), array( '%s' ), array( '%d' ) );
+			};
+			$expect = static function ( callable $fn, string $label ) {
+				try {
+					$fn();
+				} catch ( MNS_Error $e ) {
+					return null;
+				}
+				return $label;
+			};
+
+			// Visit not started yet ⇒ rejected.
+			$set_status( 'assigned' );
+			$bad = $expect(
+				static function () use ( $oid, $nurse ) {
+					MNS_Execution::save_step( $oid, 'checklist', array( 'state' => 'done' ), $nurse, 'nurse' );
+				},
+				'saved_before_start'
+			);
+			if ( $bad ) {
+				return array( 'ok' => false, 'detail' => $bad );
+			}
+
+			// In progress: checklist is open; junk keys and a forged state are ignored.
+			$set_status( 'in_progress' );
+			$steps = MNS_Execution::save_step( $oid, 'checklist', array( 'state' => 'approved', 'evil' => 'x', 'items' => array( 'a' => '<b>ok</b>' ) ), $nurse, 'nurse' );
+			if ( isset( $steps['checklist']['evil'] ) || 'approved' === ( $steps['checklist']['state'] ?? '' ) || empty( $steps['checklist']['items'] ) ) {
+				return array( 'ok' => false, 'detail' => 'payload_not_whitelisted' );
+			}
+			if ( false !== strpos( wp_json_encode( $steps['checklist']['items'] ), '<b>' ) ) {
+				return array( 'ok' => false, 'detail' => 'html_not_sanitized' );
+			}
+
+			// The report step stays locked until the visit has ended.
+			$bad = $expect(
+				static function () use ( $oid, $nurse ) {
+					MNS_Execution::save_step( $oid, 'report', array( 'state' => 'draft' ), $nurse, 'nurse' );
+				},
+				'report_open_too_early'
+			);
+			if ( $bad ) {
+				return array( 'ok' => false, 'detail' => $bad );
+			}
+
+			// Another nurse can never write to this order.
+			$bad = $expect(
+				static function () use ( $oid, $nurse ) {
+					MNS_Execution::save_step( $oid, 'checklist', array( 'state' => 'done' ), $nurse + 99999, 'nurse' );
+				},
+				'foreign_nurse_wrote'
+			);
+			if ( $bad ) {
+				return array( 'ok' => false, 'detail' => $bad );
+			}
+
+			// Oversized payload is refused.
+			$bad = $expect(
+				static function () use ( $oid, $nurse ) {
+					MNS_Execution::save_step( $oid, 'checklist', array( 'items' => array( str_repeat( 'x', 30000 ) ) ), $nurse, 'nurse' );
+				},
+				'oversized_accepted'
+			);
+			if ( $bad ) {
+				return array( 'ok' => false, 'detail' => $bad );
+			}
+
+			// After completion nothing can be edited any more.
+			$set_status( 'completed' );
+			$bad = $expect(
+				static function () use ( $oid, $nurse ) {
+					MNS_Execution::save_step( $oid, 'report', array( 'state' => 'done' ), $nurse, 'nurse' );
+				},
+				'edited_after_completion'
+			);
+			if ( $bad ) {
+				return array( 'ok' => false, 'detail' => $bad );
+			}
+			return array( 'ok' => true, 'detail' => 'state_owner_whitelist_size_ok' );
+		} catch ( \Throwable $e ) {
+			return array( 'ok' => false, 'detail' => get_class( $e ) . ':' . $e->getMessage() );
+		} finally {
 			MNS_Selftest_Orders::cleanup_ctx( $ctx );
 		}
 	}
