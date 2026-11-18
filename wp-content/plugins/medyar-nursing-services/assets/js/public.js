@@ -1998,6 +1998,12 @@ function genTrackCode() {
 			var restBase = form.getAttribute('data-mns-rest-url') || (window.mnsPublic && window.mnsPublic.restUrl) || '';
 			var restNonce = form.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
 			if (!live || !restBase || !restNonce) {
+				/* A real patient must never see a made-up confirmation: refuse instead of pretending the order was saved. */
+				if (form.getAttribute('data-mns-real') === '1') {
+					unlockBtns();
+					showNoticeNear(form, 'ثبت سفارش اکنون ممکن نیست. صفحه را تازه کنید و دوباره تلاش کنید.', true);
+					return;
+				}
 				window.setTimeout(function () {
 					showConfirmation(genTrackCode());
 				}, 1100);

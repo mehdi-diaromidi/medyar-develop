@@ -346,6 +346,7 @@ $new_on  = 'new' === $default_mode;
 				data-mns-svc-label="<?php echo esc_attr( $svc_name ); ?>"
 				data-mns-support-tel="<?php echo esc_attr( MNS_UI::support_tel_href() ); ?>"
 				data-mns-live="<?php echo ! empty( $data['live'] ) ? '1' : '0'; ?>"
+				data-mns-real="<?php echo $use_real ? '1' : '0'; ?>"
 				data-mns-self-patient-id="<?php echo esc_attr( $self_patient_id ); ?>"
 				data-mns-rest-url="<?php echo esc_url( rest_url( 'mns/v1' ) ); ?>"
 				data-mns-rest-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"

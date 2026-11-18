@@ -92,11 +92,13 @@ if ( $use_real ) {
 					$entry['to']    = (int) $mm[3];
 					$entry['start'] = MNS_Time::slot_start_ts( $mm[1], $mm[2] . '-' . $mm[3] );
 				}
-				$agenda[] = $entry;
+				// The template adds $in_progress and $next to the day plan itself, so they must not also be in $agenda.
 				if ( 'in_progress' === $st && empty( $in_progress ) ) {
 					$in_progress = $entry;
 				} elseif ( empty( $next ) && 'assigned' === $st ) {
 					$next = $entry;
+				} else {
+					$agenda[] = $entry;
 				}
 			}
 		} catch ( \Throwable $e ) {
