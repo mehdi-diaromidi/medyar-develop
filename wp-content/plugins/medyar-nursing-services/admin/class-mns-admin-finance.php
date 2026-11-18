@@ -60,6 +60,8 @@ class MNS_Admin_Finance {
 		echo '<input type="hidden" name="action" value="mns_finance_issue" />';
 		echo '<label class="mns-label" for="order_id">صدور فاکتور برای سفارش #</label>';
 		echo '<input type="number" name="order_id" id="order_id" class="small-text" required />';
+		echo ' <label class="mns-label" for="amount">مبلغ نهایی (تومان)</label> ';
+		echo '<input type="number" name="amount" id="amount" class="regular-text" min="1" required />';
 		submit_button( 'صدور', 'secondary', 'submit', false );
 		echo '</form>';
 		echo '<table class="widefat striped mns-compact"><thead><tr><th>شماره</th><th>سفارش</th><th>مبلغ</th><th>پرداخت</th></tr></thead><tbody>';
@@ -144,9 +146,10 @@ class MNS_Admin_Finance {
 			wp_die( esc_html__( 'دسترسی ندارید.', 'medyar-nursing-services' ) );
 		}
 		check_admin_referer( 'mns_finance_issue' );
-		$oid = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
+		$oid    = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
+		$amount = isset( $_POST['amount'] ) ? absint( wp_unslash( $_POST['amount'] ) ) : 0;
 		try {
-			MNS_Invoices::issue_for_order( $oid, get_current_user_id() );
+			MNS_Invoices::issue_for_order( $oid, get_current_user_id(), $amount );
 			MNS_Admin_Ui::redirect( MNS_Admin_Menu::SLUG_FINANCE, 'invoice_issued', array( 'tab' => 'unpaid' ) );
 		} catch ( MNS_Error $e ) {
 			wp_die( esc_html( $e->getMessage() ) );

@@ -12,10 +12,24 @@ class MNS_Invoices {
 	/**
 	 * @return array<string,mixed>
 	 */
-	public static function issue_for_order( int $order_id, int $actor = 0 ): array {
+	public static function issue_for_order( int $order_id, int $actor = 0, int $amount_override = 0 ): array {
 		$order = MNS_Order_Machine::get_order( $order_id );
 		if ( ! $order ) {
 			throw MNS_Error::not_found();
+		}
+		// Supervisor fix: idempotent first (an existing invoice is returned untouched), and never issue a 0-toman invoice.
+		global $wpdb;
+		$already = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'invoices' ) . ' WHERE order_id = %d LIMIT 1', $order_id ), // phpcs:ignore WordPress.DB.PreparedSQL
+			ARRAY_A
+		);
+		if ( is_array( $already ) ) {
+			return $already;
+		}
+		$svc_pre = MNS_Services::get( (int) $order['service_id'] );
+		$amount_pre = $amount_override > 0 ? $amount_override : ( $svc_pre && isset( $svc_pre['price'] ) ? (int) $svc_pre['price'] : 0 );
+		if ( $amount_pre <= 0 ) {
+			throw MNS_Error::validation( 'مبلغ نهایی فاکتور را وارد کنید (تومان).', 'amount' );
 		}
 		$status = (string) $order['status'];
 		if ( ! in_array( $status, array( 'completed', 'service_ended', 'needs_review' ), true ) ) {
@@ -31,11 +45,7 @@ class MNS_Invoices {
 				$order = MNS_Order_Machine::get_order( $order_id );
 			}
 		}
-		$svc   = MNS_Services::get( (int) $order['service_id'] );
-		$amount = 0;
-		if ( $svc && isset( $svc['price'] ) ) {
-			$amount = (int) $svc['price'];
-		}
+		$amount = $amount_pre;
 		$share_pct = (float) MNS_Settings::get( 'nurse_share_percent' );
 		if ( $share_pct <= 0 ) {
 			$share_pct = 90;
@@ -43,15 +53,7 @@ class MNS_Invoices {
 		$share = (int) round( $amount * ( $share_pct / 100 ) );
 		$now   = MNS_Time::now_utc();
 		$number = 'INV-' . (string) $order['code'];
-		global $wpdb;
-		$existing = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'invoices' ) . ' WHERE order_id = %d LIMIT 1', $order_id ), // phpcs:ignore WordPress.DB.PreparedSQL
-			ARRAY_A
-		);
-		if ( is_array( $existing ) ) {
-			return $existing;
-		}
-		$wpdb->insert(
+		$inserted = $wpdb->insert(
 			MNS_DB::table( 'invoices' ),
 			array(
 				'order_id'         => $order_id,
@@ -66,6 +68,17 @@ class MNS_Invoices {
 				'updated_at'       => $now,
 			)
 		);
+		if ( false === $inserted ) {
+			// A concurrent issue (UNIQUE number) may have won; return that invoice, otherwise fail loudly.
+			$race = $wpdb->get_row(
+				$wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'invoices' ) . ' WHERE order_id = %d LIMIT 1', $order_id ), // phpcs:ignore WordPress.DB.PreparedSQL
+				ARRAY_A
+			);
+			if ( is_array( $race ) ) {
+				return $race;
+			}
+			throw MNS_Error::server( 'صدور فاکتور ممکن نشد.' );
+		}
 		$id = (int) $wpdb->insert_id;
 		try {
 			MNS_Order_Machine::transition(
@@ -124,25 +137,36 @@ class MNS_Invoices {
 			throw MNS_Error::bad_state();
 		}
 		$now = MNS_Time::now_utc();
-		$wpdb->insert(
-			MNS_DB::table( 'payments' ),
-			array(
-				'invoice_id'    => $invoice_id,
-				'method'        => sanitize_key( $method ),
-				'amount'        => (int) $inv['amount'],
-				'tracking'      => sanitize_text_field( $tracking ),
-				'actor_user_id' => $actor,
-				'created_at'    => $now,
-			)
-		);
-		$wpdb->update(
-			MNS_DB::table( 'invoices' ),
-			array(
-				'status'     => 'paid',
-				'paid_at'    => $now,
-				'updated_at' => $now,
-			),
-			array( 'id' => $invoice_id )
+		// Supervisor fix: atomic + guarded — only the request that flips unpaid→paid records the payment (no double payments).
+		MNS_DB::tx(
+			static function () use ( $wpdb, $invoice_id, $method, $tracking, $actor, $inv, $now ) {
+				$rows = $wpdb->query(
+					$wpdb->prepare(
+						'UPDATE ' . MNS_DB::table( 'invoices' ) . " SET status = 'paid', paid_at = %s, updated_at = %s WHERE id = %d AND status = 'unpaid'", // phpcs:ignore WordPress.DB.PreparedSQL
+						$now,
+						$now,
+						$invoice_id
+					)
+				);
+				if ( 1 !== (int) $rows ) {
+					throw MNS_Error::bad_state();
+				}
+				$ins = $wpdb->insert(
+					MNS_DB::table( 'payments' ),
+					array(
+						'invoice_id'    => $invoice_id,
+						'method'        => sanitize_key( $method ),
+						'amount'        => (int) $inv['amount'],
+						'tracking'      => sanitize_text_field( $tracking ),
+						'actor_user_id' => $actor,
+						'created_at'    => $now,
+					)
+				);
+				if ( false === $ins ) {
+					throw MNS_Error::server( 'ثبت پرداخت ممکن نشد.' );
+				}
+				return true;
+			}
 		);
 		try {
 			MNS_Order_Machine::transition(
