@@ -23,6 +23,22 @@ $phone    = isset( $profile['phone'] ) ? (string) $profile['phone'] : '';
 $phone_ui = '' !== $phone ? MNS_Format::mobile( $phone ) : '';
 $logout   = wp_logout_url( home_url( '/' ) );
 
+// Supervisor fix: a real nurse sees their own name/phone, never the fixture's.
+if ( MNS_Nurse_Access::is_real_panel_user( 'nurse' ) ) {
+	$display = trim( (string) $user->first_name . ' ' . (string) $user->last_name );
+	if ( '' === $display ) {
+		$display = (string) $user->display_name;
+	}
+	if ( '' === $display ) {
+		$display = __( 'پرستار', 'medyar-nursing-services' );
+	}
+	$phone = '';
+	if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
+		$phone = (string) \DrPlus\Utils\User::get_phone( (int) $user->ID );
+	}
+	$phone_ui = '' !== $phone ? MNS_Format::mobile( $phone ) : '';
+}
+
 if ( empty( $nav ) ) {
 	$nav = array(
 		array( 'slug' => 'dashboard', 'label' => 'داشبورد', 'icon' => 'home' ),

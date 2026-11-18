@@ -24,6 +24,29 @@ $phone    = isset( $profile['phone'] ) ? (string) $profile['phone'] : '';
 $phone_ui = '' !== $phone ? MNS_Format::mobile( $phone ) : '';
 $logout   = wp_logout_url( home_url( '/' ) );
 $unpaid_n = isset( $dash['stats']['unpaid_invoices'] ) ? (int) $dash['stats']['unpaid_invoices'] : 0;
+// Supervisor fix: a real patient sees their own name/phone and unpaid count, never the fixture's.
+if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) ) {
+	$display = trim( (string) $user->first_name . ' ' . (string) $user->last_name );
+	if ( '' === $display ) {
+		$display = (string) $user->display_name;
+	}
+	if ( '' === $display ) {
+		$display = __( 'کاربر', 'medyar-nursing-services' );
+	}
+	$phone = '';
+	if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
+		$phone = (string) \DrPlus\Utils\User::get_phone( (int) $user->ID );
+	}
+	$phone_ui = '' !== $phone ? MNS_Format::mobile( $phone ) : '';
+	$unpaid_n = 0;
+	if ( class_exists( 'MNS_Invoices', true ) ) {
+		foreach ( MNS_Invoices::list_for_account( (int) $user->ID ) as $mns_inv ) {
+			if ( 'unpaid' === (string) $mns_inv['status'] ) {
+				$unpaid_n++;
+			}
+		}
+	}
+}
 $initial  = function_exists( 'mb_substr' ) ? mb_substr( $display, 0, 1 ) : substr( $display, 0, 1 );
 
 if ( ! is_array( $nav ) || empty( $nav ) ) {

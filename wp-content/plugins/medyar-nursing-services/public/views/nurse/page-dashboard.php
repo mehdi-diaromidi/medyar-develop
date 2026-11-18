@@ -85,6 +85,13 @@ if ( $use_real ) {
 					'title'   => (string) ( $it['service'] ?? '' ),
 					'meta'    => (string) ( $it['when'] ?? '' ),
 				);
+				// Supervisor fix: the template reads date / from / to (hours) / start (epoch); derive them from "Y-m-d · 8-12".
+				if ( preg_match( '/^(\d{4}-\d{2}-\d{2})\s*·\s*(\d{1,2})-(\d{1,2})$/u', trim( (string) $entry['when'] ), $mm ) ) {
+					$entry['date']  = $mm[1];
+					$entry['from']  = (int) $mm[2];
+					$entry['to']    = (int) $mm[3];
+					$entry['start'] = MNS_Time::slot_start_ts( $mm[1], $mm[2] . '-' . $mm[3] );
+				}
 				$agenda[] = $entry;
 				if ( 'in_progress' === $st && empty( $in_progress ) ) {
 					$in_progress = $entry;
