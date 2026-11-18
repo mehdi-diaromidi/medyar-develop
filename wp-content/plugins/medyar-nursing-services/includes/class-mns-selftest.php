@@ -152,8 +152,25 @@ class MNS_Selftest {
 	 * @param array<int,string>|null $only Optional AC ids.
 	 * @return array{pass:int,fail:int,rows:array<int,array<string,mixed>>}
 	 */
+	/**
+	 * @param array<int,mixed> $ids Candidate nurse user ids.
+	 * @return array<int,int>
+	 */
+	public static function only_selftest_nurses( $ids ): array {
+		$out = array();
+		foreach ( (array) $ids as $id ) {
+			$user = get_userdata( (int) $id );
+			if ( $user && 0 === strpos( (string) $user->user_login, 'mns_selftest_' ) ) {
+				$out[] = (int) $id;
+			}
+		}
+		return $out;
+	}
+
 	public static function run( ?array $only = null ): array {
 		$original_user = get_current_user_id();
+		// Real nurses (e.g. the owner's own approved nurse profile) must not compete with the test nurses.
+		add_filter( 'mns_eligibility_candidate_ids', array( __CLASS__, 'only_selftest_nurses' ), 10, 1 );
 		self::purge_leftovers();
 		MNS_Selftest_Scenarios::register_all();
 
@@ -206,6 +223,7 @@ class MNS_Selftest {
 			$fail++;
 		}
 
+		remove_filter( 'mns_eligibility_candidate_ids', array( __CLASS__, 'only_selftest_nurses' ), 10 );
 		// Scenarios impersonate test users; always give the session back to whoever started the run.
 		wp_set_current_user( $original_user );
 

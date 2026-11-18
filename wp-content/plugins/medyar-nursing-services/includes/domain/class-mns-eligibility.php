@@ -62,6 +62,10 @@ class MNS_Eligibility {
 		);
 
 		$ids = $wpdb->get_col( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( is_array( $ids ) ) {
+			// Lets the self-test isolate itself from real nurses (and nothing else uses it).
+			$ids = apply_filters( 'mns_eligibility_candidate_ids', $ids, $scope );
+		}
 		if ( ! is_array( $ids ) || empty( $ids ) ) {
 			return array();
 		}
