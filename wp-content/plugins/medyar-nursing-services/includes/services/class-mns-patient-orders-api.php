@@ -320,8 +320,21 @@ class MNS_Patient_Orders_Api {
 	}
 
 	private static function count_tab( int $uid, string $tab ): int {
-		$res = self::list_for( $uid, array( 'tab' => $tab, 'p' => 1, 'per' => 1 ) );
-		return (int) ( $res['meta']['total'] ?? 0 );
+		global $wpdb;
+		$ot    = MNS_DB::table( 'orders' );
+		$where = 'account_user_id = %d';
+		$args  = array( $uid );
+		if ( 'active' === $tab ) {
+			$where .= " AND status IN ('submitted','assigned','in_progress','service_ended','needs_review')";
+		} elseif ( 'done' === $tab ) {
+			$where .= " AND status = 'completed'";
+		} elseif ( 'cancelled' === $tab ) {
+			$where .= " AND status = 'cancelled'";
+		} elseif ( 'unpaid' === $tab ) {
+			$where .= " AND status IN ('service_ended','needs_review','completed')";
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ot} WHERE {$where}", $args ) );
 	}
 
 	/**

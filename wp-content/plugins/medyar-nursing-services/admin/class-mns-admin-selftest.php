@@ -35,7 +35,14 @@ class MNS_Admin_Selftest {
 		$admin_id = get_current_user_id();
 		// Supervisor fix: a crashing scenario or invalid UTF-8 in a detail must never silently drop the whole report.
 		try {
-			$result = MNS_Selftest::run();
+			// Long runs can hit the proxy time limit; allow running a group at a time.
+			$suites = array(
+				'core'   => array( 'AC-M0-*', 'AC-ELG-*', 'AC-A13-*', 'AC-M2-*', 'AC-M3-1', 'AC-M3-2' ),
+				'orders' => array( 'AC-M3-*', 'AC-ASG-*', 'AC-FIL-*' ),
+				'money'  => array( 'AC-M5-*' ),
+			);
+			$suite  = isset( $_POST['suite'] ) ? sanitize_key( wp_unslash( (string) $_POST['suite'] ) ) : 'all';
+			$result = MNS_Selftest::run( isset( $suites[ $suite ] ) ? $suites[ $suite ] : null );
 		} catch ( \Throwable $e ) {
 			$result = array(
 				'pass' => 0,
@@ -90,6 +97,11 @@ class MNS_Admin_Selftest {
 		wp_nonce_field( 'mns_selftest_run' );
 		echo '<input type="hidden" name="action" value="mns_selftest_run" />';
 		submit_button( __( 'اجرای همه', 'medyar-nursing-services' ) );
+		echo '<p>';
+		foreach ( array( 'core' => 'هسته', 'orders' => 'سفارش و تخصیص', 'money' => 'مالی' ) as $suite_key => $suite_label ) {
+			echo '<button type="submit" name="suite" value="' . esc_attr( $suite_key ) . '" class="button">' . esc_html( 'فقط ' . $suite_label ) . '</button> ';
+		}
+		echo '</p>';
 		echo '</form>';
 
 		if ( is_array( $flash ) && ! empty( $flash['rows'] ) ) {

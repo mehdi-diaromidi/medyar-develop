@@ -32,18 +32,20 @@ class MNS_Invoices {
 			throw MNS_Error::validation( 'مبلغ نهایی فاکتور را وارد کنید (تومان).', 'amount' );
 		}
 		$status = (string) $order['status'];
-		if ( ! in_array( $status, array( 'completed', 'service_ended', 'needs_review' ), true ) ) {
-			if ( 'completed' !== $status ) {
-				MNS_Order_Machine::transition(
-					'complete',
-					array(
-						'order_id'      => $order_id,
-						'actor_user_id' => $actor,
-						'actor_role'    => 'admin',
-					)
-				);
-				$order = MNS_Order_Machine::get_order( $order_id );
-			}
+		// Supervisor fix: only a finished visit can be invoiced; service_ended/needs_review are completed first
+		// (the machine only allows completed → invoiced → paid), anything earlier is rejected.
+		if ( in_array( $status, array( 'service_ended', 'needs_review' ), true ) ) {
+			MNS_Order_Machine::transition(
+				'complete',
+				array(
+					'order_id'      => $order_id,
+					'actor_user_id' => $actor,
+					'actor_role'    => 'admin',
+				)
+			);
+			$order = MNS_Order_Machine::get_order( $order_id );
+		} elseif ( 'completed' !== $status ) {
+			throw MNS_Error::bad_state( 'برای این سفارش هنوز نمی‌توان فاکتور صادر کرد.' );
 		}
 		$amount = $amount_pre;
 		$share_pct = (float) MNS_Settings::get( 'nurse_share_percent' );

@@ -33,6 +33,7 @@ class MNS_Autoloader {
 		'MNS_Selftest'         => 'includes/class-mns-selftest.php',
 		'MNS_Selftest_Scenarios' => 'includes/class-mns-selftest-scenarios.php',
 		'MNS_Selftest_Orders'    => 'includes/class-mns-selftest-orders.php',
+		'MNS_Selftest_Money'     => 'includes/class-mns-selftest-money.php',
 		'MNS_Admin_Selftest'   => 'admin/class-mns-admin-selftest.php',
 		'MNS_Admin_E2E'        => 'admin/class-mns-admin-e2e.php',
 		'MNS_E2E'              => 'includes/services/class-mns-e2e.php',

@@ -2609,6 +2609,59 @@ function genTrackCode() {
 		initNurseDrug();
 		initNurseSchedule();
 		initNurseProfile();
+		initAvailTabs();
+	}
+
+	function initAvailTabs() {
+		var root = qs('[data-mns-avail-tabs]');
+		if (!root) return;
+		var tabs = qsa('[role="tab"][data-mns-tab]', root);
+		var panels = qsa('[data-mns-tab-panel]', root);
+		if (!tabs.length || !panels.length) return;
+
+		function activate(slug, focusTab) {
+			tabs.forEach(function (tab) {
+				var on = tab.getAttribute('data-mns-tab') === slug;
+				tab.classList.toggle('is-active', on);
+				tab.setAttribute('aria-selected', on ? 'true' : 'false');
+				tab.tabIndex = on ? 0 : -1;
+				if (on && focusTab) tab.focus();
+			});
+			panels.forEach(function (panel) {
+				var on = panel.getAttribute('data-mns-tab-panel') === slug;
+				if (on) panel.removeAttribute('hidden');
+				else panel.setAttribute('hidden', '');
+			});
+			try {
+				var url = new URL(window.location.href);
+				url.searchParams.set('mns_tab', slug);
+				window.history.replaceState({}, '', url.toString());
+			} catch (e) {}
+		}
+
+		tabs.forEach(function (tab, index) {
+			tab.addEventListener('click', function () {
+				activate(tab.getAttribute('data-mns-tab') || 'status', false);
+			});
+			tab.addEventListener('keydown', function (ev) {
+				var key = ev.key;
+				var next = -1;
+				if (key === 'ArrowLeft' || key === 'ArrowRight') {
+					ev.preventDefault();
+					var dir = key === 'ArrowLeft' ? 1 : -1; // RTL: Left = next visually
+					next = (index + dir + tabs.length) % tabs.length;
+				} else if (key === 'Home') {
+					ev.preventDefault();
+					next = 0;
+				} else if (key === 'End') {
+					ev.preventDefault();
+					next = tabs.length - 1;
+				}
+				if (next > -1) {
+					activate(tabs[next].getAttribute('data-mns-tab') || 'status', true);
+				}
+			});
+		});
 	}
 
 	function initInvoiceView() {

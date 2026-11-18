@@ -167,6 +167,25 @@ class MNS_Selftest {
 		return $out;
 	}
 
+	/**
+	 * Exact id, or a prefix pattern ending in "*" (e.g. "AC-M5-*").
+	 *
+	 * @param array<int,string> $only Ids/patterns.
+	 */
+	private static function id_matches( string $id, array $only ): bool {
+		foreach ( $only as $pattern ) {
+			$pattern = (string) $pattern;
+			if ( '*' === substr( $pattern, -1 ) ) {
+				if ( 0 === strpos( $id, rtrim( $pattern, '*' ) ) ) {
+					return true;
+				}
+			} elseif ( $pattern === $id ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static function run( ?array $only = null ): array {
 		$original_user = get_current_user_id();
 		// Real nurses (e.g. the owner's own approved nurse profile) must not compete with the test nurses.
@@ -179,7 +198,7 @@ class MNS_Selftest {
 		$rows = array();
 
 		foreach ( self::$registry as $id => $meta ) {
-			if ( is_array( $only ) && ! in_array( $id, $only, true ) ) {
+			if ( is_array( $only ) && ! self::id_matches( (string) $id, $only ) ) {
 				continue;
 			}
 			$ok     = false;

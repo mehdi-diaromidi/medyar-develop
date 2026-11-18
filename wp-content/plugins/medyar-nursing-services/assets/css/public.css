@@ -21364,3 +21364,26 @@ a.mns-nvl__link {
 .mns-nvl .mns-nvl__chips {
 	align-items: center;
 }
+
+/* Availability page: tabbed sections */
+.mns-nvl .mns-nvl__tabs {
+	position: sticky;
+	top: 12px;
+	z-index: 5;
+	margin: 0 0 var(--mns-space-4, 16px);
+}
+.mns-nvl .mns-nvl__tab-hint {
+	margin: 0 0 14px;
+	color: var(--mns-muted-strong, #475569);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+.mns-nvl .mns-nvl__panel-wrap {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+.mns-nvl .mns-nvl__panel-wrap[hidden] {
+	display: none !important;
+}

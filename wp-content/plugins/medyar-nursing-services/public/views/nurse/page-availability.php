@@ -18,9 +18,6 @@ MNS_UI::boot_icons();
 $arr = static function ( $value ): array {
 	return is_array( $value ) ? $value : array();
 };
-$fa  = static function ( $v ): string {
-	return MNS_Format::digits( (string) $v );
-};
 
 $preview = MNS_Dev::enabled() || ( class_exists( 'MNS_Plugin' ) && MNS_Plugin::is_ui_static() );
 $use_real = MNS_Nurse_Access::is_real_panel_user( 'nurse' );
@@ -169,23 +166,35 @@ $cases    = array(
 	'none' => __( 'بدون برنامه و منطقه', 'medyar-nursing-services' ),
 );
 
-/** A numbered section header (same look as the order forms). */
-$head = static function ( int $n, string $title, string $hint ) use ( $fa ): void {
-	?>
-	<div class="mns-ncl__sh">
-		<span class="mns-ncl__badge" aria-hidden="true"><b><?php echo esc_html( $fa( $n ) ); ?></b></span>
-		<span class="mns-ncl__st">
-			<span class="mns-ncl__st-title"><?php echo esc_html( $title ); ?></span>
-			<span class="mns-ncl__st-sum"><?php echo esc_html( $hint ); ?></span>
-		</span>
-	</div>
-	<?php
-};
+$tabs = array(
+	'status'   => array(
+		'label' => __( 'وضعیت و پذیرش', 'medyar-nursing-services' ),
+		'hint'  => __( 'الان سفارش جدید می‌گیرید؟', 'medyar-nursing-services' ),
+	),
+	'schedule' => array(
+		'label' => __( 'برنامهٔ ماهانه', 'medyar-nursing-services' ),
+		'hint'  => __( 'هر روز و هر بازه‌ای که نیستید را خودتان مشخص کنید', 'medyar-nursing-services' ),
+	),
+	'regions'  => array(
+		'label' => __( 'مناطق فعالیت', 'medyar-nursing-services' ),
+		'hint'  => __( 'فقط سفارش‌های همین شهرها و مناطق به شما می‌رسد', 'medyar-nursing-services' ),
+	),
+);
+$active_tab = 'status';
+// phpcs:disable WordPress.Security.NonceVerification.Recommended
+if ( isset( $_GET['mns_tab'] ) ) {
+	$t = sanitize_key( wp_unslash( (string) $_GET['mns_tab'] ) );
+	if ( isset( $tabs[ $t ] ) ) {
+		$active_tab = $t;
+	}
+}
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
 ?>
 <div
 	class="mns-ncl mns-ncl--form mns-nrp mns-ndr mns-nvl"
 	data-mns-ndash
 	data-mns-nvl
+	data-mns-avail-tabs
 	data-config="<?php echo esc_attr( (string) wp_json_encode( $config ) ); ?>"
 >
 	<span hidden data-mns-nvl-trash><?php echo mns_icon( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
@@ -213,168 +222,193 @@ $head = static function ( int $n, string $title, string $hint ) use ( $fa ): voi
 		<p class="mns-ncl__sub"><?php echo esc_html__( 'چه موقع و کجا سفارش می‌گیرید.', 'medyar-nursing-services' ); ?></p>
 	</header>
 
-	<ol class="mns-ncl__steps">
+	<div class="mns-tabs mns-nvl__tabs" role="tablist" aria-label="<?php echo esc_attr__( 'بخش‌های برنامه و دسترسی', 'medyar-nursing-services' ); ?>">
+		<?php foreach ( $tabs as $slug => $tab ) : ?>
+			<?php $is_active = ( $slug === $active_tab ); ?>
+			<button
+				type="button"
+				class="mns-tabs__btn<?php echo $is_active ? ' is-active' : ''; ?>"
+				role="tab"
+				id="mns-avail-tab-<?php echo esc_attr( $slug ); ?>"
+				aria-controls="mns-avail-panel-<?php echo esc_attr( $slug ); ?>"
+				aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
+				tabindex="<?php echo $is_active ? '0' : '-1'; ?>"
+				data-mns-tab="<?php echo esc_attr( $slug ); ?>"
+			><?php echo esc_html( $tab['label'] ); ?></button>
+		<?php endforeach; ?>
+	</div>
 
-		<?php /* 1) Status + accept switch: one row. */ ?>
-		<li class="mns-ncl__step is-open" data-mns-sec="status">
-			<?php $head( 1, __( 'وضعیت و پذیرش', 'medyar-nursing-services' ), __( 'الان سفارش جدید می‌گیرید؟', 'medyar-nursing-services' ) ); ?>
-			<div class="mns-collapse is-open">
+	<?php /* 1) Status + accept switch. */ ?>
+	<section
+		class="mns-nvl__panel-wrap"
+		role="tabpanel"
+		id="mns-avail-panel-status"
+		aria-labelledby="mns-avail-tab-status"
+		data-mns-tab-panel="status"
+		data-mns-sec="status"
+		<?php echo 'status' === $active_tab ? '' : ' hidden'; ?>
+	>
+		<p class="mns-nvl__tab-hint"><?php echo esc_html( $tabs['status']['hint'] ); ?></p>
+		<div class="mns-ncl__body">
+			<div class="mns-nvl__now">
+				<div class="mns-ndash mns-nvl__accept">
+					<button
+						type="button"
+						class="mns-ndash__accept<?php echo $accepting ? ' is-on' : ''; ?>"
+						role="switch"
+						aria-checked="<?php echo $accepting ? 'true' : 'false'; ?>"
+						data-mns-accept
+						data-on-text="<?php echo esc_attr__( 'در دسترس هستم', 'medyar-nursing-services' ); ?>"
+						data-off-text="<?php echo esc_attr__( 'درخواست جدید نمی‌گیرم', 'medyar-nursing-services' ); ?>"
+						data-fail-text="<?php echo esc_attr__( 'ثبت نشد، دوباره تلاش کنید.', 'medyar-nursing-services' ); ?>"
+					>
+						<span class="mns-ndash__accept-text">
+							<span class="mns-ndash__accept-label"><?php echo esc_html__( 'پذیرش درخواست جدید', 'medyar-nursing-services' ); ?></span>
+							<span class="mns-ndash__accept-state" data-mns-accept-state><?php echo $accepting ? esc_html__( 'در دسترس هستم', 'medyar-nursing-services' ) : esc_html__( 'درخواست جدید نمی‌گیرم', 'medyar-nursing-services' ); ?></span>
+						</span>
+						<span class="mns-ndash__switch" aria-hidden="true"></span>
+					</button>
+					<div class="mns-collapse mns-ndash__accept-more<?php echo $accepting ? '' : ' is-open'; ?>" data-mns-accept-hint<?php echo $accepting ? ' inert' : ''; ?>>
+						<div class="mns-collapse__inner">
+							<p class="mns-ndash__hint" data-mns-accept-hint-text data-default="<?php echo esc_attr__( 'سفارش‌های قبلی شما تغییری نمی‌کند.', 'medyar-nursing-services' ); ?>"><?php echo esc_html__( 'سفارش‌های قبلی شما تغییری نمی‌کند.', 'medyar-nursing-services' ); ?></p>
+						</div>
+					</div>
+				</div>
+				<div class="mns-nvl__state">
+					<p class="mns-nvl__status is-<?php echo esc_attr( $status['tone'] ); ?>" data-mns-nvl-status><span class="mns-nvl__dot" aria-hidden="true"></span><span data-mns-nvl-status-text><?php echo esc_html( $status['text'] ); ?></span></p>
+					<p class="mns-nvl__sub" data-mns-nvl-status-sub><?php echo esc_html( $status['sub'] ); ?></p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<?php /* 2) Monthly schedule. */ ?>
+	<section
+		class="mns-nvl__panel-wrap"
+		role="tabpanel"
+		id="mns-avail-panel-schedule"
+		aria-labelledby="mns-avail-tab-schedule"
+		data-mns-tab-panel="schedule"
+		data-mns-sec="schedule"
+		<?php echo 'schedule' === $active_tab ? '' : ' hidden'; ?>
+	>
+		<p class="mns-nvl__tab-hint"><?php echo esc_html( $tabs['schedule']['hint'] ); ?></p>
+		<div class="mns-ncl__body" data-mns-sc>
+			<div class="mns-nvl__sched">
+			<div class="mns-nvl__cal">
+				<div class="mns-nvl__calhead">
+					<button type="button" class="mns-nvl__nav" data-mns-sc-prev aria-label="<?php echo esc_attr__( 'ماه قبل', 'medyar-nursing-services' ); ?>"><?php echo mns_icon( 'chevron', 'mns-icon--dir' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+					<b data-mns-sc-title></b>
+					<button type="button" class="mns-nvl__nav is-next" data-mns-sc-next aria-label="<?php echo esc_attr__( 'ماه بعد', 'medyar-nursing-services' ); ?>"><?php echo mns_icon( 'chevron', 'mns-icon--dir' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				</div>
+				<div class="mns-nvl__dow" aria-hidden="true"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span></div>
+				<div class="mns-nvl__grid" data-mns-sc-grid></div>
+				<ul class="mns-nvl__legend" aria-hidden="true">
+					<li><i class="is-on"></i><?php echo esc_html__( 'بازهٔ در دسترس', 'medyar-nursing-services' ); ?></li>
+					<li><i class="is-off"></i><?php echo esc_html__( 'نیستم', 'medyar-nursing-services' ); ?></li>
+					<li><i class="is-order"></i><?php echo esc_html__( 'سفارش دارد', 'medyar-nursing-services' ); ?></li>
+					<li><i class="is-changed"></i><?php echo esc_html__( 'تغییرکرده', 'medyar-nursing-services' ); ?></li>
+				</ul>
+			</div>
+
+			<div class="mns-nvl__side">
+			<div class="mns-collapse" data-mns-sc-panel inert>
 				<div class="mns-collapse__inner">
-					<div class="mns-ncl__body">
-						<div class="mns-nvl__now">
-							<div class="mns-ndash mns-nvl__accept">
-								<button
-									type="button"
-									class="mns-ndash__accept<?php echo $accepting ? ' is-on' : ''; ?>"
-									role="switch"
-									aria-checked="<?php echo $accepting ? 'true' : 'false'; ?>"
-									data-mns-accept
-									data-on-text="<?php echo esc_attr__( 'در دسترس هستم', 'medyar-nursing-services' ); ?>"
-									data-off-text="<?php echo esc_attr__( 'درخواست جدید نمی‌گیرم', 'medyar-nursing-services' ); ?>"
-									data-fail-text="<?php echo esc_attr__( 'ثبت نشد، دوباره تلاش کنید.', 'medyar-nursing-services' ); ?>"
-								>
-									<span class="mns-ndash__accept-text">
-										<span class="mns-ndash__accept-label"><?php echo esc_html__( 'پذیرش درخواست جدید', 'medyar-nursing-services' ); ?></span>
-										<span class="mns-ndash__accept-state" data-mns-accept-state><?php echo $accepting ? esc_html__( 'در دسترس هستم', 'medyar-nursing-services' ) : esc_html__( 'درخواست جدید نمی‌گیرم', 'medyar-nursing-services' ); ?></span>
-									</span>
-									<span class="mns-ndash__switch" aria-hidden="true"></span>
-								</button>
-								<div class="mns-collapse mns-ndash__accept-more<?php echo $accepting ? '' : ' is-open'; ?>" data-mns-accept-hint<?php echo $accepting ? ' inert' : ''; ?>>
-									<div class="mns-collapse__inner">
-										<p class="mns-ndash__hint" data-mns-accept-hint-text data-default="<?php echo esc_attr__( 'سفارش‌های قبلی شما تغییری نمی‌کند.', 'medyar-nursing-services' ); ?>"><?php echo esc_html__( 'سفارش‌های قبلی شما تغییری نمی‌کند.', 'medyar-nursing-services' ); ?></p>
-									</div>
-								</div>
-							</div>
-							<div class="mns-nvl__state">
-								<p class="mns-nvl__status is-<?php echo esc_attr( $status['tone'] ); ?>" data-mns-nvl-status><span class="mns-nvl__dot" aria-hidden="true"></span><span data-mns-nvl-status-text><?php echo esc_html( $status['text'] ); ?></span></p>
-								<p class="mns-nvl__sub" data-mns-nvl-status-sub><?php echo esc_html( $status['sub'] ); ?></p>
-							</div>
+					<div class="mns-nvl__panel">
+						<div class="mns-nvl__panelhead">
+							<b data-mns-sc-ptitle></b>
+							<button type="button" class="mns-nvl__link" data-mns-sc-close><?php echo esc_html__( 'بستن', 'medyar-nursing-services' ); ?></button>
+						</div>
+						<div class="mns-nvl__slots" data-mns-sc-slots></div>
+						<p class="mns-ncl__lead" data-mns-sc-lock hidden><?php echo esc_html__( 'بازه‌ای که سفارش دارد روشن می‌ماند و خاموش نمی‌شود.', 'medyar-nursing-services' ); ?></p>
+						<div class="mns-nvl__quick">
+							<button type="button" class="mns-nvl__btn" data-mns-sc-allon><?php echo esc_html__( 'همهٔ بازه‌ها در دسترس', 'medyar-nursing-services' ); ?></button>
+							<button type="button" class="mns-nvl__btn" data-mns-sc-alloff><?php echo esc_html__( 'کل روز نیستم', 'medyar-nursing-services' ); ?></button>
+							<button type="button" class="mns-nvl__btn" data-mns-sc-reset><?php echo esc_html__( 'برگشت به برنامهٔ پایه', 'medyar-nursing-services' ); ?></button>
 						</div>
 					</div>
 				</div>
 			</div>
-		</li>
 
-		<?php /* 2) The nurse's own monthly schedule. */ ?>
-		<li class="mns-ncl__step is-open" data-mns-sec="schedule">
-			<?php $head( 2, __( 'برنامهٔ ماهانهٔ من', 'medyar-nursing-services' ), __( 'هر روز و هر بازه‌ای که نیستید را خودتان مشخص کنید', 'medyar-nursing-services' ) ); ?>
-			<div class="mns-collapse is-open">
-				<div class="mns-collapse__inner">
-					<div class="mns-ncl__body" data-mns-sc>
-						<div class="mns-nvl__sched">
-						<div class="mns-nvl__cal">
-							<div class="mns-nvl__calhead">
-								<button type="button" class="mns-nvl__nav" data-mns-sc-prev aria-label="<?php echo esc_attr__( 'ماه قبل', 'medyar-nursing-services' ); ?>"><?php echo mns_icon( 'chevron', 'mns-icon--dir' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-								<b data-mns-sc-title></b>
-								<button type="button" class="mns-nvl__nav is-next" data-mns-sc-next aria-label="<?php echo esc_attr__( 'ماه بعد', 'medyar-nursing-services' ); ?>"><?php echo mns_icon( 'chevron', 'mns-icon--dir' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-							</div>
-							<div class="mns-nvl__dow" aria-hidden="true"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span></div>
-							<div class="mns-nvl__grid" data-mns-sc-grid></div>
-							<ul class="mns-nvl__legend" aria-hidden="true">
-								<li><i class="is-on"></i><?php echo esc_html__( 'بازهٔ در دسترس', 'medyar-nursing-services' ); ?></li>
-								<li><i class="is-off"></i><?php echo esc_html__( 'نیستم', 'medyar-nursing-services' ); ?></li>
-								<li><i class="is-order"></i><?php echo esc_html__( 'سفارش دارد', 'medyar-nursing-services' ); ?></li>
-								<li><i class="is-changed"></i><?php echo esc_html__( 'تغییرکرده', 'medyar-nursing-services' ); ?></li>
-							</ul>
-						</div>
+			<p class="mns-nvl__tip" data-mns-sc-hint><?php echo esc_html__( 'یک روز را بزنید، یا برای چند روز، روز شروع و روز پایان را انتخاب کنید.', 'medyar-nursing-services' ); ?></p>
+			</div>
+			</div>
 
-						<div class="mns-nvl__side">
-						<div class="mns-collapse" data-mns-sc-panel inert>
-							<div class="mns-collapse__inner">
-								<div class="mns-nvl__panel">
-									<div class="mns-nvl__panelhead">
-										<b data-mns-sc-ptitle></b>
-										<button type="button" class="mns-nvl__link" data-mns-sc-close><?php echo esc_html__( 'بستن', 'medyar-nursing-services' ); ?></button>
-									</div>
-									<div class="mns-nvl__slots" data-mns-sc-slots></div>
-									<p class="mns-ncl__lead" data-mns-sc-lock hidden><?php echo esc_html__( 'بازه‌ای که سفارش دارد روشن می‌ماند و خاموش نمی‌شود.', 'medyar-nursing-services' ); ?></p>
-									<div class="mns-nvl__quick">
-										<button type="button" class="mns-nvl__btn" data-mns-sc-allon><?php echo esc_html__( 'همهٔ بازه‌ها در دسترس', 'medyar-nursing-services' ); ?></button>
-										<button type="button" class="mns-nvl__btn" data-mns-sc-alloff><?php echo esc_html__( 'کل روز نیستم', 'medyar-nursing-services' ); ?></button>
-										<button type="button" class="mns-nvl__btn" data-mns-sc-reset><?php echo esc_html__( 'برگشت به برنامهٔ پایه', 'medyar-nursing-services' ); ?></button>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<p class="mns-nvl__tip" data-mns-sc-hint><?php echo esc_html__( 'یک روز را بزنید، یا برای چند روز، روز شروع و روز پایان را انتخاب کنید.', 'medyar-nursing-services' ); ?></p>
-						</div>
-						</div>
-
-						<div class="mns-nvl__savebar" data-mns-sc-bar hidden>
-							<p class="mns-nvl__savetext" data-mns-sc-bartext></p>
-							<div class="mns-nvl__saveactions">
-								<button type="button" class="mns-ncl__btn" data-mns-sc-undo><?php echo esc_html__( 'لغو تغییرها', 'medyar-nursing-services' ); ?></button>
-								<button type="button" class="mns-submit-btn" data-mns-sc-save><span><?php echo esc_html__( 'ذخیرهٔ برنامه', 'medyar-nursing-services' ); ?></span></button>
-							</div>
-						</div>
-						<p class="mns-ncl__reason" data-mns-sc-error role="alert"></p>
-						<p class="mns-nvl__done" data-mns-sc-done hidden><?php echo esc_html__( 'برنامه ذخیره شد و از همین حالا برای سفارش‌های جدید اعمال می‌شود.', 'medyar-nursing-services' ); ?></p>
-
-						<p class="mns-nvl__note"><?php echo esc_html__( 'روزهای هر ماه از برنامهٔ پایهٔ هفتگی شروع می‌شوند که پشتیبانی تنظیم کرده است. برای عوض کردن خود برنامهٔ پایه با پشتیبانی تماس بگیرید.', 'medyar-nursing-services' ); ?>
-							<a class="mns-nvl__link" href="<?php echo esc_attr( (string) ( $data['support_tel'] ?? '' ) ); ?>" data-mns-needs-net><?php echo esc_html__( 'تماس با پشتیبانی', 'medyar-nursing-services' ); ?></a>
-						</p>
-					</div>
+			<div class="mns-nvl__savebar" data-mns-sc-bar hidden>
+				<p class="mns-nvl__savetext" data-mns-sc-bartext></p>
+				<div class="mns-nvl__saveactions">
+					<button type="button" class="mns-ncl__btn" data-mns-sc-undo><?php echo esc_html__( 'لغو تغییرها', 'medyar-nursing-services' ); ?></button>
+					<button type="button" class="mns-submit-btn" data-mns-sc-save><span><?php echo esc_html__( 'ذخیرهٔ برنامه', 'medyar-nursing-services' ); ?></span></button>
 				</div>
 			</div>
-		</li>
+			<p class="mns-ncl__reason" data-mns-sc-error role="alert"></p>
+			<p class="mns-nvl__done" data-mns-sc-done hidden><?php echo esc_html__( 'برنامه ذخیره شد و از همین حالا برای سفارش‌های جدید اعمال می‌شود.', 'medyar-nursing-services' ); ?></p>
 
-		<?php /* 3) Regions across Iran: two searchable dropdowns. */ ?>
-		<li class="mns-ncl__step is-open" data-mns-sec="regions">
-			<?php $head( 3, __( 'مناطق فعالیت', 'medyar-nursing-services' ), __( 'فقط سفارش‌های همین شهرها و مناطق به شما می‌رسد', 'medyar-nursing-services' ) ); ?>
-			<div class="mns-collapse is-open">
-				<div class="mns-collapse__inner">
-					<div class="mns-ncl__body" data-mns-rg>
-						<div class="mns-nvl__addbox">
-							<div class="mns-form-row--2">
-								<label class="mns-field-block">
-									<span class="mns-field-block__label"><?php echo esc_html__( 'استان', 'medyar-nursing-services' ); ?><span class="mns-field-block__opt"><?php echo esc_html__( 'جستجو کنید', 'medyar-nursing-services' ); ?></span></span>
-									<span class="mns-field-block__control mns-field-block__control--select">
-										<span class="mns-field-block__lead-ico" aria-hidden="true"><?php echo mns_icon( 'map-pin' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-										<select class="mns-select-native" data-mns-select data-mns-rg-prov>
-											<option value=""><?php echo esc_html__( 'انتخاب کنید', 'medyar-nursing-services' ); ?></option>
-											<?php foreach ( $provinces as $p ) : ?>
-												<option value="<?php echo esc_attr( (string) ( $p['code'] ?? '' ) ); ?>"><?php echo esc_html( (string) ( $p['name'] ?? '' ) ); ?></option>
-											<?php endforeach; ?>
-										</select>
-										<span class="mns-field-block__chevron" aria-hidden="true"><?php echo mns_icon( 'chevron-down' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-									</span>
-								</label>
-								<label class="mns-field-block">
-									<span class="mns-field-block__label"><?php echo esc_html__( 'شهر', 'medyar-nursing-services' ); ?><span class="mns-field-block__opt"><?php echo esc_html__( 'جستجو کنید', 'medyar-nursing-services' ); ?></span></span>
-									<span class="mns-field-block__control mns-field-block__control--select">
-										<span class="mns-field-block__lead-ico" aria-hidden="true"><?php echo mns_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-										<select class="mns-select-native" data-mns-select data-mns-rg-city disabled>
-											<option value=""><?php echo esc_html__( 'ابتدا استان را انتخاب کنید', 'medyar-nursing-services' ); ?></option>
-										</select>
-										<span class="mns-field-block__chevron" aria-hidden="true"><?php echo mns_icon( 'chevron-down' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-									</span>
-								</label>
-							</div>
-							<div class="mns-nvl__addrow">
-								<button type="button" class="mns-nvl__btn is-primary" data-mns-rg-add><?php echo esc_html__( 'افزودن شهر', 'medyar-nursing-services' ); ?></button>
-								<button type="button" class="mns-nvl__btn" data-mns-rg-addall><?php echo esc_html__( 'افزودن همهٔ شهرهای این استان', 'medyar-nursing-services' ); ?></button>
-							</div>
-							<p class="mns-ncl__reason" data-mns-rg-addreason role="alert"></p>
-						</div>
+			<p class="mns-nvl__note"><?php echo esc_html__( 'روزهای هر ماه از برنامهٔ پایهٔ هفتگی شروع می‌شوند که پشتیبانی تنظیم کرده است. برای عوض کردن خود برنامهٔ پایه با پشتیبانی تماس بگیرید.', 'medyar-nursing-services' ); ?>
+				<a class="mns-nvl__link" href="<?php echo esc_attr( (string) ( $data['support_tel'] ?? '' ) ); ?>" data-mns-needs-net><?php echo esc_html__( 'تماس با پشتیبانی', 'medyar-nursing-services' ); ?></a>
+			</p>
+		</div>
+	</section>
 
-						<div class="mns-nvl__sel" data-mns-rg-sel>
-							<p class="mns-nvl__sel-h" data-mns-rg-sel-h></p>
-							<div class="mns-nvl__groups" data-mns-rg-groups></div>
-						</div>
-
-						<div class="mns-nvl__districts" data-mns-rg-districts></div>
-
-						<div class="mns-nrp__banner is-review" data-mns-rg-none hidden><span aria-hidden="true"><?php echo mns_icon( 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span><?php echo esc_html__( 'تا منطقه‌ای اضافه نکنید، سفارش جدید نمی‌گیرید.', 'medyar-nursing-services' ); ?></span></div>
-						<div class="mns-nrp__banner is-review" data-mns-rg-warn hidden><span aria-hidden="true"><?php echo mns_icon( 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span data-mns-rg-warn-text></span></div>
-						<p class="mns-ncl__reason" data-mns-rg-reason role="alert"></p>
-						<div class="mns-nvl__savebar mns-nvl__savebar--plain">
-							<button type="button" class="mns-submit-btn" data-mns-rg-save hidden><span><?php echo esc_html__( 'ذخیرهٔ مناطق', 'medyar-nursing-services' ); ?></span></button>
-							<p class="mns-nvl__done" data-mns-rg-done hidden><?php echo esc_html__( 'ذخیره شد. از همین حالا برای سفارش‌های جدید اعمال می‌شود.', 'medyar-nursing-services' ); ?></p>
-						</div>
-					</div>
+	<?php /* 3) Regions. */ ?>
+	<section
+		class="mns-nvl__panel-wrap"
+		role="tabpanel"
+		id="mns-avail-panel-regions"
+		aria-labelledby="mns-avail-tab-regions"
+		data-mns-tab-panel="regions"
+		data-mns-sec="regions"
+		<?php echo 'regions' === $active_tab ? '' : ' hidden'; ?>
+	>
+		<p class="mns-nvl__tab-hint"><?php echo esc_html( $tabs['regions']['hint'] ); ?></p>
+		<div class="mns-ncl__body" data-mns-rg>
+			<div class="mns-nvl__addbox">
+				<div class="mns-form-row--2">
+					<label class="mns-field-block">
+						<span class="mns-field-block__label"><?php echo esc_html__( 'استان', 'medyar-nursing-services' ); ?><span class="mns-field-block__opt"><?php echo esc_html__( 'جستجو کنید', 'medyar-nursing-services' ); ?></span></span>
+						<span class="mns-field-block__control mns-field-block__control--select">
+							<span class="mns-field-block__lead-ico" aria-hidden="true"><?php echo mns_icon( 'map-pin' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+							<select class="mns-select-native" data-mns-select data-mns-rg-prov>
+								<option value=""><?php echo esc_html__( 'انتخاب کنید', 'medyar-nursing-services' ); ?></option>
+								<?php foreach ( $provinces as $p ) : ?>
+									<option value="<?php echo esc_attr( (string) ( $p['code'] ?? '' ) ); ?>"><?php echo esc_html( (string) ( $p['name'] ?? '' ) ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<span class="mns-field-block__chevron" aria-hidden="true"><?php echo mns_icon( 'chevron-down' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+						</span>
+					</label>
+					<label class="mns-field-block">
+						<span class="mns-field-block__label"><?php echo esc_html__( 'شهر', 'medyar-nursing-services' ); ?><span class="mns-field-block__opt"><?php echo esc_html__( 'جستجو کنید', 'medyar-nursing-services' ); ?></span></span>
+						<span class="mns-field-block__control mns-field-block__control--select">
+							<span class="mns-field-block__lead-ico" aria-hidden="true"><?php echo mns_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+							<select class="mns-select-native" data-mns-select data-mns-rg-city disabled>
+								<option value=""><?php echo esc_html__( 'ابتدا استان را انتخاب کنید', 'medyar-nursing-services' ); ?></option>
+							</select>
+							<span class="mns-field-block__chevron" aria-hidden="true"><?php echo mns_icon( 'chevron-down' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+						</span>
+					</label>
 				</div>
+				<div class="mns-nvl__addrow">
+					<button type="button" class="mns-nvl__btn is-primary" data-mns-rg-add><?php echo esc_html__( 'افزودن شهر', 'medyar-nursing-services' ); ?></button>
+					<button type="button" class="mns-nvl__btn" data-mns-rg-addall><?php echo esc_html__( 'افزودن همهٔ شهرهای این استان', 'medyar-nursing-services' ); ?></button>
+				</div>
+				<p class="mns-ncl__reason" data-mns-rg-addreason role="alert"></p>
 			</div>
-		</li>
-	</ol>
+
+			<div class="mns-nvl__sel" data-mns-rg-sel>
+				<p class="mns-nvl__sel-h" data-mns-rg-sel-h></p>
+				<div class="mns-nvl__groups" data-mns-rg-groups></div>
+			</div>
+
+			<div class="mns-nvl__districts" data-mns-rg-districts></div>
+
+			<div class="mns-nrp__banner is-review" data-mns-rg-none hidden><span aria-hidden="true"><?php echo mns_icon( 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span><?php echo esc_html__( 'تا منطقه‌ای اضافه نکنید، سفارش جدید نمی‌گیرید.', 'medyar-nursing-services' ); ?></span></div>
+			<div class="mns-nrp__banner is-review" data-mns-rg-warn hidden><span aria-hidden="true"><?php echo mns_icon( 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span data-mns-rg-warn-text></span></div>
+			<p class="mns-ncl__reason" data-mns-rg-reason role="alert"></p>
+			<div class="mns-nvl__savebar mns-nvl__savebar--plain">
+				<button type="button" class="mns-submit-btn" data-mns-rg-save hidden><span><?php echo esc_html__( 'ذخیرهٔ مناطق', 'medyar-nursing-services' ); ?></span></button>
+				<p class="mns-nvl__done" data-mns-rg-done hidden><?php echo esc_html__( 'ذخیره شد. از همین حالا برای سفارش‌های جدید اعمال می‌شود.', 'medyar-nursing-services' ); ?></p>
+			</div>
+		</div>
+	</section>
 </div>

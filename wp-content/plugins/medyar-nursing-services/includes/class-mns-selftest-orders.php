@@ -630,7 +630,7 @@ class MNS_Selftest_Orders {
 	 * @param array<string,mixed> $ctx Context.
 	 * @return array<string,mixed>
 	 */
-	private static function order_body( array $ctx ): array {
+	public static function order_body( array $ctx ): array {
 		return array(
 			'patient_id'    => (int) $ctx['patient_id'],
 			'service_id'    => (int) $ctx['service_id'],
@@ -653,7 +653,7 @@ class MNS_Selftest_Orders {
 	/**
 	 * @return array<string,mixed>
 	 */
-	private static function seed_green( bool $auto = true ): array {
+	public static function seed_green( bool $auto = true ): array {
 		MNS_Services_Seed::ensure_slice1();
 		$svc = MNS_Services::get( 'serum' );
 		if ( ! $svc ) {
@@ -772,7 +772,7 @@ class MNS_Selftest_Orders {
 	/**
 	 * @param array<string,mixed>|null $ctx Context.
 	 */
-	private static function cleanup_ctx( $ctx ): void {
+	public static function cleanup_ctx( $ctx ): void {
 		if ( ! is_array( $ctx ) ) {
 			return;
 		}
@@ -791,7 +791,7 @@ class MNS_Selftest_Orders {
 	 * @param array<string,string> $headers Headers.
 	 * @return array{status:int,data:mixed}
 	 */
-	private static function rest_json( string $method, string $route, int $uid, array $params = array(), array $headers = array() ): array {
+	public static function rest_json( string $method, string $route, int $uid, array $params = array(), array $headers = array() ): array {
 		wp_set_current_user( $uid );
 		$req = new WP_REST_Request( $method, '/' . MNS_REST::NS . $route );
 		$req->set_param( '_envelope', '1' );
@@ -819,7 +819,7 @@ class MNS_Selftest_Orders {
 	/**
 	 * @return array<string,mixed>|null
 	 */
-	private static function order_by_code( string $code ): ?array {
+	public static function order_by_code( string $code ): ?array {
 		global $wpdb;
 		$row = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s LIMIT 1', $code ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
