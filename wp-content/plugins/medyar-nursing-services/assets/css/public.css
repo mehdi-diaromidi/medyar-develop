@@ -21828,3 +21828,118 @@ a.mns-nvl__link {
 	color: var(--mns-muted);
 }
 
+/* —— Availability box, red state ("no nurse for this area/gender"): calm tint + accent bar, message left / action right —— */
+.mns-owizard .mns-avail.mns-avail--red {
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid #f4cbd5;
+	border-inline-start: 4px solid #d60043;
+	border-radius: 12px;
+	background: #fff5f7;
+	color: #7a2b3f;
+}
+.mns-owizard .mns-avail--red .mns-avail__ico {
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: #fde1e8;
+	color: #c4003c;
+	box-shadow: none;
+}
+.mns-owizard .mns-avail--red .mns-avail__ico svg {
+	width: 18px;
+	height: 18px;
+}
+.mns-owizard .mns-avail--red .mns-avail__body {
+	flex: 1 1 auto;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 16px;
+	align-items: center;
+}
+.mns-owizard .mns-avail--red .mns-avail__body strong {
+	grid-column: 1;
+	font-size: 0.9375rem;
+	font-weight: 700;
+	line-height: 1.5;
+	color: #8f1034;
+}
+.mns-owizard .mns-avail--red .mns-avail__body p {
+	grid-column: 1;
+	margin: 2px 0 0;
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	color: #7a2b3f;
+}
+.mns-owizard .mns-avail--red .mns-avail__alts {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	align-self: center;
+	margin: 0;
+}
+.mns-owizard .mns-avail--red .mns-avail__call {
+	min-height: 40px;
+	margin: 0;
+	padding: 0 14px;
+	border: 1px solid #e9a8b8;
+	border-radius: 10px;
+	background: #fff;
+	font-size: 0.8125rem;
+	font-weight: 700;
+	color: #a30036;
+	white-space: nowrap;
+	transition: background-color 0.15s ease;
+}
+.mns-owizard .mns-avail--red .mns-avail__call:hover,
+.mns-owizard .mns-avail--red .mns-avail__call:focus-visible {
+	background: #fdecf0;
+	color: #a30036;
+}
+.mns-owizard .mns-avail--red .mns-avail__call:focus-visible {
+	outline: 2px solid #d60043;
+	outline-offset: 2px;
+}
+@media (max-width: 640px) {
+	/* Phone: icon beside the message (centred on the message), the single action full width underneath. */
+	.mns-owizard .mns-avail.mns-avail--red {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		column-gap: 12px;
+		row-gap: 10px;
+		align-items: center;
+		padding: 12px;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__body {
+		display: contents;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__ico {
+		grid-column: 1;
+		grid-row: 1 / span 2;
+		align-self: center;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__body strong {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: end;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__body p {
+		grid-column: 2;
+		grid-row: 2;
+		align-self: start;
+		margin: 0;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__alts {
+		grid-column: 1 / -1;
+		grid-row: 3;
+		margin: 0;
+	}
+	.mns-owizard .mns-avail--red .mns-avail__call {
+		width: 100%;
+		justify-content: center;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.mns-owizard .mns-avail--red .mns-avail__call { transition: none; }
+}
+
