@@ -96,7 +96,9 @@ if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
 			$categories[] = array(
 				'slug'  => (string) ( $mns_cat['slug'] ?? '' ),
 				'label' => (string) ( $mns_cat['label'] ?? '' ),
-				'icon'  => $mns_cat_icons[ (string) ( $mns_cat['slug'] ?? '' ) ] ?? 'list',
+				'icon'  => MNS_Services::category_icon( (string) ( $mns_cat['slug'] ?? '' ) ),
+				'count' => count( (array) ( $mns_cat['services'] ?? array() ) ),
+				'manual' => ! empty( $mns_cat['manual_assign'] ),
 			);
 		}
 	}
@@ -205,7 +207,7 @@ $render_upcoming = static function () use ( $upcoming, $new_url, $render_order )
  */
 $render_quick = static function () use ( $last, $categories, $new_url ): void {
 	?>
-	<section class="mns-card mns-card--quick" aria-labelledby="mns-quick-title">
+	<section class="mns-card mns-card--quick" id="mns-quick" aria-labelledby="mns-quick-title">
 		<?php
 		MNS_UI::section_head(
 			array(
@@ -254,7 +256,14 @@ $render_quick = static function () use ( $last, $categories, $new_url ): void {
 				?>
 				<a class="mns-quick-chip" href="<?php echo esc_url( $url ); ?>">
 					<span class="mns-quick-chip__icon" aria-hidden="true"><?php echo mns_icon( (string) ( $cat['icon'] ?? 'list' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-					<span><?php echo esc_html( (string) ( $cat['label'] ?? '' ) ); ?></span>
+					<span class="mns-quick-chip__text">
+						<span class="mns-quick-chip__name"><?php echo esc_html( (string) ( $cat['label'] ?? '' ) ); ?></span>
+						<?php if ( ! empty( $cat['manual'] ) ) : ?>
+							<small class="mns-quick-chip__meta"><?php echo esc_html__( 'هماهنگی با پشتیبانی', 'medyar-nursing-services' ); ?></small>
+						<?php elseif ( ! empty( $cat['count'] ) ) : ?>
+							<small class="mns-quick-chip__meta"><?php echo esc_html( MNS_Format::digits( (string) (int) $cat['count'] ) . ' ' . __( 'خدمت', 'medyar-nursing-services' ) ); ?></small>
+						<?php endif; ?>
+					</span>
 				</a>
 			<?php endforeach; ?>
 		</div>

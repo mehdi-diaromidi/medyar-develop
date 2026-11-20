@@ -842,8 +842,6 @@
 			if (svcIdInput && first) svcIdInput.value = first.getAttribute('data-svc-id') || svcIdInput.value;
 			if (first && serviceMap[String(first.getAttribute('data-svc-id'))]) {
 				svcLabel = serviceMap[String(first.getAttribute('data-svc-id'))].name || svcLabel;
-				var chipName = qs('[data-mns-svc-name]');
-				if (chipName) chipName.textContent = svcLabel;
 			}
 			syncManualUi();
 			syncRxTag();
@@ -1033,7 +1031,7 @@
 			} else {
 				if (label) label.textContent = 'ادامه';
 				mobBtn.setAttribute('data-mns-mob-mode', 'next');
-				if (svc) svc.textContent = svcLabel;
+				if (svc) svc.textContent = form.getAttribute('data-mns-cat-label') || svcLabel;
 			}
 		}
 

@@ -190,7 +190,7 @@ $ico = static function ( string $name, string $class = '' ): string {
 /**
  * Header: title + lead on the start side, service chip on the end side.
  */
-$render_head = static function ( string $lead ) use ( $ico, $svc_name ): void {
+$render_head = static function ( string $lead ) use ( $ico, $svc_name, $primary_category ): void {
 	?>
 	<header class="mns-ow-head">
 		<div class="mns-ow-head__intro">
@@ -201,10 +201,10 @@ $render_head = static function ( string $lead ) use ( $ico, $svc_name ): void {
 			<p class="mns-ow-head__lead" data-mns-ow-lead><?php echo esc_html( $lead ); ?></p>
 		</div>
 		<p class="mns-owizard__svc-chip">
-			<span class="mns-owizard__svc-chip-ico" aria-hidden="true"><?php echo $ico( 'droplet' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-			<span class="mns-owizard__svc-chip-label"><?php echo esc_html__( 'خدمت:', 'medyar-nursing-services' ); ?></span>
-			<strong data-mns-svc-name><?php echo esc_html( $svc_name ); ?></strong>
-			<a class="mns-owizard__svc-change" href="<?php echo esc_url( MNS_Pages::panel_url( 'patient', 'dashboard' ) ); ?>"><?php echo esc_html__( 'تغییر', 'medyar-nursing-services' ); ?></a>
+			<span class="mns-owizard__svc-chip-ico" aria-hidden="true"><?php echo $ico( ! empty( $primary_category['slug'] ) ? MNS_Services::category_icon( (string) $primary_category['slug'] ) : 'droplet' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+			<span class="mns-owizard__svc-chip-label"><?php echo esc_html__( 'دسته:', 'medyar-nursing-services' ); ?></span>
+			<strong data-mns-svc-name><?php echo esc_html( ! empty( $primary_category['label'] ) ? (string) $primary_category['label'] : $svc_name ); ?></strong>
+			<a class="mns-owizard__svc-change" href="<?php echo esc_url( MNS_Pages::panel_url( 'patient', 'dashboard' ) . '#mns-quick' ); ?>"><?php echo esc_html__( 'تغییر', 'medyar-nursing-services' ); ?></a>
 		</p>
 	</header>
 	<?php
@@ -401,6 +401,7 @@ $new_on  = 'new' === $default_mode;
 				data-mns-catalog="<?php echo $use_catalog ? '1' : '0'; ?>"
 				data-mns-support-tel="<?php echo esc_attr( MNS_UI::support_tel_href() ); ?>"
 				data-mns-live="<?php echo ! empty( $data['live'] ) ? '1' : '0'; ?>"
+				data-mns-cat-label="<?php echo esc_attr( ! empty( $primary_category['label'] ) ? (string) $primary_category['label'] : '' ); ?>"
 				data-mns-real="<?php echo $use_real ? '1' : '0'; ?>"
 				data-mns-self-patient-id="<?php echo esc_attr( $self_patient_id ); ?>"
 				data-mns-rest-url="<?php echo esc_url( rest_url( 'mns/v1' ) ); ?>"
@@ -953,7 +954,7 @@ $new_on  = 'new' === $default_mode;
 
 	<div class="mns-owizard__mob-bar" data-mns-owizard-mob-bar>
 		<div class="mns-owizard__mob-bar-meta">
-			<small data-mns-mob-svc><?php echo esc_html( $svc_name ); ?></small>
+			<small data-mns-mob-svc><?php echo esc_html( ! empty( $primary_category['label'] ) ? (string) $primary_category['label'] : $svc_name ); ?></small>
 			<strong data-mns-mob-price><?php echo esc_html( $price_txt . ' ' . __( 'تومان', 'medyar-nursing-services' ) ); ?></strong>
 		</div>
 		<div class="mns-owizard__mob-bar-row">

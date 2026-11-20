@@ -53,6 +53,25 @@ class MNS_Services {
 	 *
 	 * @return array<int,array{slug:string,label:string,manual_assign:bool,services:array<int,array<string,mixed>>}>
 	 */
+	/**
+	 * One icon per category (same set the dashboard tiles and the order page chip use).
+	 */
+	public static function category_icon( string $slug ): string {
+		$map = array(
+			'inj_serum'   => 'droplet',
+			'wound'       => 'bandage',
+			'catheter'    => 'filter',
+			'tube_stoma'  => 'repeat',
+			'vitals'      => 'activity',
+			'post_dis'    => 'home',
+			'hourly'      => 'clock',
+			'respiratory' => 'heart',
+			'education'   => 'file-text',
+			'other'       => 'list',
+		);
+		return $map[ $slug ] ?? 'list';
+	}
+
 	public static function categories(): array {
 		$grouped = array();
 		foreach ( self::list_active() as $svc ) {
