@@ -12,7 +12,7 @@ class MNS_E2E {
 	public const OPT_UNTIL   = 'mns_e2e_enabled_until';
 	public const CRON        = 'mns_e2e_hourly_cleanup';
 	public const META_FLAG   = 'mns_e2e_user';
-	public const TOKEN_TTL   = 1800; // 30 minutes.
+	public const TOKEN_TTL   = 86400; // 24 hours (develop-only test tool; each link is still single-use).
 	public const ENABLE_TTL  = 7200; // 2 hours.
 
 	/** @var array<string,array{login:string,role:string,phone:string}> */
@@ -45,6 +45,14 @@ class MNS_E2E {
 	public static function is_enabled(): bool {
 		$until = (int) get_option( self::OPT_UNTIL, 0 );
 		return $until > time();
+	}
+
+	/** Far-future timestamp used for "no time limit" (develop-only; the host gate still applies). */
+	public const FOREVER = 4102444800;
+
+	public static function enable_forever(): void {
+		update_option( self::OPT_UNTIL, self::FOREVER, false );
+		self::schedule_cron();
 	}
 
 	public static function enable_two_hours(): void {
