@@ -31,6 +31,16 @@ $loyalty    = isset( $data['loyalty'] ) && is_array( $data['loyalty'] ) ? $data[
 $last       = isset( $data['last_service'] ) && is_array( $data['last_service'] ) ? $data['last_service'] : array();
 $stats      = isset( $data['stats'] ) && is_array( $data['stats'] ) ? $data['stats'] : array();
 
+$mns_new_user_action = array(
+	'type'      => 'new_user',
+	'title'     => __( 'اولین سفارش پرستاری', 'medyar-nursing-services' ),
+	'text'      => __( 'خدمت و زمان مناسب را انتخاب کنید؛ پرستار به نشانی شما می‌آید.', 'medyar-nursing-services' ),
+	'context'   => '',
+	'cta_label' => __( 'شروع ثبت سفارش', 'medyar-nursing-services' ),
+	'cta_url'   => $new_url,
+	'icon'      => 'plus',
+);
+
 if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
 	$upcoming   = array();
 	$loyalty    = array();
@@ -57,20 +67,28 @@ if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
 				'url'      => (string) ( $it['url'] ?? MNS_Patient_Orders::view_url( $it ) ),
 			);
 		}
-		$tabs_all = (int) ( $pack['data']['tabs']['all'] ?? 0 );
-		$action   = array(
-			'type'  => empty( $upcoming ) ? 'new_user' : 'orders',
-			'url'   => $new_url,
-			'label' => __( 'ثبت سفارش جدید', 'medyar-nursing-services' ),
-			'count' => $tabs_all,
-		);
+		// A brand-new patient gets a real welcome card (title, text, button); with orders the list itself is the answer.
+		$action = empty( $upcoming ) ? $mns_new_user_action : array();
 	} catch ( \Throwable $e ) {
 		$upcoming = array();
-		$action   = array(
-			'type'  => 'new_user',
-			'url'   => $new_url,
-			'label' => __( 'ثبت سفارش جدید', 'medyar-nursing-services' ),
-		);
+		$action   = $mns_new_user_action;
+	}
+	// Quick-order chips come from the active services, never from the fixture.
+	$mns_cat_icons = array(
+		'serum'     => 'pill',
+		'injection' => 'activity',
+		'dressing'  => 'bandage',
+		'catheter'  => 'droplet',
+		'care'      => 'users',
+	);
+	if ( class_exists( 'MNS_Services', true ) ) {
+		foreach ( MNS_Services::list_active() as $mns_svc ) {
+			$categories[] = array(
+				'slug'  => (string) $mns_svc['slug'],
+				'label' => (string) $mns_svc['name'],
+				'icon'  => $mns_cat_icons[ (string) $mns_svc['slug'] ] ?? 'list',
+			);
+		}
 	}
 } elseif ( MNS_Dev::is( 'empty' ) || ( isset( $action['type'] ) && 'new_user' === $action['type'] ) ) {
 	$upcoming = array();
