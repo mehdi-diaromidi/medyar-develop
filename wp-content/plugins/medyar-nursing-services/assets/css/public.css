@@ -21387,3 +21387,121 @@ a.mns-nvl__link {
 .mns-nvl .mns-nvl__panel-wrap[hidden] {
 	display: none !important;
 }
+
+/* —— New patient welcome hero (alert card, tone new_user) —— */
+.mns-dash .mns-alert-card--new_user {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	border: 0;
+	border-radius: 20px;
+	padding: 22px 20px;
+	background: linear-gradient(135deg, #0a7fc2 0%, #0272b1 45%, #0b4f7c 100%);
+	box-shadow: 0 14px 30px rgba(2, 114, 177, 0.28);
+	color: #fff;
+}
+.mns-alert-card--new_user::before,
+.mns-alert-card--new_user::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	border-radius: 50%;
+	pointer-events: none;
+}
+.mns-alert-card--new_user::before {
+	width: 220px;
+	height: 220px;
+	top: -90px;
+	inset-inline-end: -70px;
+	background: rgba(255, 255, 255, 0.09);
+}
+.mns-alert-card--new_user::after {
+	width: 140px;
+	height: 140px;
+	bottom: -60px;
+	inset-inline-end: 90px;
+	background: rgba(255, 255, 255, 0.06);
+}
+.mns-alert-card--new_user .mns-alert-card__content { align-items: center; gap: 14px; }
+.mns-alert-card--new_user .mns-alert-card__icon {
+	flex-basis: 56px;
+	width: 56px;
+	height: 56px;
+	border-radius: 16px;
+	background: rgba(255, 255, 255, 0.18);
+	color: #fff;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.mns-alert-card--new_user .mns-alert-card__icon .mns-icon { width: 28px; height: 28px; }
+.mns-alert-card--new_user .mns-alert-card__chip {
+	background: rgba(255, 255, 255, 0.2);
+	color: #fff;
+}
+.mns-alert-card--new_user .mns-alert-card__title {
+	color: #fff;
+	font-size: 1.25rem;
+}
+.mns-alert-card--new_user .mns-alert-card__text {
+	color: rgba(255, 255, 255, 0.9);
+}
+.mns-alert-card__steps {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.mns-alert-card__steps li {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px 6px 10px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.14);
+	color: #fff;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+}
+.mns-alert-card__steps li b {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	flex: 0 0 22px;
+	border-radius: 50%;
+	background: #fff;
+	color: var(--mns-primary);
+	font-size: 0.75rem;
+	font-weight: 800;
+}
+.mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn {
+	background: #fff !important;
+	color: var(--mns-primary) !important;
+	border-color: #fff !important;
+	font-weight: 800;
+	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn:hover,
+.mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn:focus-visible {
+	background: #fff !important;
+	color: var(--mns-primary-hover) !important;
+	transform: translateY(-1px);
+	box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
+}
+@media (max-width: 767px) {
+	.mns-dash .mns-alert-card--new_user { padding: 20px 16px; }
+	.mns-alert-card--new_user .mns-alert-card__content {
+		grid-template-columns: 1fr auto;
+		align-items: center;
+	}
+	.mns-alert-card--new_user .mns-alert-card__title { font-size: 1.125rem; }
+	.mns-alert-card__steps { gap: 6px; grid-column: 1 / -1; }
+	.mns-alert-card__steps li { font-size: 0.75rem; padding: 5px 10px 5px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn { transition: none; }
+}
+

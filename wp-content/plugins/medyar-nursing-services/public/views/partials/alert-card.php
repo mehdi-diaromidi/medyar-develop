@@ -44,6 +44,19 @@ $mod = $tone_map[ $tone ] ?? $tone;
 if ( '' === $chip && 'unpaid' === $tone ) {
 	$chip = __( 'نیازمند اقدام', 'medyar-nursing-services' );
 }
+
+// New patient: a welcome hero with the three steps of an order, so the first screen explains itself.
+$steps = array();
+if ( 'new_user' === $tone ) {
+	if ( '' === $chip ) {
+		$chip = __( 'خوش آمدید', 'medyar-nursing-services' );
+	}
+	$steps = array(
+		__( 'انتخاب خدمت', 'medyar-nursing-services' ),
+		__( 'تاریخ و ساعت', 'medyar-nursing-services' ),
+		__( 'پرستار به نشانی شما می‌آید', 'medyar-nursing-services' ),
+	);
+}
 ?>
 <section class="mns-alert-card mns-alert-card--<?php echo esc_attr( $tone ); ?>" data-mns-alert-card>
 	<div class="mns-alert-card__content">
@@ -62,6 +75,13 @@ if ( '' === $chip && 'unpaid' === $tone ) {
 			<?php endif; ?>
 			<?php if ( '' !== $text ) : ?>
 				<p class="mns-alert-card__text"><?php echo esc_html( $text ); ?></p>
+			<?php endif; ?>
+			<?php if ( ! empty( $steps ) ) : ?>
+				<ol class="mns-alert-card__steps">
+					<?php foreach ( $steps as $i => $step_label ) : ?>
+						<li><b><?php echo esc_html( MNS_Format::digits( (string) ( $i + 1 ) ) ); ?></b><span><?php echo esc_html( $step_label ); ?></span></li>
+					<?php endforeach; ?>
+				</ol>
 			<?php endif; ?>
 		</div>
 	</div>
