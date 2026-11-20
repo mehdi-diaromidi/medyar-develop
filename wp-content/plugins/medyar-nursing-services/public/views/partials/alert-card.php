@@ -60,9 +60,11 @@ if ( 'new_user' === $tone ) {
 ?>
 <section class="mns-alert-card mns-alert-card--<?php echo esc_attr( $tone ); ?>" data-mns-alert-card>
 	<div class="mns-alert-card__content">
-		<span class="mns-alert-card__icon mns-alert-card__icon--<?php echo esc_attr( $mod ); ?>" aria-hidden="true">
-			<?php echo mns_icon( $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-		</span>
+		<?php if ( 'new_user' !== $tone ) : ?>
+			<span class="mns-alert-card__icon mns-alert-card__icon--<?php echo esc_attr( $mod ); ?>" aria-hidden="true">
+				<?php echo mns_icon( $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</span>
+		<?php endif; ?>
 		<div class="mns-alert-card__body">
 			<?php if ( '' !== $chip ) : ?>
 				<span class="mns-alert-card__chip"><?php echo esc_html( $chip ); ?></span>

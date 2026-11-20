@@ -21481,20 +21481,18 @@ a.mns-nvl__link {
 	color: var(--mns-primary) !important;
 	border-color: #fff !important;
 	font-weight: 800;
-	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
-	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	box-shadow: none;
+	transition: background-color 0.15s ease;
 }
 .mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn:hover,
 .mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn:focus-visible {
-	background: #fff !important;
+	background: #e8f3fa !important;
 	color: var(--mns-primary-hover) !important;
-	transform: translateY(-1px);
-	box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
 }
 @media (max-width: 767px) {
 	.mns-dash .mns-alert-card--new_user { padding: 20px 16px; }
 	.mns-alert-card--new_user .mns-alert-card__content {
-		grid-template-columns: 1fr auto;
+		grid-template-columns: 1fr;
 		align-items: center;
 	}
 	.mns-alert-card--new_user .mns-alert-card__title { font-size: 1.125rem; }

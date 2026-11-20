@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Medyar Nursing Services
  * Description: سامانه سفارش، تخصیص و انجام خدمات پرستاری در منزل (مدیار)
- * Version: 0.7.3
+ * Version: 0.7.4
  * Author: Medyar
  * Text Domain: medyar-nursing-services
  * Requires at least: 5.8
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Host LiteSpeed soft-cap is tight on WooCommerce account pages.
 @ini_set( 'memory_limit', '256M' );
 
-define( 'MNS_VERSION', '0.7.3' );
+define( 'MNS_VERSION', '0.7.4' );
 define( 'MNS_DB_VERSION', '0.0.0' );
 define( 'MNS_PLUGIN_FILE', __FILE__ );
 define( 'MNS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
