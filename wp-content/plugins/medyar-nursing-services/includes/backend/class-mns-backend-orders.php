@@ -32,6 +32,8 @@ class MNS_Backend_Orders {
 		MNS_Notifications::boot();
 		MNS_Ops_Cron::boot();
 		MNS_Payments::boot();
+		class_exists( 'MNS_Availability_Snapshot', true );
+		MNS_Availability_Snapshot::boot();
 		add_filter( 'cron_schedules', array( 'MNS_Payments', 'cron_schedules' ) );
 
 		// Admin UI/list-tables must not boot on the storefront (memory/WAF/admin includes).

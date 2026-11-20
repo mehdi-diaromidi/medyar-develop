@@ -237,16 +237,9 @@ class MNS_Role_Switch {
 			MNS_Services_Seed::ensure_slice1();
 		}
 
-		$serum = class_exists( 'MNS_Services', true ) ? MNS_Services::get( 'serum' ) : null;
-		$inj   = class_exists( 'MNS_Services', true ) ? MNS_Services::get( 'injection' ) : null;
-		$city  = class_exists( 'MNS_Locations', true ) ? MNS_Locations::city_id( 'THR', 'تهران' ) : 0;
+		// Empty nurse_services ⇒ default-all coverage (RUN-G).
+		$city        = class_exists( 'MNS_Locations', true ) ? MNS_Locations::city_id( 'THR', 'تهران' ) : 0;
 		$service_ids = array();
-		if ( is_array( $serum ) && ! empty( $serum['id'] ) ) {
-			$service_ids[] = (int) $serum['id'];
-		}
-		if ( is_array( $inj ) && ! empty( $inj['id'] ) ) {
-			$service_ids[] = (int) $inj['id'];
-		}
 
 		$nurses = MNS_DB::table( 'nurses' );
 		$wpdb->replace(

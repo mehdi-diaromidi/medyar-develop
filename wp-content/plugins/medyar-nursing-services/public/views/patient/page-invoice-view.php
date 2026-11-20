@@ -56,14 +56,44 @@ if ( $use_real && class_exists( 'MNS_Payments', true ) ) {
 		'patient_id' => '',
 	);
 	$patient = wp_get_current_user()->display_name;
-	$lines   = array(
-		array(
-			'kind'  => 'base',
-			'title' => (string) $inv['service'],
+	$meta    = array();
+	if ( ! empty( $live['meta'] ) ) {
+		$decoded = json_decode( (string) $live['meta'], true );
+		$meta    = is_array( $decoded ) ? $decoded : array();
+	}
+	$lines = array();
+	if ( ! empty( $meta['items'] ) && is_array( $meta['items'] ) ) {
+		foreach ( $meta['items'] as $li ) {
+			$title = (string) ( $li['name'] ?? '' );
+			if ( ! empty( $li['is_extra'] ) ) {
+				$title .= ' — ' . __( 'مورد اضافه', 'medyar-nursing-services' );
+			}
+			$lines[] = array(
+				'kind'  => ! empty( $li['is_extra'] ) ? 'extra' : 'base',
+				'title' => $title,
+				'qty'   => 1,
+				'unit'  => 0,
+			);
+		}
+	}
+	if ( empty( $lines ) ) {
+		$lines = array(
+			array(
+				'kind'  => 'base',
+				'title' => (string) $inv['service'],
+				'qty'   => 1,
+				'unit'  => (int) $inv['amount'],
+			),
+		);
+	} else {
+		// Final admin amount stays on the total; line units are informational ranges only.
+		$lines[] = array(
+			'kind'  => 'fee',
+			'title' => __( 'مبلغ نهایی تأییدشده', 'medyar-nursing-services' ),
 			'qty'   => 1,
 			'unit'  => (int) $inv['amount'],
-		),
-	);
+		);
+	}
 	$sum   = MNS_Patient_Invoices::totals( $lines );
 	$total = $sum['total'];
 	$pay_api = rest_url( 'mns/v1/invoices/' . rawurlencode( $number ) . '/pay' );

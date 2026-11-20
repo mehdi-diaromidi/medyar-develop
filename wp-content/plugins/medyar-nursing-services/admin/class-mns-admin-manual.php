@@ -71,7 +71,7 @@ class MNS_Admin_Manual {
 			$user_id = MNS_Admin_Orders::find_or_create_account_public( $mobile );
 			$patient = MNS_Patients::ensure_self( $user_id );
 			MNS_Services_Seed::ensure_slice1();
-			$svc = MNS_Services::get( 'serum' );
+			$svc = MNS_Services::get( MNS_Services::default_active_slug() );
 			if ( ! $svc ) {
 				throw MNS_Error::server( 'خدمتی تعریف نشده.' );
 			}

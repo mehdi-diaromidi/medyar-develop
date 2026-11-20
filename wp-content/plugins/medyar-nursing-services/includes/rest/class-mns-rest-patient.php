@@ -66,6 +66,15 @@ class MNS_REST_Patient {
 		);
 		register_rest_route(
 			MNS_REST::NS,
+			'/availability/snapshot',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'availability_snapshot' ),
+				'permission_callback' => array( 'MNS_REST', 'permission_patient' ),
+			)
+		);
+		register_rest_route(
+			MNS_REST::NS,
 			'/orders',
 			array(
 				array(
@@ -219,11 +228,35 @@ class MNS_REST_Patient {
 					'name' => $s['name'],
 				);
 			}
+			$categories = array();
+			foreach ( MNS_Services::categories() as $cat ) {
+				$categories[] = array(
+					'slug'          => (string) $cat['slug'],
+					'label'         => (string) $cat['label'],
+					'manual_assign' => ! empty( $cat['manual_assign'] ),
+					'services'      => array_map(
+						static function ( $s ) {
+							return array(
+								'id'                   => (int) $s['id'],
+								'slug'                 => (string) $s['slug'],
+								'name'                 => (string) $s['name'],
+								'price_from'           => (int) $s['price_from'],
+								'price_to'             => (int) $s['price_to'],
+								'requires_rx'          => ! empty( $s['requires_rx'] ),
+								'manual_assign'        => ! empty( $s['manual_assign'] ),
+								'needs_explicit_nurse' => ! empty( $s['needs_explicit_nurse'] ),
+							);
+						},
+						$cat['services']
+					),
+				);
+			}
 			return MNS_REST::success(
 				array(
 					'default_phone'  => $phone,
 					'service'        => $svc_out,
 					'services'       => $svc_list,
+					'categories'     => $categories,
 					'patients'       => MNS_Patients::list_for( $uid ),
 					'districts'      => MNS_Locations::districts_map(),
 					'time_slots'     => $time_slots,
@@ -301,6 +334,18 @@ class MNS_REST_Patient {
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
+	/**
+	 * Compact availability snapshot (T-G.6).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function availability_snapshot( $request ) {
+		$resp = MNS_REST::success( MNS_Availability_Snapshot::get(), $request );
+		$resp->header( 'Cache-Control', 'private, no-store' );
+		return $resp;
+	}
+
 	public static function a13_check( $request ) {
 		$uid = get_current_user_id();
 		$rate = (string) MNS_Settings::get( 'a13_rate' );
@@ -314,6 +359,24 @@ class MNS_REST_Patient {
 		}
 
 		$service_raw = sanitize_text_field( (string) $request->get_param( 'service' ) );
+		$service_ids = array();
+		$ids_param   = $request->get_param( 'service_ids' );
+		if ( is_array( $ids_param ) ) {
+			foreach ( $ids_param as $sid ) {
+				$sid = (int) $sid;
+				if ( $sid > 0 ) {
+					$service_ids[] = $sid;
+				}
+			}
+		} elseif ( is_string( $ids_param ) && '' !== $ids_param ) {
+			foreach ( preg_split( '/[,\s]+/', $ids_param ) as $part ) {
+				$sid = (int) $part;
+				if ( $sid > 0 ) {
+					$service_ids[] = $sid;
+				}
+			}
+		}
+		$service_ids = array_values( array_unique( $service_ids ) );
 		$prov        = strtoupper( sanitize_text_field( (string) $request->get_param( 'prov' ) ) );
 		$city        = (int) $request->get_param( 'city' );
 		if ( ! $city ) {
@@ -324,9 +387,23 @@ class MNS_REST_Patient {
 		$slot     = sanitize_text_field( (string) $request->get_param( 'slot' ) );
 		$gender   = sanitize_key( (string) $request->get_param( 'gender' ) );
 
-		$svc = MNS_Services::get( $service_raw );
-		if ( ! $svc || empty( $svc['active'] ) ) {
+		$svc = null;
+		if ( ! empty( $service_ids ) ) {
+			$svc = MNS_Services::get( (int) $service_ids[0] );
+		} elseif ( '' !== $service_raw ) {
+			$svc = MNS_Services::get( $service_raw );
+			if ( $svc ) {
+				$service_ids = array( (int) $svc['id'] );
+			}
+		}
+		if ( ! $svc || empty( $svc['active'] ) || empty( $service_ids ) ) {
 			return MNS_REST::fail( MNS_Error::validation( 'خدمت نامعتبر است.', 'service' ), $request );
+		}
+		foreach ( $service_ids as $sid ) {
+			$one = MNS_Services::get( (int) $sid );
+			if ( ! $one || empty( $one['active'] ) ) {
+				return MNS_REST::fail( MNS_Error::validation( 'خدمت نامعتبر است.', 'service_ids' ), $request );
+			}
 		}
 		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
 			return MNS_REST::fail( MNS_Error::validation( 'تاریخ نامعتبر است.', 'date' ), $request );
@@ -358,6 +435,7 @@ class MNS_REST_Patient {
 		$check = MNS_Availability::check(
 			array(
 				'service_id'    => (int) $svc['id'],
+				'service_ids'   => $service_ids,
 				'province_code' => $prov,
 				'city_id'       => $city,
 				'district_no'   => $district,

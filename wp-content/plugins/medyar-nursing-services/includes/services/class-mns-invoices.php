@@ -82,6 +82,29 @@ class MNS_Invoices {
 			throw MNS_Error::server( 'صدور فاکتور ممکن نشد.' );
 		}
 		$id = (int) $wpdb->insert_id;
+		$line_items = class_exists( 'MNS_Order_Items', true ) ? MNS_Order_Items::for_order( $order_id ) : array();
+		if ( $line_items ) {
+			$meta_items = array();
+			foreach ( $line_items as $li ) {
+				$meta_items[] = array(
+					'service_id' => (int) $li['service_id'],
+					'name'       => (string) $li['name'],
+					'is_extra'   => ! empty( $li['is_extra'] ),
+					'price_from' => (int) $li['price_from'],
+					'price_to'   => (int) $li['price_to'],
+				);
+			}
+			$wpdb->update(
+				MNS_DB::table( 'invoices' ),
+				array(
+					'meta'       => wp_json_encode( array( 'items' => $meta_items ) ),
+					'updated_at' => MNS_Time::now_utc(),
+				),
+				array( 'id' => $id ),
+				array( '%s', '%s' ),
+				array( '%d' )
+			);
+		}
 		try {
 			MNS_Order_Machine::transition(
 				'invoice',

@@ -274,7 +274,7 @@ class MNS_Selftest_Money {
 			// Oversized payload is refused.
 			$bad = $expect(
 				static function () use ( $oid, $nurse ) {
-					MNS_Execution::save_step( $oid, 'checklist', array( 'items' => array( str_repeat( 'x', 30000 ) ) ), $nurse, 'nurse' );
+					MNS_Execution::save_step( $oid, 'checklist', array( 'items' => array( str_repeat( 'x', 60000 ) ) ), $nurse, 'nurse' );
 				},
 				'oversized_accepted'
 			);

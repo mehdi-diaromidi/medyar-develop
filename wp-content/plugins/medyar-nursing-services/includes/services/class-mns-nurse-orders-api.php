@@ -134,18 +134,26 @@ class MNS_Nurse_Orders_Api {
 				$essentials[ $ek ] = $ev;
 			}
 		}
+		$oid    = (int) $row['id'];
+		$groups = class_exists( 'MNS_Order_Items', true ) ? MNS_Order_Items::checklist_groups( $oid ) : array();
+		$names  = array();
+		foreach ( $groups as $g ) {
+			$names[] = (string) $g['name'] . ( ! empty( $g['is_extra'] ) ? ' (اضافه)' : '' );
+		}
 		$out = array(
-			'code'    => (string) $row['code'],
-			'status'  => $status,
-			'service' => $svc ? $svc['name'] : '',
-			'when'    => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
-			'notes'   => (string) ( $row['notes'] ?? '' ),
-			'essentials' => $essentials,
-			'province' => (string) $row['province_code'],
-			'city_id'  => (int) $row['city_id'],
-			'district' => (int) $row['district_no'],
-			'date'    => (string) $row['service_date'],
-			'slot_id' => (string) $row['slot_id'],
+			'code'              => (string) $row['code'],
+			'status'            => $status,
+			'service'           => $svc ? $svc['name'] : '',
+			'services'          => $names,
+			'checklist_groups'  => $groups,
+			'when'              => (string) $row['service_date'] . ' · ' . (string) $row['slot_id'],
+			'notes'             => (string) ( $row['notes'] ?? '' ),
+			'essentials'        => $essentials,
+			'province'          => (string) $row['province_code'],
+			'city_id'           => (int) $row['city_id'],
+			'district'          => (int) $row['district_no'],
+			'date'              => (string) $row['service_date'],
+			'slot_id'           => (string) $row['slot_id'],
 		);
 		if ( $show_contact ) {
 			$out['address']       = (string) $row['address'];
@@ -204,26 +212,28 @@ class MNS_Nurse_Orders_Api {
 			}
 		}
 		return array(
-			'status'       => $status,
-			'service'      => (string) $api['service'],
-			'tracking'     => (string) $api['code'],
-			'date'         => (string) ( $api['date'] ?? '' ),
-			'from'         => $from,
-			'to'           => $to,
-			'phone'        => (string) ( $api['phone'] ?? '' ),
-			'address'      => (string) ( $api['address'] ?? '' ),
-			'essentials'   => $ess_lines,
-			'needs_drug'   => ! empty( $ess_lines ) && ( isset( $ess_lines['allergy'] ) || isset( $api['essentials']['rx_file_id'] ) ),
-			'restricted'   => false,
-			'finance'      => array(),
-			'session'      => array(),
-			'timeline'     => array(),
-			'steps'        => $steps,
-			'can_start'    => $can_start && 'assigned' === $status,
-			'start_ts'     => $start_ts,
-			'urgent'       => false,
-			'changed'      => false,
-			'cancelled_by' => '',
+			'status'            => $status,
+			'service'           => (string) $api['service'],
+			'services'          => isset( $api['services'] ) && is_array( $api['services'] ) ? $api['services'] : array( (string) $api['service'] ),
+			'checklist_groups'  => isset( $api['checklist_groups'] ) && is_array( $api['checklist_groups'] ) ? $api['checklist_groups'] : array(),
+			'tracking'          => (string) $api['code'],
+			'date'              => (string) ( $api['date'] ?? '' ),
+			'from'              => $from,
+			'to'                => $to,
+			'phone'             => (string) ( $api['phone'] ?? '' ),
+			'address'           => (string) ( $api['address'] ?? '' ),
+			'essentials'        => $ess_lines,
+			'needs_drug'        => ! empty( $ess_lines ) && ( isset( $ess_lines['allergy'] ) || isset( $api['essentials']['rx_file_id'] ) ),
+			'restricted'        => false,
+			'finance'           => array(),
+			'session'           => array(),
+			'timeline'          => array(),
+			'steps'             => $steps,
+			'can_start'         => $can_start && 'assigned' === $status,
+			'start_ts'          => $start_ts,
+			'urgent'            => false,
+			'changed'           => false,
+			'cancelled_by'      => '',
 		);
 	}
 

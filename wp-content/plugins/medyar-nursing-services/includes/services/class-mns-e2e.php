@@ -86,10 +86,12 @@ class MNS_E2E {
 			throw MNS_Error::forbidden( 'جعبهٔ ماسه E2E فعال نیست.' );
 		}
 		MNS_Services_Seed::ensure_slice1();
-		$serum = MNS_Services::get( 'serum' );
-		$inj   = MNS_Services::get( 'injection' );
-		if ( ! $serum || ! $inj ) {
-			throw MNS_Error::server( 'خدمات سرم/تزریق آماده نیست.' );
+		$primary = MNS_Services::get( MNS_Services::default_active_slug() );
+		if ( ! $primary ) {
+			$primary = MNS_Services::get( 'serum' );
+		}
+		if ( ! $primary ) {
+			throw MNS_Error::server( 'خدمت فعال کاتالوگ آماده نیست.' );
 		}
 		$thr = MNS_Locations::city_id( 'THR', 'تهران' );
 		if ( ! $thr ) {
@@ -100,9 +102,10 @@ class MNS_E2E {
 		foreach ( self::$specs as $key => $spec ) {
 			$uid = self::ensure_user( $spec['login'], $spec['phone'], $spec['role'] );
 			if ( 'nurse_f' === $key ) {
-				self::setup_nurse( $uid, 'female', array( (int) $serum['id'], (int) $inj['id'] ), (int) $thr, range( 10, 22 ) );
+				// Empty service list ⇒ default all (RUN-G); pass [] intentionally.
+				self::setup_nurse( $uid, 'female', array(), (int) $thr, range( 10, 22 ) );
 			} elseif ( 'nurse_m' === $key ) {
-				self::setup_nurse( $uid, 'male', array( (int) $serum['id'], (int) $inj['id'] ), (int) $thr, range( 1, 3 ) );
+				self::setup_nurse( $uid, 'male', array(), (int) $thr, range( 1, 3 ) );
 			} else {
 				MNS_Patients::ensure_self( $uid );
 			}
@@ -166,15 +169,19 @@ class MNS_E2E {
 		}
 
 		MNS_Services_Seed::ensure_slice1();
-		$serum = MNS_Services::get( 'serum' );
-		$thr   = MNS_Locations::city_id( 'THR', 'تهران' );
-		if ( ! $serum || ! $thr ) {
-			throw MNS_Error::server( 'خدمت سرم یا شهر تهران آماده نیست.' );
+		$svc = MNS_Services::get( MNS_Services::default_active_slug() );
+		if ( ! $svc ) {
+			$svc = MNS_Services::get( 'serum' );
 		}
-		$serum_types = isset( $serum['config']['order_fields']['serum_types'] ) && is_array( $serum['config']['order_fields']['serum_types'] )
-			? $serum['config']['order_fields']['serum_types']
-			: array( 'نرمال سالین' );
-		$serum_type = (string) reset( $serum_types );
+		$thr = MNS_Locations::city_id( 'THR', 'تهران' );
+		if ( ! $svc || ! $thr ) {
+			throw MNS_Error::server( 'خدمت فعال یا شهر تهران آماده نیست.' );
+		}
+		$ess = array( 'allergy' => 'no' );
+		$fields = isset( $svc['config']['order_fields'] ) && is_array( $svc['config']['order_fields'] ) ? $svc['config']['order_fields'] : array();
+		if ( ! empty( $fields['serum_types'] ) && is_array( $fields['serum_types'] ) ) {
+			$ess['serum_type'] = (string) $fields['serum_types'][0];
+		}
 
 		$pat = MNS_Patients::ensure_self( (int) $patient->ID );
 		$tz  = new DateTimeZone( MNS_Time::TZ );
@@ -210,7 +217,8 @@ class MNS_E2E {
 					(int) $patient->ID,
 					array(
 						'patient_id'    => (int) $pat['id'],
-						'service_id'    => (int) $serum['id'],
+						'service_id'    => (int) $svc['id'],
+						'items'         => array( array( 'service_id' => (int) $svc['id'], 'is_extra' => 0 ) ),
 						'prov'          => 'THR',
 						'city_id'       => (int) $thr,
 						'district'      => (int) $spec['district'],
@@ -219,10 +227,7 @@ class MNS_E2E {
 						'date'          => $day,
 						'slot'          => (string) $spec['slot'],
 						'gender'        => (string) $spec['gender'],
-						'essentials'    => array(
-							'serum_type' => $serum_type,
-							'allergy'    => 'no',
-						),
+						'essentials'    => $ess,
 						'notes'         => 'mns_e2e_assigned',
 					)
 				);

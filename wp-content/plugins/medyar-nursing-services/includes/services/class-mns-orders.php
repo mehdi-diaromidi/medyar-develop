@@ -22,6 +22,19 @@ class MNS_Orders {
 			$svc = MNS_Services::get( (string) $params['service'] );
 			$service_id = $svc ? (int) $svc['id'] : 0;
 		}
+		$raw_items = isset( $params['items'] ) && is_array( $params['items'] ) ? $params['items'] : array();
+		if ( empty( $raw_items ) && $service_id > 0 ) {
+			$raw_items = array( array( 'service_id' => $service_id, 'is_extra' => 0 ) );
+		}
+		$pack = MNS_Order_Items::validate_items( $raw_items );
+		$svc  = $pack['primary'];
+		$service_id = (int) $svc['id'];
+		$service_ids = array();
+		foreach ( $pack['rows'] as $r ) {
+			$service_ids[] = (int) $r['service']['id'];
+		}
+		$manual_assign = ! empty( $pack['manual_assign'] );
+
 		$prov     = isset( $params['prov'] ) ? strtoupper( sanitize_text_field( (string) $params['prov'] ) ) : '';
 		$city_id  = isset( $params['city_id'] ) ? (int) $params['city_id'] : 0;
 		$district = isset( $params['district'] ) ? (int) $params['district'] : ( isset( $params['district_no'] ) ? (int) $params['district_no'] : 0 );
@@ -36,30 +49,57 @@ class MNS_Orders {
 		$notes    = function_exists( 'mb_substr' ) ? mb_substr( $notes, 0, 500 ) : substr( $notes, 0, 500 );
 
 		MNS_Patients::get_owned( $patient_id, $account_user_id );
-		$svc = MNS_Services::get( $service_id );
 		if ( ! $svc || empty( $svc['active'] ) ) {
 			throw MNS_Error::validation( 'خدمت نامعتبر است.', 'service_id' );
 		}
 
-		// Time validation (same as A-13 API layer).
+		// Time validation (same as A-13 API layer). Manual-assign: date/slot optional; placeholders for DB.
 		$today   = MNS_Time::today_tehran();
 		$horizon = (int) MNS_Settings::get( 'order_horizon' );
 		if ( $horizon < 1 ) {
 			$horizon = 30;
 		}
 		$tz = new DateTimeZone( MNS_Time::TZ );
-		$d  = DateTimeImmutable::createFromFormat( 'Y-m-d', $date, $tz );
-		$t  = DateTimeImmutable::createFromFormat( 'Y-m-d', $today, $tz );
-		if ( ! $d || ! $t || $d->format( 'Y-m-d' ) !== $date || $d < $t || $d > $t->modify( '+' . $horizon . ' days' ) ) {
-			throw MNS_Error::validation( 'تاریخ خارج از بازهٔ مجاز است.', 'date' );
+		if ( $manual_assign ) {
+			if ( '' === $date || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+				$date = $today;
+			}
+			if ( '' === $slot || ! MNS_Time::slot_known( $slot ) ) {
+				$slots_cfg = MNS_Settings::get( 'slots' );
+				if ( ! is_array( $slots_cfg ) ) {
+					$slots_cfg = MNS_Settings::default_slots();
+				}
+				$slot = ! empty( $slots_cfg[0]['id'] ) ? (string) $slots_cfg[0]['id'] : '8-12';
+			}
+			if ( ! in_array( $gender, array( 'female', 'male' ), true ) ) {
+				$gender = 'female';
+			}
+			$shift_note = isset( $params['shift_note'] ) ? sanitize_textarea_field( (string) $params['shift_note'] ) : '';
+			$shift_note = function_exists( 'mb_substr' ) ? mb_substr( $shift_note, 0, 500 ) : substr( $shift_note, 0, 500 );
+			if ( '' !== $shift_note ) {
+				$notes = trim( $notes . "\n" . 'مدت/شیفت: ' . $shift_note );
+				$notes = function_exists( 'mb_substr' ) ? mb_substr( $notes, 0, 500 ) : substr( $notes, 0, 500 );
+			}
+		} else {
+			$d = DateTimeImmutable::createFromFormat( 'Y-m-d', $date, $tz );
+			$t = DateTimeImmutable::createFromFormat( 'Y-m-d', $today, $tz );
+			if ( ! $d || ! $t || $d->format( 'Y-m-d' ) !== $date || $d < $t || $d > $t->modify( '+' . $horizon . ' days' ) ) {
+				throw MNS_Error::validation( 'تاریخ خارج از بازهٔ مجاز است.', 'date' );
+			}
+			if ( ! MNS_Time::slot_known( $slot ) ) {
+				throw MNS_Error::validation( 'بازهٔ زمانی نامعتبر است.', 'slot' );
+			}
+			if ( ! in_array( $gender, array( 'female', 'male' ), true ) ) {
+				throw MNS_Error::validation( 'جنسیت پرستار را انتخاب کنید.', 'gender' );
+			}
+			if ( MNS_Time::slot_closed( $slot ) ) {
+				throw MNS_Error::validation( 'این بازه بسته است.', 'slot' );
+			}
+			if ( $date === $today && MNS_Time::slot_start_ts( $date, $slot ) < time() ) {
+				throw MNS_Error::validation( 'شروع این بازه گذشته است.', 'slot' );
+			}
 		}
-		// Supervisor fixes: reject unknown slots/genders/cities, require an address, never trust client essentials.
-		if ( ! MNS_Time::slot_known( $slot ) ) {
-			throw MNS_Error::validation( 'بازهٔ زمانی نامعتبر است.', 'slot' );
-		}
-		if ( ! in_array( $gender, array( 'female', 'male' ), true ) ) {
-			throw MNS_Error::validation( 'جنسیت پرستار را انتخاب کنید.', 'gender' );
-		}
+		// Supervisor fixes: reject unknown cities, require an address, never trust client essentials.
 		if ( ! preg_match( '/^[A-Z]{3}$/', $prov ) || $city_id <= 0 || ! MNS_Locations::is_valid_city( $prov, $city_id ) ) {
 			throw MNS_Error::validation( 'شهر نامعتبر است.', 'city_id' );
 		}
@@ -67,12 +107,6 @@ class MNS_Orders {
 			throw MNS_Error::validation( 'نشانی الزامی است.', 'address' );
 		}
 		$essentials = self::clean_essentials( $essentials, $account_user_id );
-		if ( MNS_Time::slot_closed( $slot ) ) {
-			throw MNS_Error::validation( 'این بازه بسته است.', 'slot' );
-		}
-		if ( $date === $today && MNS_Time::slot_start_ts( $date, $slot ) < time() ) {
-			throw MNS_Error::validation( 'شروع این بازه گذشته است.', 'slot' );
-		}
 
 		$account_phone = '';
 		if ( class_exists( '\DrPlus\Utils\User' ) && is_callable( array( '\DrPlus\Utils\User', 'get_phone' ) ) ) {
@@ -102,6 +136,9 @@ class MNS_Orders {
 		}
 
 		self::validate_essentials( $svc, $essentials );
+		if ( ! empty( $pack['requires_rx'] ) && empty( $essentials['rx_file_id'] ) ) {
+			throw MNS_Error::validation( 'تصویر نسخه الزامی است.', 'rx' );
+		}
 
 		$lock_name = 'mns_slot_' . $date . '_' . $slot;
 		$lock_ok   = false;
@@ -115,6 +152,7 @@ class MNS_Orders {
 
 			$scope = array(
 				'service_id'    => (int) $svc['id'],
+				'service_ids'   => $service_ids,
 				'province_code' => $prov,
 				'city_id'       => $city_id,
 				'district_no'   => $district,
@@ -122,12 +160,14 @@ class MNS_Orders {
 				'slot_id'       => $slot,
 				'gender_pref'   => $gender,
 			);
-			$check = MNS_Availability::check( $scope );
-			if ( 'green' !== $check['state'] ) {
-				if ( 'red' === $check['state'] ) {
-					throw MNS_Error::conflict( 'ERR_NO_NURSE', 'برای این زمان پرستار موجود نیست.' );
+			if ( ! $manual_assign ) {
+				$check = MNS_Availability::check( $scope );
+				if ( 'green' !== $check['state'] ) {
+					if ( 'red' === $check['state'] ) {
+						throw MNS_Error::conflict( 'ERR_NO_NURSE', 'برای این زمان پرستار موجود نیست.' );
+					}
+					throw MNS_Error::conflict( 'ERR_NO_NURSE', 'همین حالا این زمان پر شد یا پرستاری موجود نیست.' );
 				}
-				throw MNS_Error::conflict( 'ERR_NO_NURSE', 'همین حالا این زمان پر شد یا پرستاری موجود نیست.' );
 			}
 
 			$order = MNS_Order_Machine::transition(
@@ -149,15 +189,19 @@ class MNS_Orders {
 					'actor_user_id'   => $account_user_id,
 					'actor_role'      => 'patient',
 					'source'          => 'site',
+					// Supervisor fix: manual-assign services (hourly/shift/other) are coordinated by support, so the
+					// machine must not re-run A-13 for them (it demanded a green nurse and rejected the order).
+					'skip_a13'        => $manual_assign,
 				)
 			);
 
+			MNS_Order_Items::insert_for_order( (int) $order['id'], $pack['rows'] );
+
 			$mode = (string) MNS_Settings::get( 'assignment_mode' );
-			if ( 'auto' === $mode ) {
+			if ( ! $manual_assign && 'auto' === $mode ) {
 				try {
 					$order = MNS_Assignment::auto_assign( (int) $order['id'], $account_user_id );
 				} catch ( MNS_Error $e ) {
-					// Leave submitted if assign fails after create (manual queue).
 					if ( 'ERR_SLOT_TAKEN' === $e->error_code() || 'ERR_NO_NURSE' === $e->error_code() ) {
 						// keep submitted
 					} else {
@@ -255,16 +299,32 @@ class MNS_Orders {
 			$u = get_userdata( (int) $order['nurse_user_id'] );
 			$nurse = $u ? array( 'name' => $u->display_name ) : null;
 		}
+		$items     = class_exists( 'MNS_Order_Items', true ) ? MNS_Order_Items::for_order( (int) $order['id'] ) : array();
+		$names     = array();
+		$price_min = 0;
+		$price_max = 0;
+		foreach ( $items as $it ) {
+			$names[]    = (string) $it['name'] . ( ! empty( $it['is_extra'] ) ? ' (اضافه)' : '' );
+			$price_min += (int) $it['price_from'];
+			$price_max += (int) $it['price_to'];
+		}
+		if ( empty( $names ) && $svc ) {
+			$names[]    = (string) $svc['name'];
+			$price_min  = (int) $svc['price_from'];
+			$price_max  = (int) $svc['price_to'];
+		}
 		return array(
-			'code'         => (string) $order['code'],
-			'status'       => (string) $order['status'],
-			'service'      => $svc ? $svc['name'] : '',
-			'patient'      => $pat ? $pat['name'] : '',
-			'when'         => (string) $order['service_date'] . ' ' . (string) $order['slot_id'],
-			'address_short'=> mb_substr( (string) $order['address'], 0, 40 ),
-			'price_min'    => $svc ? $svc['price_from'] : 0,
-			'price_max'    => $svc ? $svc['price_to'] : 0,
-			'nurse'        => $nurse,
+			'code'          => (string) $order['code'],
+			'status'        => (string) $order['status'],
+			'service'       => $svc ? $svc['name'] : '',
+			'services'      => $names,
+			'items'         => $items,
+			'patient'       => $pat ? $pat['name'] : '',
+			'when'          => (string) $order['service_date'] . ' ' . (string) $order['slot_id'],
+			'address_short' => mb_substr( (string) $order['address'], 0, 40 ),
+			'price_min'     => $price_min,
+			'price_max'     => $price_max,
+			'nurse'         => $nurse,
 		);
 	}
 }

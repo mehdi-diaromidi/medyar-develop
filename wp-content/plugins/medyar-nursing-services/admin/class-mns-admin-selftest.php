@@ -40,6 +40,7 @@ class MNS_Admin_Selftest {
 				'core'   => array( 'AC-M0-*', 'AC-ELG-*', 'AC-A13-*', 'AC-M2-*', 'AC-M3-1', 'AC-M3-2' ),
 				'orders' => array( 'AC-M3-*', 'AC-ASG-*', 'AC-FIL-*' ),
 				'money'  => array( 'AC-M5-*', 'AC-M4-*', 'AC-M6-*' ),
+				'catalog' => array( 'AC-G-*' ),
 			);
 			$suite  = isset( $_POST['suite'] ) ? sanitize_key( wp_unslash( (string) $_POST['suite'] ) ) : 'all';
 			$result = MNS_Selftest::run( isset( $suites[ $suite ] ) ? $suites[ $suite ] : null );
@@ -98,7 +99,7 @@ class MNS_Admin_Selftest {
 		echo '<input type="hidden" name="action" value="mns_selftest_run" />';
 		submit_button( __( 'اجرای همه', 'medyar-nursing-services' ) );
 		echo '<p>';
-		foreach ( array( 'core' => 'هسته', 'orders' => 'سفارش و تخصیص', 'money' => 'مالی' ) as $suite_key => $suite_label ) {
+		foreach ( array( 'core' => 'هسته', 'orders' => 'سفارش و تخصیص', 'money' => 'مالی', 'catalog' => 'کاتالوگ خدمات' ) as $suite_key => $suite_label ) {
 			echo '<button type="submit" name="suite" value="' . esc_attr( $suite_key ) . '" class="button">' . esc_html( 'فقط ' . $suite_label ) . '</button> ';
 		}
 		echo '</p>';

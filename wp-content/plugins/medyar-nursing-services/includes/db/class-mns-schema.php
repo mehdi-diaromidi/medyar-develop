@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Schema {
 
 	/** Latest schema version shipped by this plugin build. */
-	public const LATEST = 3;
+	public const LATEST = 4;
 
 	/**
 	 * CREATE TABLE statements for a schema version.
@@ -29,6 +29,9 @@ class MNS_Schema {
 		}
 		if ( 3 === $version ) {
 			return self::sql_v3();
+		}
+		if ( 4 === $version ) {
+			return self::sql_v4();
 		}
 		return array();
 	}
@@ -68,6 +71,11 @@ class MNS_Schema {
 		if ( 3 === $version ) {
 			return array(
 				'payment_attempts',
+			);
+		}
+		if ( 4 === $version ) {
+			return array(
+				'order_items',
 			);
 		}
 		return array();
@@ -422,6 +430,57 @@ PRIMARY KEY  (id),
 UNIQUE KEY authority (authority),
 KEY invoice_status (invoice_id,status),
 KEY account_user_id (account_user_id)
+) {$cc};",
+		);
+	}
+
+	/**
+	 * Catalog v4: service flags + multi-item orders (RUN-G).
+	 * dbDelta on services CREATE adds missing columns; order_items is new.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function sql_v4(): array {
+		$cc       = MNS_DB::charset_collate();
+		$services = MNS_DB::table( 'services' );
+		$items    = MNS_DB::table( 'order_items' );
+
+		return array(
+			"CREATE TABLE {$services} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+slug varchar(64) NOT NULL,
+category varchar(32) NOT NULL DEFAULT '',
+category_label varchar(80) NOT NULL DEFAULT '',
+name varchar(191) NOT NULL,
+active tinyint(1) NOT NULL DEFAULT 1,
+price_from bigint(20) unsigned NOT NULL DEFAULT 0,
+price_to bigint(20) unsigned NOT NULL DEFAULT 0,
+has_drug_step tinyint(1) NOT NULL DEFAULT 0,
+requires_rx tinyint(1) NOT NULL DEFAULT 0,
+needs_explicit_nurse tinyint(1) NOT NULL DEFAULT 0,
+manual_assign tinyint(1) NOT NULL DEFAULT 0,
+checklist longtext,
+checklist_draft tinyint(1) NOT NULL DEFAULT 0,
+sort int(11) NOT NULL DEFAULT 0,
+config longtext,
+created_at datetime NOT NULL,
+updated_at datetime NOT NULL,
+PRIMARY KEY  (id),
+UNIQUE KEY slug (slug),
+KEY active_sort (active,sort),
+KEY category_sort (category,sort)
+) {$cc};",
+			"CREATE TABLE {$items} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+order_id bigint(20) unsigned NOT NULL,
+service_id bigint(20) unsigned NOT NULL,
+is_extra tinyint(1) NOT NULL DEFAULT 0,
+price_from bigint(20) unsigned NOT NULL DEFAULT 0,
+price_to bigint(20) unsigned NOT NULL DEFAULT 0,
+created_at datetime NOT NULL,
+PRIMARY KEY  (id),
+KEY order_id (order_id),
+KEY service_id (service_id)
 ) {$cc};",
 		);
 	}

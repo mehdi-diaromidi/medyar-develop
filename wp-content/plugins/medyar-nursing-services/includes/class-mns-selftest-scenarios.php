@@ -22,13 +22,16 @@ class MNS_Selftest_Scenarios {
 		MNS_Selftest::register( 'AC-M2-4', 'Past / beyond horizon rejected', array( __CLASS__, 'ac_m2_4' ) );
 		MNS_Selftest::register( 'AC-M2-5', 'Regions validation + warning', array( __CLASS__, 'ac_m2_5' ) );
 		MNS_Selftest::register( 'AC-M2-6', 'Nurse status compute codes', array( __CLASS__, 'ac_m2_6' ) );
-		MNS_Selftest::register( 'AC-M3-1', 'Services seed serum/injection', array( __CLASS__, 'ac_m3_1' ) );
+		MNS_Selftest::register( 'AC-M3-1', 'Catalog seed + legacy serum/injection inactive', array( __CLASS__, 'ac_m3_1' ) );
 		MNS_Selftest::register( 'AC-M3-2', 'Patients self + ownership 404', array( __CLASS__, 'ac_m3_2' ) );
 		MNS_Selftest::register( 'AC-A13-4', 'A-13 rejects closed/past slot', array( __CLASS__, 'ac_a13_4' ) );
 		MNS_Selftest_Orders::register_all();
 		MNS_Selftest_Money::register_all();
 		if ( class_exists( 'MNS_Selftest_Pay', true ) ) {
 			MNS_Selftest_Pay::register_all();
+		}
+		if ( class_exists( 'MNS_Selftest_Catalog', true ) ) {
+			MNS_Selftest_Catalog::register_all();
 		}
 	}
 
@@ -731,16 +734,20 @@ class MNS_Selftest_Scenarios {
 	 */
 	public static function ac_m3_1(): array {
 		MNS_Services_Seed::ensure_slice1();
-		$s = MNS_Services::get( 'serum' );
-		$i = MNS_Services::get( 'injection' );
-		if ( ! $s || ! $i ) {
-			return array( 'ok' => false, 'detail' => 'missing_seed' );
+		$legacy_s = MNS_Services::get( 'serum' );
+		$legacy_i = MNS_Services::get( 'injection' );
+		if ( ! $legacy_s || ! $legacy_i ) {
+			return array( 'ok' => false, 'detail' => 'missing_legacy_rows' );
 		}
-		if ( empty( $s['config']['order_fields'] ) ) {
-			return array( 'ok' => false, 'detail' => 'empty_config' );
+		if ( ! empty( $legacy_s['active'] ) || ! empty( $legacy_i['active'] ) ) {
+			return array( 'ok' => false, 'detail' => 'legacy_still_active' );
+		}
+		$probe = MNS_Services::get( MNS_Services::default_active_slug() );
+		if ( ! $probe || empty( $probe['active'] ) ) {
+			return array( 'ok' => false, 'detail' => 'missing_catalog_active' );
 		}
 		$before = MNS_Services::list_active();
-		MNS_Services::update_admin( (int) $s['id'], array( 'active' => false ) );
+		MNS_Services::update_admin( (int) $probe['id'], array( 'active' => false ) );
 		$after = MNS_Services::list_active();
 		$ids   = array_map(
 			static function ( $r ) {
@@ -748,11 +755,11 @@ class MNS_Selftest_Scenarios {
 			},
 			$after
 		);
-		MNS_Services::update_admin( (int) $s['id'], array( 'active' => true ) );
-		if ( in_array( (int) $s['id'], $ids, true ) ) {
+		MNS_Services::update_admin( (int) $probe['id'], array( 'active' => true ) );
+		if ( in_array( (int) $probe['id'], $ids, true ) ) {
 			return array( 'ok' => false, 'detail' => 'inactive_still_listed' );
 		}
-		return array( 'ok' => true, 'detail' => 'active_before=' . count( $before ) );
+		return array( 'ok' => true, 'detail' => 'active_before=' . count( $before ) . ';legacy_off' );
 	}
 
 	/**

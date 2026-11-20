@@ -75,18 +75,28 @@ if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
 	}
 	// Quick-order chips come from the active services, never from the fixture.
 	$mns_cat_icons = array(
-		'serum'     => 'pill',
-		'injection' => 'activity',
-		'dressing'  => 'bandage',
-		'catheter'  => 'droplet',
-		'care'      => 'users',
+		'inj_serum'  => 'droplet',
+		'wound'      => 'bandage',
+		'catheter'   => 'droplet',
+		'tube_stoma' => 'activity',
+		'vitals'     => 'activity',
+		'post_dis'   => 'shield',
+		'hourly'     => 'clock',
+		'respiratory'=> 'activity',
+		'education'  => 'file-text',
+		'other'      => 'list',
+		'serum'      => 'pill',
+		'injection'  => 'activity',
+		'dressing'   => 'bandage',
+		'care'       => 'users',
 	);
 	if ( class_exists( 'MNS_Services', true ) ) {
-		foreach ( MNS_Services::list_active() as $mns_svc ) {
+		MNS_Services_Seed::ensure_slice1();
+		foreach ( MNS_Services::categories() as $mns_cat ) {
 			$categories[] = array(
-				'slug'  => (string) $mns_svc['slug'],
-				'label' => (string) $mns_svc['name'],
-				'icon'  => $mns_cat_icons[ (string) $mns_svc['slug'] ] ?? 'list',
+				'slug'  => (string) ( $mns_cat['slug'] ?? '' ),
+				'label' => (string) ( $mns_cat['label'] ?? '' ),
+				'icon'  => $mns_cat_icons[ (string) ( $mns_cat['slug'] ?? '' ) ] ?? 'list',
 			);
 		}
 	}
@@ -233,7 +243,15 @@ $render_quick = static function () use ( $last, $categories, $new_url ): void {
 		<?php endif; ?>
 		<div class="mns-quick-grid">
 			<?php foreach ( $categories as $cat ) : ?>
-				<?php $url = add_query_arg( 'mns_service', (string) ( $cat['slug'] ?? '' ), $new_url ); ?>
+				<?php
+				$url = add_query_arg(
+					array(
+						'service'      => (string) ( $cat['slug'] ?? '' ),
+						'mns_category' => (string) ( $cat['slug'] ?? '' ),
+					),
+					$new_url
+				);
+				?>
 				<a class="mns-quick-chip" href="<?php echo esc_url( $url ); ?>">
 					<span class="mns-quick-chip__icon" aria-hidden="true"><?php echo mns_icon( (string) ( $cat['icon'] ?? 'list' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 					<span><?php echo esc_html( (string) ( $cat['label'] ?? '' ) ); ?></span>

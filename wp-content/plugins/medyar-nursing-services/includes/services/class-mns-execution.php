@@ -72,12 +72,13 @@ class MNS_Execution {
 			if ( isset( $data['state'] ) && in_array( (string) $data['state'], array( 'draft', 'done' ), true ) ) {
 				$clean['state'] = (string) $data['state'];
 			}
-			foreach ( array( 'items', 'sections' ) as $list_key ) {
+			foreach ( array( 'items', 'sections', 'by_service' ) as $list_key ) {
 				if ( isset( $data[ $list_key ] ) && is_array( $data[ $list_key ] ) ) {
 					$clean[ $list_key ] = map_deep( $data[ $list_key ], 'sanitize_textarea_field' );
 				}
 			}
-			if ( strlen( (string) wp_json_encode( $clean ) ) > 20000 ) {
+			// RUN-G: multi-subservice checklist needs more headroom (was 20KB; now 48KB).
+			if ( strlen( (string) wp_json_encode( $clean ) ) > 48000 ) {
 				throw MNS_Error::validation( 'حجم اطلاعات مرحله بیش از حد مجاز است.' );
 			}
 			$data = $clean;

@@ -16,6 +16,17 @@ class MNS_Availability {
 	 * @return array{state:string,message:string,alt?:array<int,array<string,string>>}
 	 */
 	public static function check( array $scope ): array {
+		$service_ids = MNS_Eligibility::resolve_service_ids( $scope );
+		foreach ( $service_ids as $sid ) {
+			$svc = MNS_Services::get( $sid );
+			if ( $svc && ! empty( $svc['manual_assign'] ) ) {
+				return array(
+					'state'   => 'manual',
+					'message' => 'برای این خدمت همکاران ما برای هماهنگی با شما تماس می‌گیرند.',
+				);
+			}
+		}
+
 		$mode = (string) MNS_Settings::get( 'assignment_mode' );
 
 		$eligible = MNS_Eligibility::nurses_for( $scope );

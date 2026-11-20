@@ -1,6 +1,6 @@
 <?php
 /**
- * Services catalog (T-3.1).
+ * Services catalog (T-3.1 / RUN-G).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,6 +25,8 @@ class MNS_Services {
 	}
 
 	/**
+	 * Active patient-facing catalog (excludes self-test fixtures).
+	 *
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function list_active(): array {
@@ -34,7 +36,6 @@ class MNS_Services {
 		$out   = array();
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
-				// Supervisor fix: self-test fixtures must never be offered to real patients.
 				if ( 0 === strpos( (string) $row['slug'], 'mns_selftest' ) ) {
 					continue;
 				}
@@ -48,12 +49,43 @@ class MNS_Services {
 	}
 
 	/**
+	 * Categories with nested active subservices (patient UI).
+	 *
+	 * @return array<int,array{slug:string,label:string,manual_assign:bool,services:array<int,array<string,mixed>>}>
+	 */
+	public static function categories(): array {
+		$grouped = array();
+		foreach ( self::list_active() as $svc ) {
+			$cat = (string) ( $svc['category'] ?? '' );
+			if ( '' === $cat ) {
+				$cat = 'other';
+			}
+			if ( ! isset( $grouped[ $cat ] ) ) {
+				$grouped[ $cat ] = array(
+					'slug'          => $cat,
+					'label'         => (string) ( $svc['category_label'] !== '' ? $svc['category_label'] : $cat ),
+					'manual_assign' => false,
+					'services'      => array(),
+				);
+			}
+			if ( ! empty( $svc['manual_assign'] ) ) {
+				$grouped[ $cat ]['manual_assign'] = true;
+			}
+			if ( '' === $grouped[ $cat ]['label'] && ! empty( $svc['category_label'] ) ) {
+				$grouped[ $cat ]['label'] = (string) $svc['category_label'];
+			}
+			$grouped[ $cat ]['services'][] = $svc;
+		}
+		return array_values( $grouped );
+	}
+
+	/**
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function list_all(): array {
 		global $wpdb;
 		$table = MNS_DB::table( 'services' );
-		$rows  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY sort ASC, id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY category ASC, sort ASC, id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$out   = array();
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
@@ -64,6 +96,20 @@ class MNS_Services {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Preferred default active service for fixtures/E2E (replaces hard-coded serum).
+	 */
+	public static function default_active_slug(): string {
+		foreach ( array( 'im_injection', 'iv_infusion', 'sc_injection' ) as $slug ) {
+			$s = self::get( $slug );
+			if ( $s && ! empty( $s['active'] ) ) {
+				return $slug;
+			}
+		}
+		$all = self::list_active();
+		return ! empty( $all[0]['slug'] ) ? (string) $all[0]['slug'] : 'serum';
 	}
 
 	/**
@@ -81,7 +127,7 @@ class MNS_Services {
 		if ( ! $existing ) {
 			throw MNS_Error::not_found( 'خدمت یافت نشد.' );
 		}
-		$fields = array();
+		$fields  = array();
 		$formats = array();
 		if ( isset( $data['name'] ) ) {
 			$name = sanitize_text_field( (string) $data['name'] );
@@ -90,6 +136,10 @@ class MNS_Services {
 			}
 			$fields['name'] = $name;
 			$formats[]      = '%s';
+		}
+		if ( isset( $data['category_label'] ) ) {
+			$fields['category_label'] = sanitize_text_field( (string) $data['category_label'] );
+			$formats[]                = '%s';
 		}
 		if ( isset( $data['active'] ) ) {
 			$fields['active'] = $data['active'] ? 1 : 0;
@@ -106,6 +156,42 @@ class MNS_Services {
 		if ( isset( $data['has_drug_step'] ) ) {
 			$fields['has_drug_step'] = $data['has_drug_step'] ? 1 : 0;
 			$formats[]              = '%d';
+		}
+		if ( isset( $data['requires_rx'] ) ) {
+			$fields['requires_rx'] = $data['requires_rx'] ? 1 : 0;
+			$formats[]             = '%d';
+		}
+		if ( isset( $data['needs_explicit_nurse'] ) ) {
+			$fields['needs_explicit_nurse'] = $data['needs_explicit_nurse'] ? 1 : 0;
+			$formats[]                     = '%d';
+		}
+		if ( isset( $data['manual_assign'] ) ) {
+			$fields['manual_assign'] = $data['manual_assign'] ? 1 : 0;
+			$formats[]               = '%d';
+		}
+		if ( isset( $data['checklist_draft'] ) ) {
+			$fields['checklist_draft'] = $data['checklist_draft'] ? 1 : 0;
+			$formats[]                 = '%d';
+		}
+		if ( array_key_exists( 'checklist', $data ) ) {
+			$items = $data['checklist'];
+			if ( is_string( $items ) ) {
+				$lines = preg_split( '/\r\n|\r|\n/', $items );
+				$items = array();
+				if ( is_array( $lines ) ) {
+					foreach ( $lines as $line ) {
+						$line = trim( (string) $line );
+						if ( '' !== $line ) {
+							$items[] = sanitize_text_field( $line );
+						}
+					}
+				}
+			}
+			if ( ! is_array( $items ) ) {
+				throw MNS_Error::validation( 'چک‌لیست نامعتبر است.', 'checklist' );
+			}
+			$fields['checklist'] = wp_json_encode( array_values( $items ) );
+			$formats[]           = '%s';
 		}
 		if ( array_key_exists( 'config', $data ) ) {
 			$cfg = $data['config'];
@@ -183,19 +269,30 @@ class MNS_Services {
 			$decoded = json_decode( (string) $row['config'], true );
 			$cfg     = is_array( $decoded ) ? $decoded : array();
 		}
+		$checklist = array();
+		if ( ! empty( $row['checklist'] ) ) {
+			$decoded = json_decode( (string) $row['checklist'], true );
+			$checklist = is_array( $decoded ) ? $decoded : array();
+		}
 		return array(
-			'id'            => (int) $row['id'],
-			'slug'          => (string) $row['slug'],
-			'category'      => (string) ( $row['category'] ?? '' ),
-			'name'          => (string) $row['name'],
-			'active'        => ! empty( $row['active'] ),
-			'price_from'    => (int) $row['price_from'],
-			'price_to'      => (int) $row['price_to'],
-			'price_min'     => (int) $row['price_from'],
-			'price_max'     => (int) $row['price_to'],
-			'has_drug_step' => ! empty( $row['has_drug_step'] ),
-			'sort'          => (int) ( $row['sort'] ?? 0 ),
-			'config'        => $cfg,
+			'id'                   => (int) $row['id'],
+			'slug'                 => (string) $row['slug'],
+			'category'             => (string) ( $row['category'] ?? '' ),
+			'category_label'       => (string) ( $row['category_label'] ?? '' ),
+			'name'                 => (string) $row['name'],
+			'active'               => ! empty( $row['active'] ),
+			'price_from'           => (int) $row['price_from'],
+			'price_to'             => (int) $row['price_to'],
+			'price_min'            => (int) $row['price_from'],
+			'price_max'            => (int) $row['price_to'],
+			'has_drug_step'        => ! empty( $row['has_drug_step'] ),
+			'requires_rx'          => ! empty( $row['requires_rx'] ),
+			'needs_explicit_nurse' => ! empty( $row['needs_explicit_nurse'] ),
+			'manual_assign'        => ! empty( $row['manual_assign'] ),
+			'checklist'            => $checklist,
+			'checklist_draft'      => ! empty( $row['checklist_draft'] ),
+			'sort'                 => (int) ( $row['sort'] ?? 0 ),
+			'config'               => $cfg,
 		);
 	}
 }

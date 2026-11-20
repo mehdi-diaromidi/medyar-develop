@@ -134,6 +134,12 @@ class MNS_Selftest_Orders {
 			// Incomplete essentials (rx required).
 			$payload = $body;
 			$payload['essentials'] = array( 'serum_type' => 'طبق نسخه پزشک' );
+			// The prescription rule now belongs to the service (requires_rx), not to the legacy serum form field.
+			$rx_svc = MNS_Services::get( 'iv_infusion' );
+			if ( $rx_svc ) {
+				$payload['service_id'] = (int) $rx_svc['id'];
+				$payload['items']      = array( array( 'service_id' => (int) $rx_svc['id'], 'is_extra' => 0 ) );
+			}
 			$res = self::rest_json( 'POST', '/orders', (int) $ctx['patient_uid'], $payload );
 			if ( ! empty( $res['data']['ok'] ) ) {
 				return array( 'ok' => false, 'detail' => 'rx_missing_accepted' );
@@ -631,9 +637,16 @@ class MNS_Selftest_Orders {
 	 * @return array<string,mixed>
 	 */
 	public static function order_body( array $ctx ): array {
+		$ess = array( 'allergy' => 'no' );
+		$svc = ! empty( $ctx['service_id'] ) ? MNS_Services::get( (int) $ctx['service_id'] ) : null;
+		$fields = $svc && isset( $svc['config']['order_fields'] ) && is_array( $svc['config']['order_fields'] ) ? $svc['config']['order_fields'] : array();
+		if ( ! empty( $fields['serum_types'] ) && is_array( $fields['serum_types'] ) ) {
+			$ess['serum_type'] = (string) $fields['serum_types'][0];
+		}
 		return array(
 			'patient_id'    => (int) $ctx['patient_id'],
 			'service_id'    => (int) $ctx['service_id'],
+			'items'         => array( array( 'service_id' => (int) $ctx['service_id'], 'is_extra' => 0 ) ),
 			'prov'          => 'THR',
 			'city_id'       => (int) $ctx['city_id'],
 			'district'      => (int) $ctx['district'],
@@ -642,10 +655,7 @@ class MNS_Selftest_Orders {
 			'date'          => (string) $ctx['day'],
 			'slot'          => (string) $ctx['slot'],
 			'gender'        => 'female',
-			'essentials'    => array(
-				'serum_type' => 'نرمال سالین',
-				'allergy'    => 'no',
-			),
+			'essentials'    => $ess,
 			'notes'         => 'selftest',
 		);
 	}
@@ -655,9 +665,12 @@ class MNS_Selftest_Orders {
 	 */
 	public static function seed_green( bool $auto = true ): array {
 		MNS_Services_Seed::ensure_slice1();
-		$svc = MNS_Services::get( 'serum' );
+		$svc = MNS_Services::get( MNS_Services::default_active_slug() );
 		if ( ! $svc ) {
-			throw new \RuntimeException( 'no_serum' );
+			$svc = MNS_Services::get( 'serum' );
+		}
+		if ( ! $svc ) {
+			throw new \RuntimeException( 'no_active_service' );
 		}
 		$thr = MNS_Locations::city_id( 'THR', 'تهران' );
 		if ( ! $thr ) {

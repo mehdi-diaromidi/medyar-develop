@@ -25,17 +25,28 @@ if ( $use_real ) {
 			global $wpdb;
 			$oid = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . MNS_DB::table( 'orders' ) . ' WHERE code = %s', $code_q ) ); // phpcs:ignore WordPress.DB.PreparedSQL
 			$steps = $oid ? MNS_Execution::steps_for( $oid ) : MNS_Execution::empty_steps();
-			MNS_UI::empty_state(
-				array(
-					'title' => (string) ( $ord['service'] ?? __( 'چک‌لیست', 'medyar-nursing-services' ) ),
-					'text'  => sprintf(
-						/* translators: status */
-						__( 'وضعیت مرحله: %s', 'medyar-nursing-services' ),
-						(string) ( $steps['checklist']['state'] ?? 'locked' )
-					),
-					'icon'  => 'check',
+			$groups = isset( $ord['checklist_groups'] ) && is_array( $ord['checklist_groups'] ) ? $ord['checklist_groups'] : array();
+			echo '<div class="mns-cl-live">';
+			echo '<h2 class="mns-section-title">' . esc_html( (string) ( $ord['service'] ?? __( 'چک‌لیست', 'medyar-nursing-services' ) ) ) . '</h2>';
+			echo '<p class="mns-lead">' . esc_html(
+				sprintf(
+					/* translators: status */
+					__( 'وضعیت مرحله: %s', 'medyar-nursing-services' ),
+					(string) ( $steps['checklist']['state'] ?? 'locked' )
 				)
-			);
+			) . '</p>';
+			foreach ( $groups as $g ) {
+				$gname = (string) ( $g['name'] ?? '' );
+				if ( ! empty( $g['is_extra'] ) ) {
+					$gname .= ' — ' . __( 'مورد اضافه', 'medyar-nursing-services' );
+				}
+				echo '<section class="mns-cl-group"><h3 class="mns-cl-group__title">' . esc_html( $gname ) . '</h3><ul class="mns-cl-group__list">';
+				foreach ( (array) ( $g['items'] ?? array() ) as $item ) {
+					echo '<li>' . esc_html( (string) $item ) . '</li>';
+				}
+				echo '</ul></section>';
+			}
+			echo '</div>';
 		} catch ( \Throwable $e ) {
 			MNS_UI::partial( 'not-found', array( 'panel' => 'nurse' ) );
 		}

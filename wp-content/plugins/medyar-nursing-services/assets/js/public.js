@@ -29,6 +29,39 @@
 		});
 	}
 
+	var MNS_SLOT_SVG_OPEN =
+		'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">';
+	var MNS_SLOT_SKY =
+		'<path d="M3 19h18" /><path d="M4 19a8 8 0 0 1 16 0" stroke-dasharray="1.2 2.6" opacity=".55" />';
+	function mnsSlotSunAt(x, y) {
+		return '<circle cx="' + x + '" cy="' + y + '" r="2.6" fill="currentColor" />';
+	}
+	var MNS_SLOT_ICONS = {
+		'4-8': MNS_SLOT_SKY + mnsSlotSunAt(4.6, 15.6),
+		'8-12': MNS_SLOT_SKY + mnsSlotSunAt(8.1, 10.8),
+		'12-16': MNS_SLOT_SKY + mnsSlotSunAt(15.9, 10.8),
+		'16-20': MNS_SLOT_SKY + mnsSlotSunAt(19.4, 15.6),
+		'20-24':
+			'<path d="M20 14.2A8 8 0 1 1 9.8 4a6.4 6.4 0 0 0 10.2 10.2z" fill="currentColor" /><path d="M18.5 4v3M17 5.5h3" />'
+	};
+	function mnsSlotIconHtml(id) {
+		return MNS_SLOT_SVG_OPEN + (MNS_SLOT_ICONS[id] || MNS_SLOT_SKY) + '</svg>';
+	}
+	function mnsDistrictActBtn(label, iconHtml) {
+		var btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'mns-nvl__dact-btn';
+		if (iconHtml) {
+			var ic = document.createElement('span');
+			ic.className = 'mns-nvl__dact-ico';
+			ic.setAttribute('aria-hidden', 'true');
+			ic.innerHTML = iconHtml;
+			btn.appendChild(ic);
+		}
+		btn.appendChild(document.createTextNode(label));
+		return btn;
+	}
+
 	function initDrawer() {
 		var sidebar = qs('[data-mns-sidebar]');
 		var expand = qs('[data-mns-sidebar-expand]');
@@ -590,6 +623,8 @@
 		var availability = {};
 		var dateLabel = '';
 		var customDateLabel = '';
+		var snapData = null;
+		var snapReady = false;
 
 		try {
 			districtMap = JSON.parse(form.getAttribute('data-mns-districts') || '{}') || {};
@@ -611,6 +646,20 @@
 		} catch (e4) {
 			availability = {};
 		}
+		var categories = [];
+		try {
+			categories = JSON.parse(form.getAttribute('data-mns-categories') || '[]') || [];
+		} catch (eCat) {
+			categories = [];
+		}
+		var primaryCatSlug = form.getAttribute('data-mns-primary-cat') || '';
+		var catalogMode = form.getAttribute('data-mns-catalog') === '1' && categories.length > 0;
+		var serviceMap = {};
+		categories.forEach(function (cat) {
+			(cat.services || []).forEach(function (s) {
+				serviceMap[String(s.id)] = s;
+			});
+		});
 
 		var svcLabel = form.getAttribute('data-mns-svc-label') || 'سرم‌تراپی در منزل';
 		var modeInput = qs('[data-mns-patient-mode]', form);
@@ -620,6 +669,19 @@
 		var areaSelect = qs('[data-mns-area]', form);
 		var provSelect = qs('[data-mns-prov]', form);
 		var areaWrap = qs('[data-mns-area-wrap]', form);
+		var areaSelectWrap = qs('[data-mns-area-select-wrap]', form);
+		var areaDcardWrap = qs('[data-mns-area-dcard-wrap]', form);
+		var timeChips = qs('[data-mns-time-chips]', form);
+		var datetimeWrap = qs('[data-mns-datetime-wrap]', form);
+		var shiftNote = qs('[data-mns-shift-note]', form);
+		var shiftWrap = qs('[data-mns-shift-note-wrap]', form);
+		var extraToggle = qs('[data-mns-extra-toggle]', form);
+		var extraCollapse = qs('[data-mns-extra-collapse]', form);
+		var extraRoot = qs('[data-mns-extra-svcs]', form);
+		var svcPriceVal = qs('[data-mns-svc-price-val]', form);
+		var owizardRoot = qs('[data-mns-owizard]', document);
+		var iconCheckAll = (qs('[data-mns-ow-icon-check]', owizardRoot || document) || {}).innerHTML || '';
+		var iconClearAll = (qs('[data-mns-ow-icon-clear]', owizardRoot || document) || {}).innerHTML || '';
 		var dateValue = qs('[data-mns-date-value]', form);
 		var timeValue = qs('[data-mns-time-value]', form);
 		var serumTypeInput = qs('[data-mns-serum-type]', form);
@@ -680,6 +742,132 @@
 			return val === 'female' ? 'خانم' : val === 'male' ? 'آقا' : '';
 		}
 
+		function selectedSvcChecks() {
+			return qsa('[data-mns-svc-check]:checked', form);
+		}
+
+		function selectedItems() {
+			var items = [];
+			selectedSvcChecks().forEach(function (inp) {
+				var sid = parseInt(inp.getAttribute('data-svc-id') || '0', 10);
+				if (!sid) return;
+				items.push({
+					service_id: sid,
+					is_extra: inp.getAttribute('data-is-extra') === '1' ? 1 : 0
+				});
+			});
+			return items;
+		}
+
+		function isManualSelection() {
+			if (form.getAttribute('data-mns-manual-cat') === '1') return true;
+			return selectedSvcChecks().some(function (inp) {
+				return inp.getAttribute('data-manual') === '1';
+			});
+		}
+
+		function syncManualUi() {
+			var manual = catalogMode && isManualSelection();
+			var s1 = qs('[data-mns-manual-step1-notice]', form);
+			var s2 = qs('[data-mns-manual-notice]', form);
+			if (s1) s1.hidden = !manual;
+			if (s2) s2.hidden = !manual;
+			if (shiftWrap) shiftWrap.hidden = !manual;
+			if (datetimeWrap) datetimeWrap.hidden = manual;
+			qsa('[data-mns-date-req], [data-mns-time-req]', form).forEach(function (el) {
+				el.hidden = manual;
+			});
+			if (dateInput) dateInput.required = !manual;
+			if (manual) {
+				availState = 'manual';
+				if (availGenderBox) availGenderBox.hidden = true;
+				if (step1Next) step1Next.disabled = false;
+			} else {
+				scheduleAvailability();
+			}
+		}
+
+		function updateSvcPrice() {
+			var min = 0;
+			var max = 0;
+			selectedSvcChecks().forEach(function (inp) {
+				min += parseInt(inp.getAttribute('data-price-from') || '0', 10) || 0;
+				max += parseInt(inp.getAttribute('data-price-to') || '0', 10) || 0;
+			});
+			var hidMin = parseInt(form.getAttribute('data-mns-price-min'), 10) || 0;
+			var hidMax = parseInt(form.getAttribute('data-mns-price-max'), 10) || 0;
+			if (catalogMode && selectedSvcChecks().length) {
+				form.setAttribute('data-mns-price-min', String(min));
+				form.setAttribute('data-mns-price-max', String(max));
+				var priceTxt = fmtMoney(min) + ' تا ' + fmtMoney(max);
+				if (svcPriceVal) svcPriceVal.textContent = priceTxt;
+				var sumPrice = qs('[data-mns-sum-price]', form.closest('.mns-owizard') || document);
+				if (sumPrice) sumPrice.textContent = priceTxt;
+				var mobPrice = qs('[data-mns-mob-price]');
+				if (mobPrice) mobPrice.textContent = priceTxt + ' تومان';
+			} else if (!catalogMode) {
+				min = hidMin;
+				max = hidMax;
+			}
+			var svcIdInput = qs('[data-mns-service-id]', form);
+			var first = selectedSvcChecks().filter(function (inp) {
+				return inp.getAttribute('data-is-extra') !== '1';
+			})[0];
+			if (!first) first = selectedSvcChecks()[0];
+			if (svcIdInput && first) svcIdInput.value = first.getAttribute('data-svc-id') || svcIdInput.value;
+			if (first && serviceMap[String(first.getAttribute('data-svc-id'))]) {
+				svcLabel = serviceMap[String(first.getAttribute('data-svc-id'))].name || svcLabel;
+				var chipName = qs('[data-mns-svc-name]');
+				if (chipName) chipName.textContent = svcLabel;
+			}
+			syncManualUi();
+			syncRxTag();
+			scheduleAvailability();
+			updateSideSummary();
+		}
+
+		function buildExtraServices() {
+			if (!extraRoot || !catalogMode) return;
+			extraRoot.innerHTML = '';
+			categories.forEach(function (cat) {
+				if (cat.slug === primaryCatSlug) return;
+				var grp = document.createElement('div');
+				grp.className = 'mns-ow-extra-group';
+				var title = document.createElement('p');
+				title.className = 'mns-ow-extra-group__title';
+				title.textContent = cat.label || cat.slug || '';
+				grp.appendChild(title);
+				(cat.services || []).forEach(function (s) {
+					var label = document.createElement('label');
+					label.className = 'mns-ow-svc-check';
+					var inp = document.createElement('input');
+					inp.type = 'checkbox';
+					inp.setAttribute('data-mns-svc-check', '');
+					inp.setAttribute('data-svc-id', String(s.id));
+					inp.setAttribute('data-is-extra', '1');
+					inp.setAttribute('data-price-from', String(s.price_from || 0));
+					inp.setAttribute('data-price-to', String(s.price_to || 0));
+					inp.setAttribute('data-requires-rx', s.requires_rx ? '1' : '0');
+					inp.setAttribute('data-manual', s.manual_assign ? '1' : '0');
+					inp.addEventListener('change', updateSvcPrice);
+					var txt = document.createElement('span');
+					txt.className = 'mns-ow-svc-check__text';
+					txt.innerHTML =
+						'<strong>' +
+						(s.name || '') +
+						'</strong><small>از ' +
+						fmtMoney(s.price_from || 0) +
+						' تا ' +
+						fmtMoney(s.price_to || 0) +
+						' تومان</small><span class="mns-ow-svc-check__tag">مورد اضافه</span>';
+					label.appendChild(inp);
+					label.appendChild(txt);
+					grp.appendChild(label);
+				});
+				if (grp.children.length > 1) extraRoot.appendChild(grp);
+			});
+		}
+
 		function patientSummary() {
 			var mode = modeInput ? modeInput.value : 'self';
 			if (mode === 'self') return 'خودم';
@@ -699,6 +887,14 @@
 		}
 
 		function serviceDetailSummary() {
+			if (catalogMode) {
+				var names = selectedSvcChecks().map(function (inp) {
+					var id = inp.getAttribute('data-svc-id');
+					return serviceMap[id] ? serviceMap[id].name : '';
+				});
+				names = names.filter(Boolean);
+				return names.length ? names.join('، ') : '—';
+			}
 			var qty = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 			var type = serumTypeInput && serumTypeInput.value ? serumTypeInput.value : '—';
 			return toFaDigits(String(qty)) + ' سرم ' + type;
@@ -728,7 +924,7 @@
 				if (li) li.classList.toggle('is-filled', el.textContent.trim() !== 'در مرحله بعد' && el.textContent.trim() !== '');
 			});
 			if (elDetail && elDetailRow) {
-				var showDetail = step >= 2 && serumTypeInput && serumTypeInput.value;
+				var showDetail = step >= 2 && (catalogMode ? selectedSvcChecks().length > 0 : serumTypeInput && serumTypeInput.value);
 				if (showDetail) elDetail.textContent = serviceDetailSummary();
 				elDetailRow.hidden = !showDetail;
 				elDetailRow.classList.toggle('is-hidden', !showDetail);
@@ -868,15 +1064,26 @@
 				if (mode === 'saved' && (!patientIdInput || !patientIdInput.value)) return failPick('بیمار را انتخاب کنید.', qs('[data-mns-patient-cards]', form));
 				var phone = qs('input[name="phone"]', form);
 				if (!phone || !phone.value || phone.value.replace(/\s/g, '').length < 11) return failPick('شماره تماس معتبر وارد کنید.', phone);
-				if (availState === 'red') {
+				if (availState === 'red' && !(catalogMode && isManualSelection())) {
 					if (availGenderBox) availGenderBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 					return false;
 				}
 				if (!provSelect || !provSelect.value) return fail('استان را انتخاب کنید.', provSelect);
 				if (!citySelect || !citySelect.value) return fail('شهر را انتخاب کنید.', citySelect);
-				if (areaNeeded() && !areaSelect.value) return fail('منطقه را انتخاب کنید.', areaSelect);
-				if (!dateValue || !dateValue.value) return fail('تاریخ مراجعه را انتخاب کنید.', dateInput);
-				if (!timeValue || !timeValue.value) return fail(timeValue && timeValue.options.length <= 1 ? 'برای این روز زمانی موجود نیست؛ روز دیگری انتخاب کنید.' : 'بازه زمانی را انتخاب کنید.', timeValue);
+				if (areaNeeded() && !areaKey()) return fail('منطقه را انتخاب کنید.', areaDcardWrap && !areaDcardWrap.hidden ? areaDcardWrap : areaSelect);
+				var manual = catalogMode && isManualSelection();
+				if (!manual) {
+					if (!dateValue || !dateValue.value) return fail('تاریخ مراجعه را انتخاب کنید.', dateInput);
+					if (!timeValue || !timeValue.value) {
+						return fail(
+							timeChips && !timeChips.children.length ? 'برای این روز زمانی موجود نیست؛ روز دیگری انتخاب کنید.' : 'بازه زمانی را انتخاب کنید.',
+							timeChips || timeValue
+						);
+					}
+				}
+				if (manual && shiftNote && shiftWrap && !shiftWrap.hidden && !shiftNote.value.trim()) {
+					return fail('مدت یا شیفت را بنویسید.', shiftNote);
+				}
 				if (!genderInput || !genderInput.value) return fail('جنسیت پرستار را انتخاب کنید.', qs('[data-mns-nurse-gender-cards]', form));
 				var addr = qs('textarea[name="address"]', form) || qs('input[name="address"]', form);
 				if (!addr || !addr.value.trim()) return fail('آدرس را کامل‌تر بنویسید.', addr);
@@ -887,6 +1094,11 @@
 
 		/* ---- Review step: service details (inside the review), repeat, phone verification ----------------- */
 		function isRxRequired() {
+			if (catalogMode) {
+				return selectedSvcChecks().some(function (inp) {
+					return inp.getAttribute('data-requires-rx') === '1';
+				});
+			}
 			return !!(serumTypeInput && rxTypes.indexOf(serumTypeInput.value) !== -1);
 		}
 
@@ -909,7 +1121,7 @@
 			var tag = qs('[data-mns-rx-tag]', form);
 			if (!tag) return;
 			var req = isRxRequired();
-			tag.textContent = req ? 'برای این نوع سرم لازم است' : 'اختیاری';
+			tag.textContent = req ? (catalogMode ? 'برای این انتخاب‌ها لازم است' : 'برای این نوع سرم لازم است') : 'اختیاری';
 			tag.classList.toggle('is-required', req);
 		}
 
@@ -1071,6 +1283,11 @@
 		}
 
 		function validateReview() {
+			if (catalogMode) {
+				if (!selectedSvcChecks().length) return fail('حداقل یک زیرخدمت را انتخاب کنید.', qs('[data-mns-primary-svcs]', form));
+				if (isRxRequired() && !hasRx()) return fail('برای یکی از خدمت‌های انتخاب‌شده عکس نسخه لازم است.', qs('[data-mns-upload]', form));
+				return true;
+			}
 			if (!serumTypeInput || !serumTypeInput.value) {
 				setDetailsOpen(true);
 				return fail('نوع سرم را انتخاب کنید.', serumTypeInput);
@@ -1103,6 +1320,18 @@
 				el.className = 'mns-review__tag' + (cls ? ' ' + cls : '');
 				el.textContent = text;
 				box.appendChild(el);
+			}
+			if (catalogMode) {
+				selectedSvcChecks().forEach(function (inp) {
+					var id = inp.getAttribute('data-svc-id');
+					var nm = serviceMap[id] ? serviceMap[id].name : '';
+					if (!nm) return;
+					if (inp.getAttribute('data-is-extra') === '1') tag(nm + ' (اضافه)', 'is-warn');
+					else tag(nm);
+				});
+				if (hasRx()) tag('نسخه ضمیمه شد', 'is-ok');
+				else if (isRxRequired()) tag('عکس نسخه لازم است', 'is-warn');
+				return;
 			}
 			var vein = chipLabel('[data-mns-vein-chips]', veinInput ? veinInput.value : '');
 			if (vein) tag('رگ ' + vein);
@@ -1155,20 +1384,103 @@
 		function placeCity() {
 			return citySelect && citySelect.value && citySelect.options[citySelect.selectedIndex] ? citySelect.options[citySelect.selectedIndex].text : '';
 		}
+		var areaDcardValue = '';
+
+		function isTehranCity() {
+			return placeCity() === 'تهران' && provSelect && provSelect.value === 'THR';
+		}
 		function areaNeeded() {
 			return !!(areaWrap && !areaWrap.hidden);
 		}
 		/* the key the availability rules know: the district, or the city itself when it has none */
 		function areaKey() {
-			return areaNeeded() ? areaSelect.value || '' : placeCity();
+			if (!areaNeeded()) return placeCity();
+			if (areaDcardWrap && !areaDcardWrap.hidden) return areaDcardValue || '';
+			return areaSelect ? areaSelect.value || '' : '';
 		}
 		function placeComplete() {
-			return !!(provSelect && provSelect.value && citySelect && citySelect.value && (!areaNeeded() || areaSelect.value));
+			return !!(provSelect && provSelect.value && citySelect && citySelect.value && (!areaNeeded() || areaKey()));
 		}
 		function placeLabel() {
 			var parts = [placeCity()];
-			if (areaNeeded() && areaSelect.value && areaSelect.options[areaSelect.selectedIndex]) parts.push(areaSelect.options[areaSelect.selectedIndex].text);
+			if (areaNeeded()) {
+				if (areaDcardWrap && !areaDcardWrap.hidden && areaDcardValue) parts.push(areaDcardValue);
+				else if (areaSelect && areaSelect.value && areaSelect.options[areaSelect.selectedIndex]) {
+					parts.push(areaSelect.options[areaSelect.selectedIndex].text);
+				}
+			}
 			return parts.join('، ');
+		}
+		function renderTehranDistrictCard(names) {
+			if (!areaDcardWrap) return;
+			areaDcardWrap.innerHTML = '';
+			areaDcardValue = '';
+			var card = document.createElement('div');
+			card.className = 'mns-nvl__dcard';
+			var head = document.createElement('div');
+			head.className = 'mns-nvl__dhead';
+			var title = document.createElement('b');
+			title.textContent = 'مناطق تهران';
+			head.appendChild(title);
+			var count = document.createElement('small');
+			count.setAttribute('data-mns-area-count', '');
+			count.textContent = toFaDigits('0') + ' از ' + toFaDigits(String(names.length));
+			head.appendChild(count);
+			card.appendChild(head);
+			var acts = document.createElement('div');
+			acts.className = 'mns-nvl__dacts';
+			var chips = document.createElement('div');
+			chips.className = 'mns-ncl__chips';
+			function syncCount() {
+				count.textContent = toFaDigits(areaDcardValue ? '1' : '0') + ' از ' + toFaDigits(String(names.length));
+			}
+			function selectName(name) {
+				areaDcardValue = name;
+				if (areaSelect) areaSelect.value = name;
+				qsa('.mns-ncl__chip--pick', chips).forEach(function (c) {
+					var on = c.getAttribute('data-value') === name;
+					c.classList.toggle('is-selected', on);
+					c.setAttribute('aria-pressed', on ? 'true' : 'false');
+				});
+				syncCount();
+				fillTimes();
+				scheduleAvailability();
+				updateSideSummary();
+			}
+			var btnAll = mnsDistrictActBtn('انتخاب همه', iconCheckAll);
+			btnAll.addEventListener('click', function () {
+				if (names[0]) selectName(names[0]);
+			});
+			var btnClr = mnsDistrictActBtn('پاک‌کردن همه', iconClearAll);
+			btnClr.addEventListener('click', function () {
+				areaDcardValue = '';
+				if (areaSelect) areaSelect.value = '';
+				qsa('.mns-ncl__chip--pick', chips).forEach(function (c) {
+					c.classList.remove('is-selected');
+					c.setAttribute('aria-pressed', 'false');
+				});
+				syncCount();
+				scheduleAvailability();
+			});
+			acts.appendChild(btnAll);
+			acts.appendChild(btnClr);
+			card.appendChild(acts);
+			names.forEach(function (name, idx) {
+				var chip = document.createElement('button');
+				chip.type = 'button';
+				chip.className = 'mns-ncl__chip mns-ncl__chip--pick';
+				chip.setAttribute('data-value', name);
+				chip.setAttribute('aria-pressed', 'false');
+				chip.textContent = toFaDigits(String(idx + 1));
+				chip.title = name;
+				chip.addEventListener('click', function () {
+					selectName(areaDcardValue === name ? '' : name);
+				});
+				chips.appendChild(chip);
+			});
+			card.appendChild(chips);
+			areaDcardWrap.appendChild(card);
+			syncCount();
 		}
 		function loadLocations(cb) {
 			if (locations) {
@@ -1224,7 +1536,15 @@
 				areaSelect.appendChild(opt);
 			});
 			if (areaWrap) areaWrap.hidden = !names;
-			areaSelect.required = !!names;
+			var tehran = !!(names && isTehranCity());
+			if (areaSelectWrap) areaSelectWrap.hidden = tehran;
+			if (areaDcardWrap) {
+				areaDcardWrap.hidden = !tehran;
+				if (tehran) renderTehranDistrictCard(names);
+				else areaDcardWrap.innerHTML = '';
+			}
+			areaDcardValue = '';
+			areaSelect.required = !!names && !tehran;
 			areaSelect.dispatchEvent(new Event('change'));
 			scheduleAvailability();
 		}
@@ -1296,28 +1616,58 @@
 			});
 		}
 
+		function setTimeSlot(id) {
+			if (!timeValue) return;
+			timeValue.value = id || '';
+			if (timeChips) {
+				qsa('[data-slot-id]', timeChips).forEach(function (btn) {
+					var on = btn.getAttribute('data-slot-id') === id;
+					btn.classList.toggle('is-on', on);
+					btn.setAttribute('aria-checked', on ? 'true' : 'false');
+				});
+			}
+			timeValue.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+
 		function fillTimes(preferId) {
 			if (!timeValue) return;
 			var day = dayById(dateValue ? dateValue.value : '');
 			var area = areaKey();
 			var list = day ? validSlots(day, area) : [];
 			var keep = preferId || timeValue.value;
-			timeValue.innerHTML = '';
-			var placeholder = document.createElement('option');
-			placeholder.value = '';
-			placeholder.textContent = list.length ? 'انتخاب کنید' : 'برای این روز زمانی موجود نیست';
-			timeValue.appendChild(placeholder);
-			list.forEach(function (t) {
-				var opt = document.createElement('option');
-				opt.value = t.id;
-				opt.textContent = t.label + (t.name ? ' · ' + t.name : '');
-				timeValue.appendChild(opt);
-			});
+			if (timeChips) {
+				timeChips.innerHTML = '';
+				list.forEach(function (t) {
+					var chip = document.createElement('button');
+					chip.type = 'button';
+					chip.className = 'mns-nvl__sl';
+					chip.setAttribute('data-slot-id', t.id);
+					chip.setAttribute('role', 'radio');
+					chip.setAttribute('aria-checked', 'false');
+					var top = document.createElement('span');
+					top.className = 'mns-nvl__sltop';
+					var ic = document.createElement('span');
+					ic.className = 'mns-nvl__slic';
+					ic.setAttribute('aria-hidden', 'true');
+					ic.innerHTML = mnsSlotIconHtml(t.id);
+					var hrs = document.createElement('small');
+					hrs.setAttribute('dir', 'ltr');
+					hrs.textContent = t.label || timeLabelById(t.id);
+					top.appendChild(ic);
+					top.appendChild(hrs);
+					chip.appendChild(top);
+					chip.addEventListener('click', function () {
+						setTimeSlot(t.id);
+						updateSideSummary();
+						scheduleAvailability();
+					});
+					timeChips.appendChild(chip);
+				});
+			}
 			var pick = list.filter(function (t) {
 				return t.id === keep;
 			})[0] || list[0];
-			timeValue.value = pick ? pick.id : '';
-			timeValue.dispatchEvent(new Event('change', { bubbles: true }));
+			setTimeSlot(pick ? pick.id : '');
 		}
 
 		function pickerOf() {
@@ -1370,11 +1720,12 @@
 				prevArrow: arrow('m9 6 6 6-6 6'),
 				nextArrow: arrow('m15 6-6 6 6 6'),
 				onShow: function (calendar) {
-					/* Right-align with the field (RTL) and keep the calendar inside the viewport. */
-					var rect = dateInput.getBoundingClientRect();
-					var width = calendar.outerWidth();
-					var maxLeft = document.documentElement.clientWidth - width - 8;
-					var left = Math.max(8, Math.min(rect.right - width, maxLeft));
+					var host = dateInput.closest('[data-mns-date-anchor]') || dateInput.closest('.mns-field-block__control') || dateInput;
+					var rect = host.getBoundingClientRect();
+					var w = Math.round(rect.width);
+					calendar.outerWidth(w);
+					var maxLeft = document.documentElement.clientWidth - w - 8;
+					var left = Math.max(8, Math.min(rect.right - w, maxLeft));
 					this.calendarPosition.x = left - rect.left;
 				},
 				onSelect: function () {
@@ -1489,7 +1840,13 @@
 				return;
 			}
 			var cityId = citySelect && citySelect.value ? parseInt(citySelect.value, 10) : 0;
-			var areaVal = areaSelect && areaSelect.value ? areaSelect.value : '';
+			if (catalogMode && isManualSelection()) {
+				availState = 'manual';
+				if (availGenderBox) availGenderBox.hidden = true;
+				if (step1Next) step1Next.disabled = false;
+				return;
+			}
+			var areaVal = areaKey();
 			var districtNo = 0;
 			if (areaVal) {
 				var dm = String(areaVal).match(/(\d+)/);
@@ -1500,10 +1857,23 @@
 			var prov = provSelect ? provSelect.value : '';
 			var svcId = (qs('[data-mns-service-id]', form) || {}).value || '';
 			var svcSlug = form.getAttribute('data-mns-service-slug') || '';
-			if (!prov || !cityId || !date || !slot || !gender) {
+			var svcIds = selectedItems()
+				.map(function (it) {
+					return it.service_id;
+				})
+				.filter(Boolean);
+			if (!svcIds.length && svcId) svcIds = [parseInt(svcId, 10)];
+			if (!prov || !cityId || !date || !slot || !gender || !svcIds.length) {
 				availState = 'idle';
 				if (availGenderBox) availGenderBox.hidden = true;
 				if (step1Next) step1Next.disabled = false;
+				return;
+			}
+			/* Instant local red from snapshot when ready (UX only; server A-13 still wins). */
+			if (snapReady && snapData && snapshotSaysRed(prov, cityId, districtNo, gender, date, slot, svcIds)) {
+				availState = 'red';
+				renderLiveAvail('red', 'برای این منطقه یا جنسیت پرستار نداریم. با پشتیبانی تماس بگیرید.');
+				if (step1Next) step1Next.disabled = true;
 				return;
 			}
 			var seq = ++availReqSeq;
@@ -1511,6 +1881,8 @@
 				restBase.replace(/\/$/, '') +
 				'/availability/check?_envelope=1&service=' +
 				encodeURIComponent(svcSlug || svcId) +
+				'&service_ids=' +
+				encodeURIComponent(svcIds.join(',')) +
 				'&prov=' +
 				encodeURIComponent(prov) +
 				'&city_id=' +
@@ -1542,6 +1914,11 @@
 					}
 					var st = body.data.state || 'idle';
 					availState = st;
+					if (st === 'manual') {
+						if (availGenderBox) availGenderBox.hidden = true;
+						if (step1Next) step1Next.disabled = false;
+						return;
+					}
 					renderLiveAvail(st, body.data.message || '', body.data.alt || []);
 					if (step1Next) step1Next.disabled = st === 'red';
 				})
@@ -1556,6 +1933,81 @@
 		function scheduleAvailability() {
 			if (availTimer) window.clearTimeout(availTimer);
 			availTimer = window.setTimeout(runAvailability, 300);
+		}
+
+		function dayOffsetFromToday(iso) {
+			var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+			if (!m || !nowBase || !nowBase.iso) return -1;
+			var a = nowBase.iso.split('-').map(function (x) {
+				return parseInt(x, 10);
+			});
+			var t0 = Date.UTC(a[0], a[1] - 1, a[2]);
+			var t1 = Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+			return Math.round((t1 - t0) / 86400000);
+		}
+
+		function snapshotSaysRed(prov, cityId, districtNo, gender, date, slot, svcIds) {
+			if (!snapData || !snapData.regions) return false;
+			var restricted = (snapData.svc_restricted || []).map(function (id) {
+				return parseInt(id, 10);
+			});
+			for (var i = 0; i < svcIds.length; i++) {
+				if (restricted.indexOf(parseInt(svcIds[i], 10)) !== -1) {
+					return false; /* restricted services: keep live A-13 */
+				}
+			}
+			var key = String(prov) + ':' + String(cityId) + ':' + String(districtNo);
+			var gmap = snapData.regions[key] && snapData.regions[key][gender];
+			if (!gmap) return true;
+			var off = dayOffsetFromToday(date);
+			if (off < 0 || off >= (snapData.horizon || 0)) return false;
+			var mask = gmap[String(off)];
+			if (mask === undefined || mask === null) return true;
+			var slots = snapData.slots || [];
+			var si = slots.indexOf(slot);
+			if (si < 0) return false;
+			return (parseInt(mask, 10) & (1 << si)) === 0;
+		}
+
+		function fetchAvailabilitySnapshot() {
+			var liveSnap = form.getAttribute('data-mns-live') === '1';
+			var restBaseSnap = form.getAttribute('data-mns-rest-url') || (window.mnsPublic && window.mnsPublic.restUrl) || '';
+			var restNonceSnap = form.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
+			if (!liveSnap || !restBaseSnap || !restNonceSnap) return;
+			var url = restBaseSnap.replace(/\/$/, '') + '/availability/snapshot?_envelope=1';
+			fetch(url, {
+				method: 'GET',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': restNonceSnap, 'Cache-Control': 'no-store' }
+			})
+				.then(function (r) {
+					return r.json();
+				})
+				.then(function (raw) {
+					var body = unwrapMns(raw);
+					if (!body || !body.ok || !body.data) return;
+					snapData = body.data;
+					snapReady = true;
+					scheduleAvailability();
+				})
+				.catch(function () {
+					/* keep live A-13 */
+				});
+		}
+
+		function scheduleSnapshotIdle() {
+			var run = function () {
+				fetchAvailabilitySnapshot();
+			};
+			var start = function () {
+				if (typeof window.requestIdleCallback === 'function') {
+					window.requestIdleCallback(run, { timeout: 4000 });
+				} else {
+					window.setTimeout(run, 800);
+				}
+			};
+			if (document.readyState === 'complete') start();
+			else window.addEventListener('load', start);
 		}
 
 		if (availGenderBox) {
@@ -2019,7 +2471,7 @@ function genTrackCode() {
 				fail('تصویر نسخه الزامی است.', qs('[data-mns-upload]', form));
 				return;
 			}
-			var areaVal = areaSelect && areaSelect.value ? areaSelect.value : '';
+			var areaVal = areaKey();
 			var districtNo = 0;
 			if (areaVal) {
 				var m = String(areaVal).match(/(\d+)/);
@@ -2031,9 +2483,13 @@ function genTrackCode() {
 			if ((!resolvedPatientId || (modeInput && modeInput.value === 'self')) && form.getAttribute('data-mns-self-patient-id')) {
 				resolvedPatientId = parseInt(form.getAttribute('data-mns-self-patient-id') || '0', 10) || resolvedPatientId;
 			}
+			var items = catalogMode
+				? selectedItems()
+				: [{ service_id: parseInt((qs('[data-mns-service-id]', form) || {}).value || '0', 10), is_extra: 0 }];
 			var payload = {
 				patient_id: resolvedPatientId,
-				service_id: parseInt((qs('[data-mns-service-id]', form) || {}).value || '0', 10),
+				service_id: items.length ? parseInt(String(items[0].service_id), 10) : parseInt((qs('[data-mns-service-id]', form) || {}).value || '0', 10),
+				items: items,
 				prov: provSelect ? provSelect.value : '',
 				city_id: cityId,
 				district: districtNo,
@@ -2050,6 +2506,9 @@ function genTrackCode() {
 				},
 				notes: (qs('textarea[name="notes"]', form) || {}).value || ''
 			};
+			if (catalogMode && isManualSelection() && shiftNote && shiftNote.value.trim()) {
+				payload.shift_note = shiftNote.value.trim();
+			}
 			if (rxFileId) payload.essentials.rx_file_id = String(rxFileId);
 			var idem = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'mns-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 			fetch(restBase.replace(/\/$/, '') + '/orders?_envelope=1', {
@@ -2169,6 +2628,31 @@ function genTrackCode() {
 		syncRxTag();
 		setStepper('serum', parseInt(qtyInput && qtyInput.value, 10) || 2);
 		setStepper('repeat', 4);
+		if (catalogMode) {
+			buildExtraServices();
+			qsa('[data-mns-svc-check]', form).forEach(function (inp) {
+				inp.addEventListener('change', function () {
+					if (!inp.checked && inp.getAttribute('data-is-extra') !== '1') {
+						var prim = qsa('[data-mns-svc-check][data-is-extra="0"]:checked', form);
+						if (!prim.length) {
+							inp.checked = true;
+							return;
+						}
+					}
+					updateSvcPrice();
+				});
+			});
+			updateSvcPrice();
+		}
+		if (extraToggle && extraCollapse) {
+			extraToggle.addEventListener('click', function () {
+				var open = !extraCollapse.classList.contains('is-open');
+				setCollapse(extraCollapse, open);
+				extraToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
+		}
+		syncManualUi();
+		scheduleSnapshotIdle();
 	}
 
 	function initOrderViewCancel() {
@@ -5302,6 +5786,8 @@ function genTrackCode() {
 		}
 		var xIcon = (qs('[data-mns-nvl-x]', root) || {}).innerHTML || '×';
 		var lockIcon = (qs('[data-mns-nvl-lock]', root) || {}).innerHTML || '';
+		var iconCheckAllRg = (qs('[data-mns-nvl-check-all]', root) || {}).innerHTML || '';
+		var iconClearAllRg = (qs('[data-mns-nvl-clear-all]', root) || {}).innerHTML || '';
 		var monthNames = cfg.monthNames || [];
 
 		function setCollapse(el, open) {
@@ -5498,7 +5984,7 @@ function genTrackCode() {
 			'20-24': '<path d="M20 14.2A8 8 0 1 1 9.8 4a6.4 6.4 0 0 0 10.2 10.2z" fill="currentColor" /><path d="M18.5 4v3M17 5.5h3" />'
 		};
 		function slotIcon(id) {
-			return svgOpen + (slotIcons[id] || skyBase) + '</svg>';
+			return mnsSlotIconHtml(id);
 		}
 		var iconCheck = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>';
 		var iconZzz = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 3.5h6.5L4 11h6.5" /><path d="M13 11.5h5L13 17.5h5" /><path d="M18.5 18.5h3l-3 3.5h3" /></svg>';
@@ -5810,16 +6296,14 @@ function genTrackCode() {
 				head.appendChild(mk('small', '', toFaDigits(s.d.length) + ' از ' + toFaDigits(names.length)));
 				card.appendChild(head);
 				var acts = mk('div', 'mns-nvl__dacts');
-				var all = mk('button', 'mns-nvl__link', 'انتخاب همه');
-				all.type = 'button';
+				var all = mnsDistrictActBtn('انتخاب همه', iconCheckAllRg);
 				all.addEventListener('click', function () {
 					s.d = names.map(function (n, i) {
 						return i + 1;
 					});
 					update();
 				});
-				var clr = mk('button', 'mns-nvl__link', 'پاک کردن');
-				clr.type = 'button';
+				var clr = mnsDistrictActBtn('پاک‌کردن همه', iconClearAllRg);
 				clr.addEventListener('click', function () {
 					s.d = [];
 					update();
