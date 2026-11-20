@@ -1786,8 +1786,8 @@
 	top: calc(100% + 8px);
 	z-index: 80;
 	margin: 0;
-	/* No vertical padding: sticky search would leave a gap where options paint above it while scrolling. */
-	padding: 0;
+	/* No top padding (sticky search); bottom padding keeps last visible option off the edge even when later siblings are [hidden] by search. */
+	padding: 0 0 10px;
 	list-style: none;
 	background: #fff;
 	border: 1px solid var(--mns-border);
@@ -1805,7 +1805,7 @@
 }
 
 .mns-select__option {
-	margin: 0 6px;
+	margin: 0 6px 3px;
 	padding: 10px 14px;
 	border-radius: 12px;
 	font-size: 0.875rem;
@@ -1815,12 +1815,48 @@
 	z-index: 0;
 }
 
+.mns-select__option--icon {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.mns-select__option-ico.mns-nvl__slic {
+	flex: 0 0 auto;
+	order: 0;
+	width: 22px;
+	height: 22px;
+	color: var(--mns-primary);
+}
+
+.mns-select__option-ico.mns-nvl__slic svg {
+	width: 22px;
+	height: 22px;
+	display: block;
+}
+
+.mns-select__option-txt {
+	flex: 1 1 auto;
+	order: 1;
+	text-align: start;
+}
+
+.mns-field-block__lead-ico--slot {
+	color: var(--mns-primary);
+}
+
+.mns-field-block__lead-ico--slot svg {
+	width: 18px;
+	height: 18px;
+	display: block;
+}
+
 .mns-select__menu > .mns-select__option:first-child {
 	margin-top: 6px;
 }
 
 .mns-select__menu > .mns-select__option:last-child {
-	margin-bottom: 6px;
+	margin-bottom: 0;
 }
 
 .mns-select__option:hover,
@@ -2472,7 +2508,29 @@
 	margin: 0 0 var(--mns-space-4);
 	font-size: 0.8125rem;
 	color: var(--mns-muted-strong);
-	line-height: 1.6;
+	line-height: 1.4;
+}
+
+.mns-field-hint > span[aria-hidden="true"] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	line-height: 0;
+}
+
+.mns-field-hint > .mns-icon,
+.mns-field-hint > span[aria-hidden="true"] .mns-icon {
+	display: block;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+
+.mns-field-hint > .mns-field-hint__txt {
+	flex: 1 1 auto;
+	min-width: 0;
+	line-height: 1.4;
 }
 
 .mns-field-block__control--area {
@@ -6705,16 +6763,30 @@ html.mns-drawer-open .mns-bottom-nav {
 	gap: 8px;
 	margin: 12px 0 26px;
 	font-size: 0.8125rem;
-	line-height: 1.7;
+	line-height: 1.4;
 	color: var(--ow-sub);
 }
+.mns-owizard .mns-field-hint > span[aria-hidden="true"] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	line-height: 0;
+}
 .mns-owizard .mns-field-hint .mns-icon {
+	display: block;
 	width: 16px;
 	height: 16px;
+	flex-shrink: 0;
 	color: var(--mns-primary);
 }
 .mns-owizard .mns-field-hint--warn .mns-icon {
 	color: #d99a1a;
+}
+.mns-owizard .mns-field-hint > .mns-field-hint__txt {
+	flex: 1 1 auto;
+	min-width: 0;
+	line-height: 1.4;
 }
 .mns-owizard .mns-field-hint--plain {
 	margin: -6px 0 24px;
@@ -6825,13 +6897,58 @@ html.mns-drawer-open .mns-bottom-nav {
 	min-height: 76px;
 	padding: 8px 6px;
 }
+.mns-owizard .mns-nvl__districts {
+	margin: 4px 0 18px;
+}
 .mns-owizard .mns-nvl__dcard {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
 	margin-top: 4px;
+	padding: 12px 14px 16px;
+	border: 1px solid var(--mns-border);
+	border-radius: 12px;
+	background: #fff;
+}
+.mns-owizard .mns-nvl__dhead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 28px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--mns-border);
+}
+.mns-owizard .mns-nvl__dtitle {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+}
+.mns-owizard .mns-nvl__dhead b {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--mns-heading, var(--mns-text));
+}
+.mns-owizard .mns-nvl__dhead small {
+	font-size: 0.75rem;
+	color: var(--mns-muted-strong);
+	white-space: nowrap;
+}
+.mns-owizard .mns-nvl__dhead .mns-nvl__dacts {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 0 0 auto;
+	padding: 0;
+	border: 0;
 }
 .mns-owizard .mns-nvl__dcard .mns-ncl__chips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
+	padding-bottom: 6px;
+	margin: 0;
 }
 .mns-ncl .mns-ncl__chip--pick,
 .mns-owizard .mns-ncl__chip--pick {
@@ -21662,5 +21779,19 @@ a.mns-nvl__link {
 }
 @media (prefers-reduced-motion: reduce) {
 	.mns-dash .mns-alert-card.mns-alert-card--new_user a.mns-alert-card__cta.mns-submit-btn { transition: none; }
+}
+
+/* Calendar grid fills the box: the box is as wide as its field, so the 7 columns share the width equally
+   (the library's fixed 38px cells left the numbers squeezed to one side on desktop). */
+.pdp-mns .dows,
+.pdp-mns .days,
+.pdp-mns .days > div {
+	width: 100%;
+}
+.pdp-mns .dows .cell,
+.pdp-mns .days > div .cell {
+	flex: 1 1 0;
+	width: auto !important;
+	min-width: 0;
 }
 
