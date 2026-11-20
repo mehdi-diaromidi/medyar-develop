@@ -106,6 +106,23 @@ if ( $use_real && class_exists( 'MNS_Patient_Orders_Api', true ) ) {
 	$upcoming = array();
 }
 
+// The category list always comes from the real catalog (also in the admin preview), never from the old sample data.
+if ( class_exists( 'MNS_Services', true ) ) {
+	$mns_live_cats = array();
+	foreach ( MNS_Services::categories() as $mns_cat ) {
+		$mns_live_cats[] = array(
+			'slug'   => (string) ( $mns_cat['slug'] ?? '' ),
+			'label'  => (string) ( $mns_cat['label'] ?? '' ),
+			'icon'   => MNS_Services::category_icon( (string) ( $mns_cat['slug'] ?? '' ) ),
+			'count'  => count( (array) ( $mns_cat['services'] ?? array() ) ),
+			'manual' => ! empty( $mns_cat['manual_assign'] ),
+		);
+	}
+	if ( ! empty( $mns_live_cats ) ) {
+		$categories = $mns_live_cats;
+	}
+}
+
 $action_type = (string) ( $action['type'] ?? '' );
 
 /**

@@ -14,7 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
+// On the develop site an admin previewing this page works with the real catalog too (not the old sample data).
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' )
+	|| ( is_user_logged_in() && current_user_can( 'manage_options' ) && class_exists( 'MNS_Role_Switch', true ) && MNS_Role_Switch::host_allowed() );
 
 $data = MNS_Static_Fixtures::get( 'patient/new_order' );
 $categories_live = array();
