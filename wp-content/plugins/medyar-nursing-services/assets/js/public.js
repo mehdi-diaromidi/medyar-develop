@@ -47,6 +47,13 @@
 	function mnsSlotIconHtml(id) {
 		return MNS_SLOT_SVG_OPEN + (MNS_SLOT_ICONS[id] || MNS_SLOT_SKY) + '</svg>';
 	}
+	function mnsSlotOptionLabel(id) {
+		var parts = String(id || '').split('-');
+		var a = parseInt(parts[0], 10);
+		var b = parseInt(parts[1], 10);
+		if (isNaN(a) || isNaN(b)) return String(id || '');
+		return 'ساعت ' + toFaDigits(a + ':00') + ' تا ' + toFaDigits(b + ':00');
+	}
 	function mnsDistrictActBtn(label, iconHtml) {
 		var btn = document.createElement('button');
 		btn.type = 'button';
@@ -229,6 +236,9 @@
 			menu.className = 'mns-select__menu';
 			menu.setAttribute('role', 'listbox');
 
+			var slotIcons = native.hasAttribute('data-mns-slot-icons');
+			var leadIco = control.querySelector('.mns-field-block__lead-ico');
+			var leadIcoDefault = leadIco ? leadIco.innerHTML : '';
 			function syncLabel() {
 				var selected = native.options[native.selectedIndex];
 				var text = selected ? selected.textContent.trim() : '';
@@ -237,6 +247,15 @@
 				trigger.disabled = native.disabled;
 				control.classList.toggle('is-disabled', native.disabled);
 				control.classList.toggle('is-filled', !!native.value);
+				if (slotIcons && leadIco) {
+					if (native.value) {
+						leadIco.classList.add('mns-field-block__lead-ico--slot');
+						leadIco.innerHTML = mnsSlotIconHtml(native.value);
+					} else {
+						leadIco.classList.remove('mns-field-block__lead-ico--slot');
+						leadIco.innerHTML = leadIcoDefault;
+					}
+				}
 				/* Disabled custom selects must stay closed; a leftover is-open + visible native option text looks broken. */
 				if (native.disabled && menu.classList.contains('is-open')) {
 					menu.classList.remove('is-open');
@@ -273,7 +292,20 @@
 					li.className = 'mns-select__option';
 					li.setAttribute('role', 'option');
 					li.dataset.value = opt.value;
-					li.textContent = opt.textContent;
+					if (slotIcons && opt.value) {
+						li.classList.add('mns-select__option--icon');
+						var ic = document.createElement('span');
+						ic.className = 'mns-select__option-ico mns-nvl__slic';
+						ic.setAttribute('aria-hidden', 'true');
+						ic.innerHTML = mnsSlotIconHtml(opt.value);
+						var txt = document.createElement('span');
+						txt.className = 'mns-select__option-txt';
+						txt.textContent = opt.textContent;
+						li.appendChild(ic);
+						li.appendChild(txt);
+					} else {
+						li.textContent = opt.textContent;
+					}
 					if (opt.disabled) li.classList.add('is-disabled');
 					if (opt.selected) li.classList.add('is-selected');
 					li.addEventListener('click', function (e) {
@@ -671,7 +703,6 @@
 		var areaWrap = qs('[data-mns-area-wrap]', form);
 		var areaSelectWrap = qs('[data-mns-area-select-wrap]', form);
 		var areaDcardWrap = qs('[data-mns-area-dcard-wrap]', form);
-		var timeChips = qs('[data-mns-time-chips]', form);
 		var datetimeWrap = qs('[data-mns-datetime-wrap]', form);
 		var shiftNote = qs('[data-mns-shift-note]', form);
 		var shiftWrap = qs('[data-mns-shift-note-wrap]', form);
@@ -679,9 +710,6 @@
 		var extraCollapse = qs('[data-mns-extra-collapse]', form);
 		var extraRoot = qs('[data-mns-extra-svcs]', form);
 		var svcPriceVal = qs('[data-mns-svc-price-val]', form);
-		var owizardRoot = qs('[data-mns-owizard]', document);
-		var iconCheckAll = (qs('[data-mns-ow-icon-check]', owizardRoot || document) || {}).innerHTML || '';
-		var iconClearAll = (qs('[data-mns-ow-icon-clear]', owizardRoot || document) || {}).innerHTML || '';
 		var dateValue = qs('[data-mns-date-value]', form);
 		var timeValue = qs('[data-mns-time-value]', form);
 		var serumTypeInput = qs('[data-mns-serum-type]', form);
@@ -723,10 +751,7 @@
 		}
 
 		function timeLabelById(id) {
-			var hit = timeSlots.filter(function (t) {
-				return String(t.id) === String(id);
-			})[0];
-			return hit ? hit.label : id;
+			return mnsSlotOptionLabel(id) || id;
 		}
 
 		function genderNurseLabel(val) {
@@ -901,8 +926,8 @@
 		}
 
 		function whenSummary() {
-			if (customDateLabel) return customDateLabel + (timeValue && timeValue.value ? '، ساعت ' + timeLabelById(timeValue.value) : '');
-			if (dateLabel) return dateLabel + (timeValue && timeValue.value ? '، ساعت ' + timeLabelById(timeValue.value) : '');
+			if (customDateLabel) return customDateLabel + (timeValue && timeValue.value ? '، ' + timeLabelById(timeValue.value) : '');
+			if (dateLabel) return dateLabel + (timeValue && timeValue.value ? '، ' + timeLabelById(timeValue.value) : '');
 			return '—';
 		}
 
@@ -1076,8 +1101,10 @@
 					if (!dateValue || !dateValue.value) return fail('تاریخ مراجعه را انتخاب کنید.', dateInput);
 					if (!timeValue || !timeValue.value) {
 						return fail(
-							timeChips && !timeChips.children.length ? 'برای این روز زمانی موجود نیست؛ روز دیگری انتخاب کنید.' : 'بازه زمانی را انتخاب کنید.',
-							timeChips || timeValue
+							timeValue && timeValue.options && timeValue.options.length <= 1
+								? 'برای این روز زمانی موجود نیست؛ روز دیگری انتخاب کنید.'
+								: 'بازه زمانی را انتخاب کنید.',
+							timeValue
 						);
 					}
 				}
@@ -1182,7 +1209,7 @@
 				var p = base.split('-');
 				for (var i = 0; i < count; i++) list.push(new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10) + i * every, 12)));
 			}
-			var when = timeValue && timeValue.value ? '، همه ساعت ' + timeLabelById(timeValue.value) : '';
+			var when = timeValue && timeValue.value ? '، همه ' + timeLabelById(timeValue.value) : '';
 			line.textContent = toFaDigits(count) + ' بار (با همین سفارش)' + when;
 			dates.innerHTML = '';
 			list.slice(0, 6).forEach(function (d, i) {
@@ -1419,16 +1446,16 @@
 			card.className = 'mns-nvl__dcard';
 			var head = document.createElement('div');
 			head.className = 'mns-nvl__dhead';
+			var titleWrap = document.createElement('span');
+			titleWrap.className = 'mns-nvl__dtitle';
 			var title = document.createElement('b');
 			title.textContent = 'مناطق تهران';
-			head.appendChild(title);
+			titleWrap.appendChild(title);
 			var count = document.createElement('small');
 			count.setAttribute('data-mns-area-count', '');
 			count.textContent = toFaDigits('0') + ' از ' + toFaDigits(String(names.length));
-			head.appendChild(count);
-			card.appendChild(head);
-			var acts = document.createElement('div');
-			acts.className = 'mns-nvl__dacts';
+			titleWrap.appendChild(count);
+			head.appendChild(titleWrap);
 			var chips = document.createElement('div');
 			chips.className = 'mns-ncl__chips';
 			function syncCount() {
@@ -1447,24 +1474,7 @@
 				scheduleAvailability();
 				updateSideSummary();
 			}
-			var btnAll = mnsDistrictActBtn('انتخاب همه', iconCheckAll);
-			btnAll.addEventListener('click', function () {
-				if (names[0]) selectName(names[0]);
-			});
-			var btnClr = mnsDistrictActBtn('پاک‌کردن همه', iconClearAll);
-			btnClr.addEventListener('click', function () {
-				areaDcardValue = '';
-				if (areaSelect) areaSelect.value = '';
-				qsa('.mns-ncl__chip--pick', chips).forEach(function (c) {
-					c.classList.remove('is-selected');
-					c.setAttribute('aria-pressed', 'false');
-				});
-				syncCount();
-				scheduleAvailability();
-			});
-			acts.appendChild(btnAll);
-			acts.appendChild(btnClr);
-			card.appendChild(acts);
+			card.appendChild(head);
 			names.forEach(function (name, idx) {
 				var chip = document.createElement('button');
 				chip.type = 'button';
@@ -1619,13 +1629,6 @@
 		function setTimeSlot(id) {
 			if (!timeValue) return;
 			timeValue.value = id || '';
-			if (timeChips) {
-				qsa('[data-slot-id]', timeChips).forEach(function (btn) {
-					var on = btn.getAttribute('data-slot-id') === id;
-					btn.classList.toggle('is-on', on);
-					btn.setAttribute('aria-checked', on ? 'true' : 'false');
-				});
-			}
 			timeValue.dispatchEvent(new Event('change', { bubbles: true }));
 		}
 
@@ -1635,38 +1638,21 @@
 			var area = areaKey();
 			var list = day ? validSlots(day, area) : [];
 			var keep = preferId || timeValue.value;
-			if (timeChips) {
-				timeChips.innerHTML = '';
-				list.forEach(function (t) {
-					var chip = document.createElement('button');
-					chip.type = 'button';
-					chip.className = 'mns-nvl__sl';
-					chip.setAttribute('data-slot-id', t.id);
-					chip.setAttribute('role', 'radio');
-					chip.setAttribute('aria-checked', 'false');
-					var top = document.createElement('span');
-					top.className = 'mns-nvl__sltop';
-					var ic = document.createElement('span');
-					ic.className = 'mns-nvl__slic';
-					ic.setAttribute('aria-hidden', 'true');
-					ic.innerHTML = mnsSlotIconHtml(t.id);
-					var hrs = document.createElement('small');
-					hrs.setAttribute('dir', 'ltr');
-					hrs.textContent = t.label || timeLabelById(t.id);
-					top.appendChild(ic);
-					top.appendChild(hrs);
-					chip.appendChild(top);
-					chip.addEventListener('click', function () {
-						setTimeSlot(t.id);
-						updateSideSummary();
-						scheduleAvailability();
-					});
-					timeChips.appendChild(chip);
-				});
-			}
+			timeValue.innerHTML = '';
+			var ph = document.createElement('option');
+			ph.value = '';
+			ph.textContent = list.length ? 'انتخاب کنید' : 'برای این روز زمانی نیست';
+			timeValue.appendChild(ph);
+			list.forEach(function (t) {
+				var opt = document.createElement('option');
+				opt.value = t.id;
+				opt.textContent = mnsSlotOptionLabel(t.id);
+				timeValue.appendChild(opt);
+			});
 			var pick = list.filter(function (t) {
 				return t.id === keep;
-			})[0] || list[0];
+			})[0];
+			/* No default slot — leave empty until the patient picks one. */
 			setTimeSlot(pick ? pick.id : '');
 		}
 
@@ -1722,11 +1708,26 @@
 				onShow: function (calendar) {
 					var host = dateInput.closest('[data-mns-date-anchor]') || dateInput.closest('.mns-field-block__control') || dateInput;
 					var rect = host.getBoundingClientRect();
+					/* The library positions the calendar relative to the INPUT (which sits after the icon inside the control),
+					   so offsets must be measured from the input, not from the control, or the box drifts sideways/overlaps. */
+					var inRect = dateInput.getBoundingClientRect();
 					var w = Math.round(rect.width);
 					calendar.outerWidth(w);
 					var maxLeft = document.documentElement.clientWidth - w - 8;
-					var left = Math.max(8, Math.min(rect.right - w, maxLeft));
-					this.calendarPosition.x = left - rect.left;
+					var left = Math.max(8, Math.min(rect.left, maxLeft));
+					this.calendarPosition.x = left - inRect.left;
+					this.calendarPosition.y = rect.bottom - inRect.bottom + 6;
+					/* The library's own offsets drift with page scroll, so place the box in absolute page coordinates:
+					   same left edge and width as the control, 6px below it (desktop and phone). */
+					window.requestAnimationFrame(function () {
+						var el = document.querySelector('.pdp-mns');
+						if (!el) return;
+						var r = host.getBoundingClientRect();
+						var cw = document.documentElement.clientWidth;
+						el.style.width = Math.round(r.width) + 'px';
+						el.style.left = Math.round(Math.max(8, Math.min(r.left, cw - r.width - 8)) + window.pageXOffset) + 'px';
+						el.style.top = Math.round(r.bottom + window.pageYOffset + 6) + 'px';
+					});
 				},
 				onSelect: function () {
 					this.selectedDate = dateInput.value;
