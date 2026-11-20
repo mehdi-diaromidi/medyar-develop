@@ -24,9 +24,15 @@ class MNS_Backend_Orders {
 		class_exists( 'MNS_Loyalty', true );
 		class_exists( 'MNS_Recurring', true );
 		class_exists( 'MNS_Ops_Cron', true );
+		class_exists( 'MNS_Payments', true );
+		class_exists( 'MNS_REST_Payments', true );
+		class_exists( 'MNS_Nurse_Wallet', true );
 		MNS_REST_Patient::boot();
+		MNS_REST_Payments::boot();
 		MNS_Notifications::boot();
 		MNS_Ops_Cron::boot();
+		MNS_Payments::boot();
+		add_filter( 'cron_schedules', array( 'MNS_Payments', 'cron_schedules' ) );
 
 		// Admin UI/list-tables must not boot on the storefront (memory/WAF/admin includes).
 		if ( is_admin() ) {

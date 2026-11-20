@@ -30,6 +30,9 @@ class MNS_Activator {
 		if ( class_exists( 'MNS_E2E', false ) || class_exists( 'MNS_E2E', true ) ) {
 			MNS_E2E::unschedule_cron();
 		}
+		if ( class_exists( 'MNS_Payments', false ) || class_exists( 'MNS_Payments', true ) ) {
+			MNS_Payments::unschedule();
+		}
 	}
 
 	public static function maybe_upgrade(): void {

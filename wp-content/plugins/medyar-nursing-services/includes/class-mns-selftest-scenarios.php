@@ -27,6 +27,9 @@ class MNS_Selftest_Scenarios {
 		MNS_Selftest::register( 'AC-A13-4', 'A-13 rejects closed/past slot', array( __CLASS__, 'ac_a13_4' ) );
 		MNS_Selftest_Orders::register_all();
 		MNS_Selftest_Money::register_all();
+		if ( class_exists( 'MNS_Selftest_Pay', true ) ) {
+			MNS_Selftest_Pay::register_all();
+		}
 	}
 
 	/**

@@ -188,8 +188,11 @@ class MNS_Invoices {
 			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			}
 		}
-		// Best-effort nurse share → Medyar wallet when available.
-		if ( ! empty( $inv['nurse_user_id'] ) && (int) $inv['nurse_share'] > 0 && class_exists( '\MTW_Wallet', false ) ) {
+		// Nurse share → wallet listener (MNS_Nurse_Wallet). Always fire; listener no-ops if MTW missing.
+		// (Was gated on non-existent MTW_Wallet class — fixed for T-F.5.)
+		// Supervisor fix: only ONLINE payments credit the nurse automatically. A manual (cash / card-to-card)
+		// payment may already be with the nurse, so crediting the wallet too could pay her twice (owner decision pending).
+		if ( 'zarinpal' === sanitize_key( $method ) && ! empty( $inv['nurse_user_id'] ) && (int) $inv['nurse_share'] > 0 ) {
 			do_action( 'mns_nurse_share_credited', (int) $inv['nurse_user_id'], (int) $inv['nurse_share'], $invoice_id );
 		}
 		$fresh = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . MNS_DB::table( 'invoices' ) . ' WHERE id = %d', $invoice_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL

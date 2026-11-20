@@ -2675,6 +2675,9 @@ function genTrackCode() {
 		if (!root) return;
 		var total = parseInt(root.getAttribute('data-mns-invoice-total') || '0', 10) || 0;
 		var payBtns = qsa('[data-mns-invoice-pay]');
+		var livePay = root.getAttribute('data-mns-live') === '1';
+		var payApi = root.getAttribute('data-mns-pay-api') || '';
+		var restNonce = root.getAttribute('data-mns-rest-nonce') || (window.mnsPublic && window.mnsPublic.restNonce) || '';
 		payBtns.forEach(function (btn) {
 			btn.addEventListener('click', function () {
 				if (btn.disabled) return;
@@ -2684,7 +2687,40 @@ function genTrackCode() {
 					var label = qs('[data-mns-pay-label]', b);
 					if (label) label.textContent = t('to_gateway', 'در حال انتقال به درگاه…');
 				});
-				/* TODO(backend): POST invoice + version + nonce; server verifies unpaid/no dispute/same version, then redirects to Zarinpal. */
+				if (livePay && payApi && restNonce) {
+					fetch(payApi + (payApi.indexOf('?') >= 0 ? '&' : '?') + '_envelope=1', {
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-WP-Nonce': restNonce
+						},
+						body: '{}'
+					})
+						.then(function (r) { return r.json(); })
+						.then(function (raw) {
+							var body = raw && raw.body ? raw.body : raw;
+							if (body && body.ok && body.data && body.data.redirect_url) {
+								window.location.href = body.data.redirect_url;
+								return;
+							}
+							payBtns.forEach(function (b) {
+								b.disabled = false;
+								b.classList.remove('is-busy');
+							});
+							var msg = (body && body.error && body.error.message) || t('pay_fail', 'شروع پرداخت ممکن نشد.');
+							window.alert(msg);
+						})
+						.catch(function () {
+							payBtns.forEach(function (b) {
+								b.disabled = false;
+								b.classList.remove('is-busy');
+							});
+							window.alert(t('pay_fail', 'شروع پرداخت ممکن نشد.'));
+						});
+					return;
+				}
+				/* Admin / fixture preview: soft redirect to success fixture. */
 				var url = btn.getAttribute('data-mns-pay-url');
 				setTimeout(function () {
 					if (url) window.location.href = url;

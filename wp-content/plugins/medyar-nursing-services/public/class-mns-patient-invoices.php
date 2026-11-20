@@ -238,7 +238,14 @@ class MNS_Patient_Invoices {
 	}
 
 	public static function method_label( string $method ): string {
-		return 'manual' === $method ? __( 'ثبت‌شده توسط پشتیبانی', 'medyar-nursing-services' ) : __( 'پرداخت آنلاین', 'medyar-nursing-services' );
+		$method = sanitize_key( $method );
+		if ( 'zarinpal' === $method ) {
+			return __( 'زرین‌پال', 'medyar-nursing-services' );
+		}
+		if ( 'manual' === $method || 'cash' === $method || 'card' === $method ) {
+			return __( 'ثبت‌شده توسط پشتیبانی', 'medyar-nursing-services' );
+		}
+		return __( 'پرداخت آنلاین', 'medyar-nursing-services' );
 	}
 
 	public static function view_url( string $number, array $extra = array() ): string {

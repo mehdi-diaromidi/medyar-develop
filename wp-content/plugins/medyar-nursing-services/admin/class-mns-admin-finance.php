@@ -10,9 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Admin_Finance {
 
 	public const TABS = array(
-		'unpaid'  => 'فاکتورهای پرداخت‌نشده',
-		'share'   => 'سهم پرستار',
-		'reports' => 'گزارش و خروجی',
+		'unpaid'    => 'فاکتورهای پرداخت‌نشده',
+		'share'     => 'سهم پرستار',
+		'attention' => 'تلاش‌های نیازمند پیگیری',
+		'reports'   => 'گزارش و خروجی',
 	);
 
 	public static function boot(): void {
@@ -44,6 +45,8 @@ class MNS_Admin_Finance {
 		echo '<div class="mns-tab-body">';
 		if ( 'share' === $tab ) {
 			self::render_share();
+		} elseif ( 'attention' === $tab ) {
+			self::render_attention();
 		} elseif ( 'reports' === $tab ) {
 			self::render_reports();
 		} else {
@@ -88,17 +91,47 @@ class MNS_Admin_Finance {
 	private static function render_share(): void {
 		$items = class_exists( 'MNS_Invoices', true ) ? MNS_Invoices::nurse_shares( 50 ) : array();
 		echo '<p class="mns-lead">سهم پرستاران از فاکتورهای پرداخت‌شده (واریز واقعی از کیف پول تومان مدیار).</p>';
-		echo '<table class="widefat striped mns-compact"><thead><tr><th>فاکتور</th><th>پرستار</th><th>سهم</th><th>پرداخت</th></tr></thead><tbody>';
+		echo '<table class="widefat striped mns-compact"><thead><tr><th>فاکتور</th><th>پرستار</th><th>سهم</th><th>روش / پیگیری</th><th>پرداخت</th></tr></thead><tbody>';
 		foreach ( $items as $inv ) {
+			$pay = class_exists( 'MNS_Payments', true ) ? MNS_Payments::latest_payment_for_invoice( (int) $inv['id'] ) : null;
+			$method = is_array( $pay ) ? (string) ( $pay['method'] ?? '' ) : '';
+			$track  = is_array( $pay ) ? (string) ( $pay['tracking'] ?? '' ) : '';
+			$label  = 'zarinpal' === $method ? 'زرین‌پال' : ( $method ? $method : '—' );
 			echo '<tr>';
 			echo '<td><code>' . esc_html( (string) $inv['number'] ) . '</code></td>';
 			echo '<td>' . esc_html( MNS_Admin_Ui::user_name( (int) ( $inv['nurse_user_id'] ?? 0 ) ) ) . '</td>';
 			echo '<td>' . esc_html( MNS_Admin_Ui::money( $inv['nurse_share'] ) ) . '</td>';
+			echo '<td>' . esc_html( $label );
+			if ( $track ) {
+				echo ' / <code dir="ltr">' . esc_html( $track ) . '</code>';
+			}
+			echo '</td>';
 			echo '<td>' . esc_html( MNS_Admin_Ui::date( (string) ( $inv['paid_at'] ?? '' ), true ) ) . '</td>';
 			echo '</tr>';
 		}
 		if ( ! $items ) {
-			echo '<tr><td colspan="4"><p class="mns-empty">موردی نیست.</p></td></tr>';
+			echo '<tr><td colspan="5"><p class="mns-empty">موردی نیست.</p></td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	private static function render_attention(): void {
+		$items = class_exists( 'MNS_Payments', true ) ? MNS_Payments::list_attention( 50 ) : array();
+		echo '<p class="mns-lead">تلاش‌های <code>paid_duplicate</code>، <code>amount_mismatch</code> و <code>paid_error</code> برای پیگیری دستی (فقط‌خواندنی؛ بازپرداخت خودکار وجود ندارد).</p>';
+		echo '<table class="widefat striped mns-compact"><thead><tr><th>شناسه</th><th>فاکتور</th><th>وضعیت</th><th>مبلغ</th><th>Authority</th><th>Ref</th><th>زمان</th></tr></thead><tbody>';
+		foreach ( $items as $row ) {
+			echo '<tr>';
+			echo '<td>' . (int) $row['id'] . '</td>';
+			echo '<td>#' . (int) $row['invoice_id'] . '</td>';
+			echo '<td><code>' . esc_html( (string) $row['status'] ) . '</code></td>';
+			echo '<td>' . esc_html( MNS_Admin_Ui::money( $row['amount'] ) ) . '</td>';
+			echo '<td><code dir="ltr">' . esc_html( (string) $row['authority'] ) . '</code></td>';
+			echo '<td><code dir="ltr">' . esc_html( (string) ( $row['ref_id'] ?? '' ) ) . '</code></td>';
+			echo '<td>' . esc_html( MNS_Admin_Ui::date( (string) ( $row['updated_at'] ?? '' ), true ) ) . '</td>';
+			echo '</tr>';
+		}
+		if ( ! $items ) {
+			echo '<tr><td colspan="7"><p class="mns-empty">موردی نیست.</p></td></tr>';
 		}
 		echo '</tbody></table>';
 	}

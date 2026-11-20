@@ -35,6 +35,7 @@ class MNS_DB {
 		'surveys',
 		'loyalty_stamps',
 		'recurring_plans',
+		'payment_attempts',
 	);
 
 	/** @var array<int,string> Allowed PK columns for lock_row(). */

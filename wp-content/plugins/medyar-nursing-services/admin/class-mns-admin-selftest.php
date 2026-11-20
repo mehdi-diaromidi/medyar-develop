@@ -39,7 +39,7 @@ class MNS_Admin_Selftest {
 			$suites = array(
 				'core'   => array( 'AC-M0-*', 'AC-ELG-*', 'AC-A13-*', 'AC-M2-*', 'AC-M3-1', 'AC-M3-2' ),
 				'orders' => array( 'AC-M3-*', 'AC-ASG-*', 'AC-FIL-*' ),
-				'money'  => array( 'AC-M5-*', 'AC-M4-*' ),
+				'money'  => array( 'AC-M5-*', 'AC-M4-*', 'AC-M6-*' ),
 			);
 			$suite  = isset( $_POST['suite'] ) ? sanitize_key( wp_unslash( (string) $_POST['suite'] ) ) : 'all';
 			$result = MNS_Selftest::run( isset( $suites[ $suite ] ) ? $suites[ $suite ] : null );

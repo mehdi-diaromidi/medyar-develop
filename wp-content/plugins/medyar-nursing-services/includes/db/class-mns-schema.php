@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MNS_Schema {
 
 	/** Latest schema version shipped by this plugin build. */
-	public const LATEST = 2;
+	public const LATEST = 3;
 
 	/**
 	 * CREATE TABLE statements for a schema version.
@@ -26,6 +26,9 @@ class MNS_Schema {
 		}
 		if ( 2 === $version ) {
 			return self::sql_v2();
+		}
+		if ( 3 === $version ) {
+			return self::sql_v3();
 		}
 		return array();
 	}
@@ -60,6 +63,11 @@ class MNS_Schema {
 				'surveys',
 				'loyalty_stamps',
 				'recurring_plans',
+			);
+		}
+		if ( 3 === $version ) {
+			return array(
+				'payment_attempts',
 			);
 		}
 		return array();
@@ -384,6 +392,36 @@ created_at datetime NOT NULL,
 updated_at datetime NOT NULL,
 PRIMARY KEY  (id),
 KEY account_status (account_user_id,status)
+) {$cc};",
+		);
+	}
+
+	/**
+	 * M5 online payment attempts (Zarinpal).
+	 *
+	 * @return array<int,string>
+	 */
+	private static function sql_v3(): array {
+		$cc       = MNS_DB::charset_collate();
+		$attempts = MNS_DB::table( 'payment_attempts' );
+
+		return array(
+			"CREATE TABLE {$attempts} (
+id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+invoice_id bigint(20) unsigned NOT NULL,
+account_user_id bigint(20) unsigned NOT NULL,
+authority varchar(64) NOT NULL DEFAULT '',
+amount bigint(20) NOT NULL DEFAULT 0,
+status varchar(16) NOT NULL DEFAULT 'pending',
+ref_id varchar(64) DEFAULT NULL,
+created_at datetime NOT NULL,
+updated_at datetime NOT NULL,
+verified_at datetime DEFAULT NULL,
+meta longtext,
+PRIMARY KEY  (id),
+UNIQUE KEY authority (authority),
+KEY invoice_status (invoice_id,status),
+KEY account_user_id (account_user_id)
 ) {$cc};",
 		);
 	}

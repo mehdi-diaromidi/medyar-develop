@@ -12,63 +12,105 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 MNS_UI::boot_icons();
 
-if ( MNS_Nurse_Access::is_real_panel_user( 'patient' ) ) {
-	MNS_UI::empty_state(
-		array(
-			'title' => __( 'فاکتور', 'medyar-nursing-services' ),
-			'text'  => __( 'جزئیات فاکتور از فهرست فاکتورها در دسترس است.', 'medyar-nursing-services' ),
-			'icon'  => 'list',
-		)
-	);
-	return;
-}
-
-$pack     = MNS_Static_Fixtures::get( 'patient/invoices' );
-$items    = isset( $pack['items'] ) && is_array( $pack['items'] ) ? $pack['items'] : array();
-$patients = isset( $pack['patients'] ) && is_array( $pack['patients'] ) ? $pack['patients'] : array();
-$default  = (string) ( $pack['default_number'] ?? 'INV-2031' );
+$use_real = MNS_Nurse_Access::is_real_panel_user( 'patient' );
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only view params.
-$number  = isset( $_GET['mns_invoice'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_invoice'] ) ) : $default;
 $result  = isset( $_GET['mns_result'] ) ? sanitize_key( wp_unslash( $_GET['mns_result'] ) ) : '';
 $dispute = isset( $_GET['mns_dispute'] );
 // phpcs:enable
 
-$by_number = array();
-foreach ( $items as $row ) {
-	$by_number[ (string) $row['number'] ] = $row;
-}
-if ( ! isset( $by_number[ $number ] ) ) {
-	$number = $default;
-}
-$inv    = $by_number[ $number ] ?? array();
-$status = (string) ( $inv['status'] ?? 'unpaid' );
-foreach ( array( 'dispute', 'paid' ) as $dev ) {
-	if ( MNS_Dev::is( $dev ) ) {
-		$status = $dev;
-	}
-}
-foreach ( array( 'success', 'failed', 'pending', 'guest', 'not_owner' ) as $dev ) {
-	if ( MNS_Dev::is( $dev ) ) {
-		$result = $dev;
-	}
-}
-if ( 'paid' === $status && empty( $inv['paid_at'] ) ) {
-	$inv['paid_at']    = MNS_Patient_Invoices::now( 'Y-m-d H:i' );
-	$inv['pay_method'] = 'online';
-	$inv['txn']        = '842196375';
-}
-
-$lines_all = isset( $pack['lines'] ) && is_array( $pack['lines'] ) ? $pack['lines'] : array();
-$lines     = $lines_all[ $number ] ?? array(
-	array( 'kind' => 'base', 'title' => (string) ( $inv['service'] ?? '' ), 'qty' => 1, 'unit' => (int) ( $inv['amount'] ?? 0 ) ),
-);
-$sum      = MNS_Patient_Invoices::totals( $lines );
-$total    = $sum['total'];
 $kinds    = MNS_Patient_Invoices::line_kinds();
 $types    = MNS_Patient_Invoices::types();
 $list_url = MNS_Pages::panel_url( 'patient', 'invoices' );
-$order    = (string) ( $inv['order'] ?? '' );
-$patient  = (string) ( $patients[ $inv['patient_id'] ?? '' ] ?? '' );
+$rest_url = esc_url_raw( rest_url( 'mns/v1' ) );
+$rest_nonce = wp_create_nonce( 'wp_rest' );
+
+if ( $use_real && class_exists( 'MNS_Payments', true ) ) {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$number = isset( $_GET['mns_invoice'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_invoice'] ) ) : '';
+	// phpcs:enable
+	$live = $number ? MNS_Payments::invoice_by_number( $number ) : null;
+	if ( ! $live || (int) $live['account_user_id'] !== get_current_user_id() ) {
+		MNS_UI::empty_state(
+			array(
+				'title' => __( 'فاکتور', 'medyar-nursing-services' ),
+				'text'  => __( 'این فاکتور پیدا نشد یا به حساب شما تعلق ندارد.', 'medyar-nursing-services' ),
+				'icon'  => 'list',
+			)
+		);
+		return;
+	}
+	$status = (string) $live['status'];
+	$order_row = MNS_Order_Machine::get_order( (int) $live['order_id'] );
+	$order     = is_array( $order_row ) ? (string) ( $order_row['code'] ?? '' ) : '';
+	$pay_row   = MNS_Payments::latest_payment_for_invoice( (int) $live['id'] );
+	$inv       = array(
+		'number'     => (string) $live['number'],
+		'status'     => $status,
+		'amount'     => (int) $live['amount'],
+		'issued'     => (string) ( $live['issued_at'] ?? '' ),
+		'paid_at'    => (string) ( $live['paid_at'] ?? '' ),
+		'pay_method' => is_array( $pay_row ) ? (string) ( $pay_row['method'] ?? '' ) : '',
+		'txn'        => is_array( $pay_row ) ? (string) ( $pay_row['tracking'] ?? '' ) : '',
+		'order'      => $order,
+		'service'    => __( 'خدمت پرستاری', 'medyar-nursing-services' ),
+		'patient_id' => '',
+	);
+	$patient = wp_get_current_user()->display_name;
+	$lines   = array(
+		array(
+			'kind'  => 'base',
+			'title' => (string) $inv['service'],
+			'qty'   => 1,
+			'unit'  => (int) $inv['amount'],
+		),
+	);
+	$sum   = MNS_Patient_Invoices::totals( $lines );
+	$total = $sum['total'];
+	$pay_api = rest_url( 'mns/v1/invoices/' . rawurlencode( $number ) . '/pay' );
+} else {
+	$pack     = MNS_Static_Fixtures::get( 'patient/invoices' );
+	$items    = isset( $pack['items'] ) && is_array( $pack['items'] ) ? $pack['items'] : array();
+	$patients = isset( $pack['patients'] ) && is_array( $pack['patients'] ) ? $pack['patients'] : array();
+	$default  = (string) ( $pack['default_number'] ?? 'INV-2031' );
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only view params.
+	$number = isset( $_GET['mns_invoice'] ) ? sanitize_text_field( wp_unslash( $_GET['mns_invoice'] ) ) : $default;
+	// phpcs:enable
+
+	$by_number = array();
+	foreach ( $items as $row ) {
+		$by_number[ (string) $row['number'] ] = $row;
+	}
+	if ( ! isset( $by_number[ $number ] ) ) {
+		$number = $default;
+	}
+	$inv    = $by_number[ $number ] ?? array();
+	$status = (string) ( $inv['status'] ?? 'unpaid' );
+	foreach ( array( 'dispute', 'paid' ) as $dev ) {
+		if ( MNS_Dev::is( $dev ) ) {
+			$status = $dev;
+		}
+	}
+	foreach ( array( 'success', 'failed', 'pending', 'guest', 'not_owner' ) as $dev ) {
+		if ( MNS_Dev::is( $dev ) ) {
+			$result = $dev;
+		}
+	}
+	if ( 'paid' === $status && empty( $inv['paid_at'] ) ) {
+		$inv['paid_at']    = MNS_Patient_Invoices::now( 'Y-m-d H:i' );
+		$inv['pay_method'] = 'online';
+		$inv['txn']        = '842196375';
+	}
+
+	$lines_all = isset( $pack['lines'] ) && is_array( $pack['lines'] ) ? $pack['lines'] : array();
+	$lines     = $lines_all[ $number ] ?? array(
+		array( 'kind' => 'base', 'title' => (string) ( $inv['service'] ?? '' ), 'qty' => 1, 'unit' => (int) ( $inv['amount'] ?? 0 ) ),
+	);
+	$sum      = MNS_Patient_Invoices::totals( $lines );
+	$total    = $sum['total'];
+	$order    = (string) ( $inv['order'] ?? '' );
+	$patient  = (string) ( $patients[ $inv['patient_id'] ?? '' ] ?? '' );
+	$pay_api  = '';
+}
 
 $status_chip = static function ( string $st ): string {
 	return '<span class="mns-ostatus mns-ostatus--inv-' . esc_attr( $st ) . '"><span class="mns-ostatus__dot" aria-hidden="true"></span><span class="mns-ostatus__label">' . esc_html( MNS_Patient_Invoices::status_label( $st ) ) . '</span></span>';
@@ -118,7 +160,18 @@ endif;
 
 $revised = isset( $inv['revised'] ) && is_array( $inv['revised'] ) ? $inv['revised'] : null;
 ?>
-<section class="mns-invd mns-invd--<?php echo esc_attr( $status ); ?>" data-mns-invoice data-mns-invoice-total="<?php echo esc_attr( (string) $total ); ?>">
+<section
+	class="mns-invd mns-invd--<?php echo esc_attr( $status ); ?>"
+	data-mns-invoice
+	data-mns-invoice-total="<?php echo esc_attr( (string) $total ); ?>"
+	data-mns-invoice-number="<?php echo esc_attr( $number ); ?>"
+	<?php if ( $use_real && $pay_api ) : ?>
+		data-mns-live="1"
+		data-mns-rest-url="<?php echo esc_url( $rest_url ); ?>"
+		data-mns-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
+		data-mns-pay-api="<?php echo esc_url( $pay_api ); ?>"
+	<?php endif; ?>
+>
 	<a class="mns-invd__back" href="<?php echo esc_url( $list_url ); ?>"><?php echo mns_icon( 'chevron', 'mns-icon--flip' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html__( 'بازگشت به فاکتورها', 'medyar-nursing-services' ); ?></span></a>
 
 	<header class="mns-invd__head">
@@ -216,7 +269,7 @@ $revised = isset( $inv['revised'] ) && is_array( $inv['revised'] ) ? $inv['revis
 				<section class="mns-invd__card mns-invd__pay" id="mns-pay">
 					<h2 class="mns-invd__card-title"><span class="mns-invd__card-icon is-warn" aria-hidden="true"><?php echo mns_icon( 'card' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><?php echo esc_html__( 'پرداخت فاکتور', 'medyar-nursing-services' ); ?></h2>
 					<?php // TODO(backend): server re-checks unpaid + no dispute + same version before redirecting to Zarinpal. ?>
-					<button type="button" class="mns-obtn mns-obtn--primary mns-invd__paybtn" data-mns-invoice-pay data-mns-pay-url="<?php echo esc_url( MNS_Patient_Invoices::view_url( $number, array( 'mns_result' => 'success' ) ) ); ?>" <?php disabled( 'dispute' === $status ); ?>>
+					<button type="button" class="mns-obtn mns-obtn--primary mns-invd__paybtn" data-mns-invoice-pay data-mns-pay-url="<?php echo esc_url( $use_real ? '' : MNS_Patient_Invoices::view_url( $number, array( 'mns_result' => 'success' ) ) ); ?>" <?php disabled( 'dispute' === $status ); ?>>
 						<?php echo mns_icon( 'dispute' === $status ? 'lock' : 'card' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<span data-mns-pay-label>
 							<?php
@@ -242,7 +295,7 @@ $revised = isset( $inv['revised'] ) && is_array( $inv['revised'] ) ? $inv['revis
 
 	<?php if ( 'paid' !== $status ) : ?>
 		<div class="mns-invd__paybar" data-mns-paybar>
-			<button type="button" class="mns-obtn mns-obtn--primary mns-invd__paybtn" data-mns-invoice-pay data-mns-pay-url="<?php echo esc_url( MNS_Patient_Invoices::view_url( $number, array( 'mns_result' => 'success' ) ) ); ?>" <?php disabled( 'dispute' === $status ); ?>>
+			<button type="button" class="mns-obtn mns-obtn--primary mns-invd__paybtn" data-mns-invoice-pay data-mns-pay-url="<?php echo esc_url( $use_real ? '' : MNS_Patient_Invoices::view_url( $number, array( 'mns_result' => 'success' ) ) ); ?>" <?php disabled( 'dispute' === $status ); ?>>
 				<span data-mns-pay-label>
 					<?php
 					/* translators: %s: amount */
