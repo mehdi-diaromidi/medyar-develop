@@ -15,6 +15,7 @@ class MNS_Backend_Selftest {
 		}
 		MNS_Admin_Selftest::boot();
 		MNS_Admin_E2E::boot();
+		MNS_Admin_TestCenter::boot();
 		MNS_Admin_Reset::boot();
 	}
 }
