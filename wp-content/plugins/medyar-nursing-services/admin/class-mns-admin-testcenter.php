@@ -18,6 +18,8 @@ class MNS_Admin_TestCenter {
 		if ( ! class_exists( 'MNS_E2E', true ) || ! MNS_E2E::host_allowed() ) {
 			return;
 		}
+		MNS_Demo_Data::boot();
+		add_action( 'wp_ajax_mns_tc_demo', array( __CLASS__, 'ajax_demo' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 99 );
 		add_action( 'admin_bar_menu', array( __CLASS__, 'bar' ), 90 );
 		foreach ( array( 'enable', 'users', 'orders', 'links', 'purge' ) as $act ) {
@@ -135,6 +137,45 @@ class MNS_Admin_TestCenter {
 		MNS_E2E::purge_all();
 		delete_transient( 'mns_tc_data_' . get_current_user_id() );
 		self::back( 'همهٔ کاربران و سفارش‌های تستی پاک شدند.' );
+	}
+
+	/**
+	 * One batch of demo-data work. The page calls this in a loop and shows the progress.
+	 */
+	public static function ajax_demo(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! MNS_E2E::host_allowed() ) {
+			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
+		}
+		check_ajax_referer( 'mns_tc', 'nonce' );
+		$op = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( (string) $_POST['op'] ) ) : '';
+		try {
+			switch ( $op ) {
+				case 'nurses_create':
+					$res = MNS_Demo_Data::create_nurses( 10 );
+					break;
+				case 'nurses_delete':
+					$res = MNS_Demo_Data::delete_nurses( 20 );
+					break;
+				case 'orders_create':
+					$res = MNS_Demo_Data::create_orders( 25 );
+					break;
+				case 'orders_delete':
+					$res = MNS_Demo_Data::delete_orders( 2 );
+					break;
+				case 'nurse_list':
+					$res = MNS_Demo_Data::nurse_list();
+					break;
+				case 'nurse_link':
+					$uid = isset( $_POST['uid'] ) ? absint( wp_unslash( (string) $_POST['uid'] ) ) : 0;
+					$res = array( 'url' => MNS_E2E::login_link_for_demo( $uid ) );
+					break;
+				default:
+					$res = MNS_Demo_Data::counts();
+			}
+		} catch ( \Throwable $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ), 200 );
+		}
+		wp_send_json_success( $res );
 	}
 
 	/* ------------------------------------------------------------------ view helpers */
@@ -362,6 +403,14 @@ class MNS_Admin_TestCenter {
 			.mns-tc__step.is-done .mns-tc__what { color: #5f7a6a; }
 			.mns-tc__go { min-height: 32px; padding: 0 12px; border-radius: 8px; font-size: 12.5px; color: var(--c1); }
 			.mns-tc__expect { margin: 6px 0 0; padding-inline-start: 74px; color: #50575e; line-height: 1.8; }
+			/* demo data */
+			.mns-tc__demo { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+			.mns-tc__demo-box { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfc; }
+			.mns-tc__demo-box h3 { margin: 0 0 6px; font-size: 14.5px; }
+			.mns-tc__demo-count { margin: 0 0 8px; color: #3c434a; }
+			.mns-tc__demo-bar { width: 100%; height: 8px; margin: 0 0 12px; }
+			.mns-tc__demo-bar i { background: linear-gradient(90deg, #0272b1, #16a34a); }
+			.mns-tc__btn.is-busy { opacity: 0.7; pointer-events: none; }
 			/* toast + confetti */
 			.mns-tc__toast { position: fixed; inset-inline: 0; bottom: 28px; z-index: 99999; display: flex; justify-content: center; pointer-events: none; }
 			.mns-tc__toast span { padding: 11px 20px; border-radius: 999px; background: #0a3d5c; color: #fff; font-weight: 700; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25); opacity: 0; transform: translateY(14px); transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -480,6 +529,47 @@ class MNS_Admin_TestCenter {
 						?>
 					</p>
 				<?php endif; ?>
+			</section>
+
+			<?php $demo = MNS_Demo_Data::counts(); ?>
+			<section class="mns-tc__card" id="mns-tc-demo" data-mns-tc-demo-nonce="<?php echo esc_attr( wp_create_nonce( 'mns_tc' ) ); ?>" data-mns-tc-demo-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-n="<?php echo (int) $demo['nurses']; ?>" data-p="<?php echo (int) $demo['patients']; ?>" data-o="<?php echo (int) $demo['orders']; ?>" data-max-n="<?php echo (int) MNS_Demo_Data::NURSES; ?>" data-max-o="<?php echo (int) MNS_Demo_Data::ORDERS; ?>">
+				<div class="mns-tc__head">
+					<span class="mns-tc__emoji">🏭</span>
+					<div><h2>داده‌های نمایشی (کارخانهٔ داده)</h2><p>برای دیدن لیست‌ها و پنل‌ها وقتی پر هستند. همه‌چیز با نام‌های ایرانی ساخته می‌شود و با یک دکمه پاک می‌شود. پرستارهای نمایشی در تخصیص خودکار و موجودی زمان شرکت نمی‌کنند، پس تست‌های تو را به‌هم نمی‌زنند.</p></div>
+				</div>
+				<div class="mns-tc__demo">
+					<div class="mns-tc__demo-box">
+						<h3>👩‍⚕️ ۱۰۰ پرستار</h3>
+						<p class="mns-tc__demo-count"><b data-mns-demo-n>—</b> از ۱۰۰ ساخته شده</p>
+						<div class="mns-tc__sec-bar mns-tc__demo-bar"><i data-mns-demo-bar-n></i></div>
+						<div class="mns-tc__row">
+							<button type="button" class="mns-tc__btn mns-tc__btn--primary" data-mns-demo="nurses_create">ساخت ۱۰۰ پرستار</button>
+							<button type="button" class="mns-tc__btn mns-tc__btn--danger" data-mns-demo="nurses_delete">حذف پرستارها</button>
+						</div>
+					</div>
+					<div class="mns-tc__demo-box">
+						<h3>🧑‍🦳 ۱۰ بیمار و ۲۰۰ سفارش</h3>
+						<p class="mns-tc__demo-count"><b data-mns-demo-p>—</b> بیمار، <b data-mns-demo-o>—</b> از ۲۰۰ سفارش</p>
+						<div class="mns-tc__sec-bar mns-tc__demo-bar"><i data-mns-demo-bar-o></i></div>
+						<div class="mns-tc__row">
+							<button type="button" class="mns-tc__btn mns-tc__btn--primary" data-mns-demo="orders_create">ساخت ۱۰ بیمار و ۲۰۰ سفارش</button>
+							<button type="button" class="mns-tc__btn mns-tc__btn--danger" data-mns-demo="orders_delete">حذف بیمارها و سفارش‌ها</button>
+						</div>
+					</div>
+				</div>
+				<div class="mns-tc__demo-box" style="margin-top:12px">
+					<h3>🔑 ورود به‌عنوان یکی از پرستارهای نمایشی</h3>
+					<div class="mns-tc__row">
+						<select data-mns-demo-pick style="min-width:260px;min-height:38px"><option value="">— اول پرستارها را بساز —</option></select>
+						<button type="button" class="mns-tc__btn mns-tc__btn--primary" data-mns-demo-link>ساخت لینک ورود</button>
+					</div>
+					<div class="mns-tc__link" data-mns-demo-linkbox hidden style="margin-top:10px">
+						<input type="text" readonly onclick="this.select();" data-mns-demo-linkurl />
+						<button type="button" class="mns-tc__btn" data-mns-demo-copy>کپی</button>
+					</div>
+					<p class="mns-tc__note">لینک یک‌بار مصرف است. آن را در <b>پنجرهٔ ناشناس</b> باز کن تا از حساب ادمین بیرون نیفتی.</p>
+				</div>
+				<p class="mns-tc__note" data-mns-demo-msg>سفارش‌ها از ۷۵ روز قبل تا ۲ هفتهٔ آینده پخش می‌شوند، با وضعیت‌های متنوع (تکمیل‌شده، پرداخت‌شده، فاکتور، لغوشده، در انتظار، تخصیص‌یافته و …). برای ساخت سفارش‌ها ابتدا پرستارها را بساز.</p>
 			</section>
 
 			<?php foreach ( self::sections() as $sec ) : ?>
@@ -620,6 +710,107 @@ class MNS_Admin_TestCenter {
 				});
 			});
 			paint();
+		})();
+		(function () {
+			var box = document.getElementById('mns-tc-demo');
+			if (!box) return;
+			var url = box.getAttribute('data-mns-tc-demo-url');
+			var nonce = box.getAttribute('data-mns-tc-demo-nonce');
+			var maxN = Number(box.getAttribute('data-max-n')) || 100;
+			var maxO = Number(box.getAttribute('data-max-o')) || 200;
+			var fa = function (n) { try { return Number(n).toLocaleString('fa-IR'); } catch (e) { return String(n); } };
+			var msg = box.querySelector('[data-mns-demo-msg]');
+			var btns = [].slice.call(box.querySelectorAll('[data-mns-demo]'));
+			var c = { nurses: Number(box.getAttribute('data-n')) || 0, patients: Number(box.getAttribute('data-p')) || 0, orders: Number(box.getAttribute('data-o')) || 0 };
+			var busy = false;
+			function paintCounts() {
+				box.querySelector('[data-mns-demo-n]').textContent = fa(c.nurses);
+				box.querySelector('[data-mns-demo-p]').textContent = fa(c.patients);
+				box.querySelector('[data-mns-demo-o]').textContent = fa(c.orders);
+				box.querySelector('[data-mns-demo-bar-n]').style.width = Math.min(100, c.nurses / maxN * 100) + '%';
+				box.querySelector('[data-mns-demo-bar-o]').style.width = Math.min(100, c.orders / maxO * 100) + '%';
+			}
+			function say(t, bad) { msg.textContent = t; msg.style.background = bad ? '#fdecef' : ''; msg.style.borderColor = bad ? '#f1a9b8' : ''; msg.style.color = bad ? '#8f1034' : ''; }
+			function step(op, goal, label, done) {
+				var body = new URLSearchParams();
+				body.set('action', 'mns_tc_demo');
+				body.set('nonce', nonce);
+				body.set('op', op);
+				fetch(url, { method: 'POST', credentials: 'same-origin', body: body })
+					.then(function (r) { return r.text(); })
+					.then(function (t) {
+						var j; try { j = JSON.parse(t); } catch (e) { throw new Error('پاسخ نامعتبر از سرور (' + t.slice(0, 80) + ')'); }
+						if (!j.success) throw new Error((j.data && j.data.message) || 'خطای نامشخص');
+						var before = c.nurses + '/' + c.patients + '/' + c.orders;
+						c = j.data; paintCounts();
+						var progress = c.nurses + '/' + c.patients + '/' + c.orders;
+						if (goal(c) || progress === before) { done(null); return; }
+						say(label + ' … ' + fa(c.nurses) + ' پرستار، ' + fa(c.patients) + ' بیمار، ' + fa(c.orders) + ' سفارش');
+						step(op, goal, label, done);
+					})
+					.catch(function (e) { done(e); });
+			}
+			var plans = {
+				nurses_create: { label: 'در حال ساخت پرستارها', goal: function (x) { return x.nurses >= maxN; }, ok: 'پرستارهای نمایشی ساخته شدند ✅' },
+				nurses_delete: { label: 'در حال حذف پرستارها', goal: function (x) { return x.nurses <= 0; }, ok: 'پرستارهای نمایشی پاک شدند 🧹' },
+				orders_create: { label: 'در حال ساخت سفارش‌ها', goal: function (x) { return x.orders >= maxO; }, ok: 'بیمارها و سفارش‌ها ساخته شدند ✅' },
+				orders_delete: { label: 'در حال حذف بیمارها و سفارش‌ها', goal: function (x) { return x.patients <= 0; }, ok: 'بیمارها و سفارش‌های نمایشی پاک شدند 🧹' }
+			};
+			btns.forEach(function (b) {
+				b.addEventListener('click', function () {
+					if (busy) return;
+					var op = b.getAttribute('data-mns-demo');
+					var plan = plans[op];
+					if (!plan) return;
+					if (/delete/.test(op) && !window.confirm('مطمئنی؟ این داده‌های نمایشی پاک می‌شوند.')) return;
+					busy = true;
+					btns.forEach(function (x) { x.classList.add('is-busy'); });
+					say(plan.label + ' …');
+					step(op, plan.goal, plan.label, function (err) {
+						busy = false;
+						btns.forEach(function (x) { x.classList.remove('is-busy'); });
+						if (err) { say('⚠️ ' + err.message, true); return; }
+						say(plan.ok);
+					});
+				});
+			});
+			paintCounts();
+			var pick = box.querySelector('[data-mns-demo-pick]');
+			var linkBox = box.querySelector('[data-mns-demo-linkbox]');
+			var linkUrl = box.querySelector('[data-mns-demo-linkurl]');
+			function call(params) {
+				var body = new URLSearchParams();
+				body.set('action', 'mns_tc_demo');
+				body.set('nonce', nonce);
+				Object.keys(params).forEach(function (k) { body.set(k, params[k]); });
+				return fetch(url, { method: 'POST', credentials: 'same-origin', body: body }).then(function (r) { return r.json(); }).then(function (j) {
+					if (!j.success) throw new Error((j.data && j.data.message) || 'خطا');
+					return j.data;
+				});
+			}
+			function loadList() {
+				call({ op: 'nurse_list' }).then(function (list) {
+					pick.innerHTML = '';
+					var o = document.createElement('option');
+					o.value = '';
+					o.textContent = list.length ? '— یک پرستار انتخاب کن —' : '— اول پرستارها را بساز —';
+					pick.appendChild(o);
+					list.forEach(function (n) { var e = document.createElement('option'); e.value = n.id; e.textContent = n.name; pick.appendChild(e); });
+				}).catch(function () {});
+			}
+			box.querySelector('[data-mns-demo-link]').addEventListener('click', function () {
+				if (!pick.value) { say('اول یک پرستار انتخاب کن.', true); return; }
+				call({ op: 'nurse_link', uid: pick.value }).then(function (d) {
+					linkUrl.value = d.url; linkBox.hidden = false; linkUrl.select();
+					say('لینک ساخته شد؛ در پنجرهٔ ناشناس باز کن.');
+				}).catch(function (e) { say('⚠️ ' + e.message, true); });
+			});
+			box.querySelector('[data-mns-demo-copy]').addEventListener('click', function () {
+				linkUrl.select();
+				if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(linkUrl.value); } else { document.execCommand('copy'); }
+			});
+			box.addEventListener('click', function (e) { if (e.target.closest('[data-mns-demo]')) { setTimeout(function () { var t = setInterval(function () { if (!busy) { clearInterval(t); loadList(); } }, 800); }, 300); } });
+			loadList();
 		})();
 		</script>
 		<?php

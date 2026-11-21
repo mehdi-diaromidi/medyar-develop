@@ -428,6 +428,23 @@ class MNS_E2E {
 		return $base . (string) $c;
 	}
 
+	/**
+	 * One-time login link for a demo user (Test Center). Only users carrying the demo marker qualify.
+	 */
+	public static function login_link_for_demo( int $uid ): string {
+		if ( ! self::host_allowed() ) {
+			throw MNS_Error::forbidden( 'ابزار تست فقط روی develop کار می‌کند.' );
+		}
+		if ( 'nurse' !== (string) get_user_meta( $uid, MNS_Demo_Data::META, true ) && 'patient' !== (string) get_user_meta( $uid, MNS_Demo_Data::META, true ) ) {
+			throw MNS_Error::validation( 'این کاربر نمایشی نیست.' );
+		}
+		if ( ! self::is_enabled() ) {
+			self::enable_forever();
+		}
+		update_user_meta( $uid, self::META_FLAG, '1' );
+		return self::login_url( self::mint_login_token( $uid ) );
+	}
+
 	private static function mint_login_token( int $uid ): string {
 		$token = bin2hex( random_bytes( 24 ) ); // 48 hex chars.
 		set_transient( 'mns_e2e_login_' . hash( 'sha256', $token ), $uid, self::TOKEN_TTL );

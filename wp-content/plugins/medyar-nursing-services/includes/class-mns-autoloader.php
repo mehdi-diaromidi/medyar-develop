@@ -38,6 +38,7 @@ class MNS_Autoloader {
 		'MNS_Admin_E2E'        => 'admin/class-mns-admin-e2e.php',
 		'MNS_Admin_TestCenter' => 'admin/class-mns-admin-testcenter.php',
 		'MNS_E2E'              => 'includes/services/class-mns-e2e.php',
+		'MNS_Demo_Data'        => 'includes/services/class-mns-demo-data.php',
 		'MNS_Admin_Reset'      => 'admin/class-mns-admin-reset.php',
 		'MNS_Admin_Nurses'     => 'admin/class-mns-admin-nurses.php',
 		'MNS_Admin_Services'   => 'admin/class-mns-admin-services.php',
